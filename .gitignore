@@ -1,0 +1,14 @@
+/build/
+/vcpkg_installed/
+/out/
+/.vs/
+/.vscode/
+/.cache/
+/.idea/
+*.user
+CMakeUserPresets.json
+compile_commands.json
+__pycache__/
+/screenshots/
+imgui.ini
+*.log

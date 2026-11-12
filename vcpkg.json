@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "crowdsim",
+  "version": "0.1.0",
+  "description": "Real-time 3D crowd simulator",
+  "builtin-baseline": "9a5dfef5d1a0438a7d24856a85bd60f309d355e9",
+  "dependencies": [
+    "spdlog",
+    "glm",
+    "entt",
+    "enkits",
+    "nlohmann-json",
+    "doctest"
+  ],
+  "default-features": ["gui"],
+  "features": {
+    "gui": {
+      "description": "Windowed editor: SDL3 + bgfx + Dear ImGui",
+      "dependencies": [
+        {
+          "name": "sdl3",
+          "default-features": false,
+          "features": [
+            { "name": "x11", "platform": "linux" },
+            { "name": "wayland", "platform": "linux" }
+          ]
+        },
+        { "name": "bgfx", "features": ["tools"] },
+        { "name": "imgui", "features": ["docking-experimental", "sdl3-binding"] }
+      ]
+    },
+    "tracy": {
+      "description": "Tracy profiler client",
+      "dependencies": [{ "name": "tracy", "features": ["on-demand"] }]
+    }
+  }
+}
