@@ -7,7 +7,8 @@
 
 namespace crowdsim::sim {
 
-void SpatialHash::build(std::span<const glm::vec2> positions, float cellSize, core::JobSystem& jobs) {
+void SpatialHash::build(std::span<const glm::vec2> positions, float cellSize, core::JobSystem& jobs,
+                        std::span<const float> heights) {
     CS_PROFILE_ZONE();
     cellSize_ = cellSize;
     invCellSize_ = 1.0f / cellSize;
@@ -33,9 +34,13 @@ void SpatialHash::build(std::span<const glm::vec2> positions, float cellSize, co
         cellStart_[b + 1] += cellStart_[b];
     }
     entries_.resize(n);
+    entryPoints_.resize(n);
     cursor_.assign(cellStart_.begin(), cellStart_.end() - 1);
+    const bool withHeights = heights.size() == n;
     for (std::uint32_t i = 0; i < n; ++i) {
-        entries_[cursor_[bucketOfPoint_[i]]++] = i;
+        const std::uint32_t e = cursor_[bucketOfPoint_[i]]++;
+        entries_[e] = i;
+        entryPoints_[e] = glm::vec3(positions[i].x, positions[i].y, withHeights ? heights[i] : 0.0f);
     }
 }
 

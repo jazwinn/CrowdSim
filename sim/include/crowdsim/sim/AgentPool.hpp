@@ -9,6 +9,8 @@
 
 #include <array>
 #include <cstdint>
+#include <span>
+#include <type_traits>
 #include <vector>
 
 #include <glm/vec2.hpp>
@@ -167,6 +169,18 @@ public:
         arrivalPending.push_back(0);
         arrivedOnce.push_back(0);
         despawnRequested.push_back(0);
+    }
+
+    /// Reorder all columns: new agent k is old agent order[k] (order is a permutation).
+    void permute(std::span<const std::uint32_t> order) {
+        forEachColumn([order](auto& column) {
+            std::remove_reference_t<decltype(column)> sorted;
+            sorted.reserve(column.size());
+            for (const std::uint32_t k : order) {
+                sorted.push_back(column[k]);
+            }
+            column.swap(sorted);
+        });
     }
 
     /// Remove agent `i` by moving the last agent into its slot.

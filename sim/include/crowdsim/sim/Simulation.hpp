@@ -77,6 +77,22 @@ struct SimStats {
     float averageSpeed = 0.0f;
 };
 
+/// Wall time of each phase of the last step, in milliseconds (always measured;
+/// a dozen clock reads per step).
+struct StepProfile {
+    float navigation = 0.0f;  ///< navmesh / flow field rebuilds (usually 0)
+    float hash = 0.0f;        ///< spatial hash builds
+    float spawn = 0.0f;
+    float decisions = 0.0f;  ///< behaviour trees (parallel) + script nodes (serial)
+    float resolve = 0.0f;    ///< queues, arrivals (serial)
+    float preferred = 0.0f;  ///< preferred velocities: flow fields, corridors (parallel)
+    float avoidance = 0.0f;  ///< neighbours + ORCA (parallel)
+    float integrate = 0.0f;  ///< movement on the navmesh (parallel)
+    float despawn = 0.0f;
+    float observers = 0.0f;  ///< scripts, metrics
+    float total = 0.0f;
+};
+
 /// Read-only view of one agent's decision state, for the BT debugger.
 struct AgentDebugInfo {
     std::uint32_t id = 0;
@@ -211,8 +227,10 @@ public:
     bool updateNavigation();
 
     // --- Stepping ---------------------------------------------------------------------
-    /// Advance exactly one fixed step. No wall-clock time is read in here.
+    /// Advance exactly one fixed step. Wall-clock time is only read to fill
+    /// lastStepProfile(); it never influences the simulation.
     void step();
+    [[nodiscard]] const StepProfile& lastStepProfile() const noexcept { return profile_; }
 
     /// Back to t = 0 with the configured seed: agents removed, scene kept with
     /// spawner and goal runtime counters cleared.
@@ -243,6 +261,7 @@ public:
 
 private:
     void runCustomNodes();
+    void reorderAgents();
     void spawnAgents(float dt);
     void computePreferredVelocities();
     void computeAvoidance(float dt);
@@ -324,6 +343,7 @@ private:
     std::vector<std::vector<CustomRequest>> customRequests_;  ///< per worker thread
     std::vector<StepObserver*> stepObservers_;
     std::vector<SimEvent> events_;
+    StepProfile profile_;
     std::vector<std::string> tagNames_{""};
     std::vector<TaggedVolume> taggedVolumes_;
 };

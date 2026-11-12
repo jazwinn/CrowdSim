@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cmath>
 #include <numbers>
 #include <span>
@@ -23,6 +24,8 @@
 namespace crowdsim::sim {
 
 namespace {
+
+constexpr std::uint64_t kReorderInterval = 64;  ///< steps between spatial re-sorts of the agent pool
 
 constexpr std::uint32_t kParallelChunk = 256;
 constexpr std::uint32_t kSpawnAttempts = 8;
@@ -425,8 +428,17 @@ bool Simulation::updateNavigation() {
 
 void Simulation::step() {
     CS_PROFILE_ZONE();
+    using Clock = std::chrono::steady_clock;
+    auto mark = Clock::now();
+    const auto start = mark;
+    auto lap = [&mark](float& slot) {
+        const auto now = Clock::now();
+        slot = std::chrono::duration<float, std::milli>(now - mark).count();
+        mark = now;
+    };
     events_.clear();
     updateNavigation();
+    lap(profile_.navigation);
     const auto dt = static_cast<float>(stepSeconds_);
 
     goalAreas_.clear();
@@ -436,24 +448,76 @@ void Simulation::step() {
         goalsCache_.push_back(registry_.get<Goal>(e));
     }
 
+    // Keep agents that are close in space close in memory (cache locality for the
+    // neighbour, avoidance and movement passes). Deterministic: sorted by (cell, id).
+    if (stepIndex_ % kReorderInterval == 0 && agents_.size() > 1) {
+        reorderAgents();
+    }
     const float cellSize = config_.locomotion.neighborDistance;
-    hash_.build(agents_.position, cellSize, services_.jobs);
+    hash_.build(agents_.position, cellSize, services_.jobs, agents_.height);
+    lap(profile_.hash);
 
     const std::uint32_t before = agents_.size();
     spawnAgents(dt);
+    lap(profile_.spawn);
     if (agents_.size() != before) {
-        hash_.build(agents_.position, cellSize, services_.jobs);
+        hash_.build(agents_.position, cellSize, services_.jobs, agents_.height);
+        float rebuild = 0.0f;
+        lap(rebuild);
+        profile_.hash += rebuild;
     }
 
-    tickBehaviors();     // decision layer: low rate, staggered, parallel
+    tickBehaviors();  // decision layer: low rate, staggered, parallel
+    lap(profile_.decisions);
     resolveDecisions();  // serial: queues, arrivals (deterministic shared state)
+    lap(profile_.resolve);
     computePreferredVelocities();
+    lap(profile_.preferred);
     computeAvoidance(dt);
+    lap(profile_.avoidance);
     integrate(dt);
+    lap(profile_.integrate);
     processDespawns();
+    lap(profile_.despawn);
     ++stepIndex_;
     for (StepObserver* observer : stepObservers_) {
         observer->afterStep(*this);
+    }
+    lap(profile_.observers);
+    profile_.total = std::chrono::duration<float, std::milli>(Clock::now() - start).count();
+}
+
+void Simulation::reorderAgents() {
+    CS_PROFILE_ZONE();
+    const std::uint32_t n = agents_.size();
+    const float inv = 1.0f / config_.locomotion.neighborDistance;
+    // Z-order (Morton) key of the agent's cell, then its id.
+    auto spread = [](std::uint32_t v) {
+        v &= 0xFFFFu;
+        v = (v | (v << 8)) & 0x00FF00FFu;
+        v = (v | (v << 4)) & 0x0F0F0F0Fu;
+        v = (v | (v << 2)) & 0x33333333u;
+        v = (v | (v << 1)) & 0x55555555u;
+        return v;
+    };
+    std::vector<std::uint64_t> keys(n);
+    services_.jobs.parallelFor(n, 4096, [&](core::IndexRange r, std::uint32_t) {
+        for (std::uint32_t i = r.begin; i < r.end; ++i) {
+            const auto cx =
+                static_cast<std::uint32_t>(static_cast<std::int32_t>(std::floor(agents_.position[i].x * inv)) + 32768);
+            const auto cz =
+                static_cast<std::uint32_t>(static_cast<std::int32_t>(std::floor(agents_.position[i].y * inv)) + 32768);
+            keys[i] = (static_cast<std::uint64_t>(spread(cx) | (spread(cz) << 1)) << 32) | agents_.id[i];
+        }
+    });
+    std::vector<std::uint32_t> order(n);
+    for (std::uint32_t i = 0; i < n; ++i) {
+        order[i] = i;
+    }
+    std::sort(order.begin(), order.end(), [&](std::uint32_t a, std::uint32_t b) { return keys[a] < keys[b]; });
+    agents_.permute(order);
+    for (std::uint32_t i = 0; i < n; ++i) {
+        idToIndex_[agents_.id[i]] = i;
     }
 }
 
@@ -694,7 +758,6 @@ void Simulation::computePreferredVelocities() {
 void Simulation::computeAvoidance(float dt) {
     CS_PROFILE_ZONE();
     const LocomotionParams& lp = config_.locomotion;
-    const float rangeSq = lp.neighborDistance * lp.neighborDistance;
     const orca::Params params{lp.timeHorizon, dt, lp.obstacleTimeHorizon};
     const bool useNav = navMesh_.valid();
 
@@ -713,15 +776,14 @@ void Simulation::computeAvoidance(float dt) {
             std::uint32_t count = 0;
 
             // Keep the K nearest on the same level, ordered by (distance, index) so ties are deterministic.
-            hash_.query(p, lp.neighborDistance, [&](std::uint32_t j) {
-                if (j == i || std::abs(agents_.height[j] - h) > lp.levelSeparation) {
+            // Positions and heights come from the hash (contiguous); only accepted
+            // neighbours touch the agent arrays.
+            hash_.queryPoints(p, lp.neighborDistance, [&](std::uint32_t j, glm::vec2 q, float qh) {
+                if (j == i || std::abs(qh - h) > lp.levelSeparation) {
                     return;
                 }
-                const glm::vec2 d = agents_.position[j] - p;
+                const glm::vec2 d = q - p;
                 const float d2 = glm::dot(d, d);
-                if (d2 >= rangeSq) {
-                    return;
-                }
                 if (count == lp.maxNeighbors &&
                     (d2 > distSq[count - 1] || (d2 == distSq[count - 1] && j > neighbors[count - 1].index))) {
                     return;
