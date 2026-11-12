@@ -18,6 +18,7 @@
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/mcp/CrowdSimTools.hpp"
+#include "crowdsim/metrics/Metrics.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
 #include "crowdsim/script/ScriptHost.hpp"
 #include "crowdsim/sim/Simulation.hpp"
@@ -50,6 +51,7 @@ public:
     [[nodiscard]] commands::SimControl& control() noexcept { return control_; }
     [[nodiscard]] const std::string& sceneName() const noexcept { return sceneName_; }
     [[nodiscard]] script::ScriptHost& scripts() noexcept { return scriptHost_; }
+    [[nodiscard]] metrics::MetricsCollector& metrics() noexcept { return metrics_; }
 
     /// Execute a command now and log a warning if it fails.
     commands::CommandOutcome execute(const commands::Json& command);
@@ -87,7 +89,8 @@ private:
     commands::CommandContext commandContext_;
     commands::CommandRegistry registry_;
     commands::CommandDispatcher dispatcher_;
-    script::ScriptHost scriptHost_;  ///< Lua domain; detaches from the simulation before it is destroyed
+    script::ScriptHost scriptHost_;      ///< Lua domain; detaches from the simulation before it is destroyed
+    metrics::MetricsCollector metrics_;  ///< observes every step
     ContentWatcher contentWatcher_;
 
     std::uint64_t physicsVersion_ = ~0ull;

@@ -54,7 +54,7 @@ std::string readFile(const std::filesystem::path& p) {
 
 }  // namespace
 
-Json metricsSummary(const sim::Simulation& sim) {
+Json metricsSummary(const sim::Simulation& sim, const std::function<commands::CommandOutcome(const Json&)>& execute) {
     const sim::SimStats s = sim.stats();
     Json goals = Json::array();
     for (sim::SceneId id : sim.goalIds()) {
@@ -72,16 +72,27 @@ Json metricsSummary(const sim::Simulation& sim) {
             ++byState[sim.stateNames()[a.stateId[i]]];
         }
     }
-    return Json{{"time", sim.simTimeSeconds()},
-                {"step", sim.stepIndex()},
-                {"alive", s.alive},
-                {"spawned", s.spawned},
-                {"arrived", s.arrived},
-                {"despawned", s.despawned},
-                {"averageSpeed", std::round(s.averageSpeed * 1000.0f) / 1000.0f},
-                {"goals", goals},
-                {"aliveByType", byType},
-                {"aliveByState", byState}};
+    Json out{{"time", sim.simTimeSeconds()},
+             {"step", sim.stepIndex()},
+             {"alive", s.alive},
+             {"spawned", s.spawned},
+             {"arrived", s.arrived},
+             {"despawned", s.despawned},
+             {"averageSpeed", std::round(s.averageSpeed * 1000.0f) / 1000.0f},
+             {"goals", goals},
+             {"aliveByType", byType},
+             {"aliveByState", byState}};
+    if (execute) {
+        const commands::CommandOutcome analysis = execute(makeCommand("GetMetrics"));
+        if (analysis.ok) {
+            for (const char* key : {"speed", "density", "gates", "timeToGoal", "stuck"}) {
+                if (analysis.result.contains(key)) {
+                    out[key] = analysis.result[key];
+                }
+            }
+        }
+    }
+    return out;
 }
 
 void registerCrowdSimTools(McpServer& server, McpServices& svc) {
@@ -299,8 +310,9 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
                         const std::uint64_t ran = svc.runSteps(~0ull);
                         const double ms =
                             std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
-                        return ToolResult::json(
-                            Json{{"steps", ran}, {"wallMs", std::round(ms)}, {"metrics", metricsSummary(svc.sim)}});
+                        return ToolResult::json(Json{{"steps", ran},
+                                                     {"wallMs", std::round(ms)},
+                                                     {"metrics", metricsSummary(svc.sim, svc.execute)}});
                     },
                     nullptr});
     command("sim_reset", "Remove all agents and return to t = 0 (the scene is kept).", schema(), "ResetSimulation");
@@ -308,8 +320,40 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             schema({{"seed", integer("world seed")}, {"locomotion", object("locomotion parameters")}}), "SetSimParams");
 
     // --- Analysis ---------------------------------------------------------------------------
-    server.addTool({"metrics_get", "Current metrics summary (counts, per-goal arrivals, agents by type and state).",
-                    schema(), [&svc](const Json&) { return ToolResult::json(metricsSummary(svc.sim)); }, nullptr});
+    server.addTool({"metrics_get",
+                    "Metrics summary: counts, per-goal arrivals, agents by type/state, speed and density "
+                    "statistics, gate counts and flow rates, time-to-goal distribution, stuck agents.",
+                    schema(), [&svc](const Json&) { return ToolResult::json(metricsSummary(svc.sim, svc.execute)); },
+                    nullptr});
+    server.addTool({"heatmap_get",
+                    "Density (agents/m², time-averaged since the last reset) or speed (m/s) heatmap over the scene, "
+                    "downsampled to at most maxCells cells (default 900): values[z][x] with origin and cellSize.",
+                    schema({{"kind", str("density | speed")}, {"maxCells", integer("cell budget, 16..40000")}}),
+                    [&svc](const Json& args) {
+                        Json p{{"kind", args.value("kind", std::string("density"))},
+                               {"maxCells", args.value<std::size_t>("maxCells", 900)}};
+                        const commands::CommandOutcome o = svc.execute(makeCommand("GetHeatmap", p));
+                        return o.ok ? ToolResult::json(o.result) : ToolResult::error(o.error);
+                    },
+                    nullptr});
+    command("gate_add",
+            "Add a counting gate (line segment on the floor, a/b as [x, z]); its crossings and flow rate appear in "
+            "metrics_get.",
+            schema({{"name", str("gate name")},
+                    {"a", Json{{"type", "array"}, {"description", "[x, z]"}}},
+                    {"b", Json{{"type", "array"}, {"description", "[x, z]"}}},
+                    {"elevation", num("floor height")}},
+                   {"name", "a", "b"}),
+            "AddGate");
+    command("recording_start", "Start recording agent trajectories at `hz` samples per second (default 6).",
+            schema({{"hz", num("samples per second")}}), "StartRecording");
+    command("recording_stop", "Stop recording trajectories; returns the number of rows.", schema(), "StopRecording");
+    command("recording_export",
+            "Write recorded trajectories (agent_id,type,time,x,y,z,vx,vz,state) as CSV to a content-relative path "
+            "(default recordings/trajectories.csv).",
+            schema({{"path", str("content-relative CSV path")}}), "ExportRecording");
+    command("metrics_export", "Write the metrics time series as CSV (default recordings/metrics.csv).",
+            schema({{"path", str("content-relative CSV path")}}), "ExportMetrics");
 
     // --- Logs -------------------------------------------------------------------------------
     server.addTool({"log_tail", "Most recent log lines (default 50, max 300), optionally only those containing text.",

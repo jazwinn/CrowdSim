@@ -39,7 +39,9 @@ struct McpServices {
 
 void registerCrowdSimTools(McpServer& server, McpServices& services);
 
-/// Metrics summary used by metrics_get and sim_run_for.
-[[nodiscard]] Json metricsSummary(const sim::Simulation& sim);
+/// Metrics summary used by metrics_get and sim_run_for (plus the metrics module's
+/// analysis through `execute`, when given).
+[[nodiscard]] Json metricsSummary(const sim::Simulation& sim,
+                                  const std::function<commands::CommandOutcome(const Json&)>& execute = nullptr);
 
 }  // namespace crowdsim::mcp

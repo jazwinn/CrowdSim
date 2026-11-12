@@ -7,7 +7,8 @@ add_library(crowdsim_app_common STATIC
 )
 target_include_directories(crowdsim_app_common PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(crowdsim_app_common PUBLIC CrowdSim::core CrowdSim::sim CrowdSim::physics CrowdSim::assets
-                                                  CrowdSim::commands CrowdSim::script CrowdSim::mcp)
+                                                  CrowdSim::commands CrowdSim::script CrowdSim::mcp
+                                                  CrowdSim::metrics)
 target_compile_definitions(crowdsim_app_common PUBLIC CROWDSIM_CONTENT_DIR="${CMAKE_SOURCE_DIR}/content")
 target_compile_definitions(crowdsim_app_common PUBLIC CROWDSIM_DOCS_DIR="${CMAKE_SOURCE_DIR}/docs")
 target_compile_definitions(crowdsim_app_common PUBLIC CROWDSIM_VERSION="${PROJECT_VERSION}")
