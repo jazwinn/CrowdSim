@@ -166,6 +166,9 @@ every command with its JSON Schema.
 | `GetBehaviorTree` | no | A tree as a document: the file (with editor layout) when it matches the tree in use, else the live tree. |
 | `SaveBehaviorTree` | no | Validate and write `content/behaviours/<name>.bt.json`. |
 | `DefineAgentType` | yes | Add or replace an agent type from `*.agent.json` content. |
+| `ListAgentTypes` / `ListBehaviorTrees` | no | Agent types with parameters; trees with node and agent counts. |
+| `QueryAgents` | no | Count agents by type / state / behaviour / area and list an evenly spaced sample. |
+| `SpawnAgents` | yes | Spawn N agents in an area now (a one-shot spawner). |
 | `SetAgentTypeBehaviour` | yes | Switch an agent type to another tree (its agents restart). |
 | `LoadScript` / `ReloadScript` | yes (with source) | Run or hot-reload a Lua script (see `docs/scripting.md`). |
 | `EvalLua` | yes | Evaluate Lua; returns printed output and the result. |

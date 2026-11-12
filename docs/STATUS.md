@@ -11,11 +11,54 @@ Last updated: 2026-11-12
 | M4 — Behaviour trees | done (Windows) |
 | M5 — Animated characters | done (Windows) |
 | M6 — Lua scripting | done (Windows) |
-| M7 — Node graph editor | **done** (Windows) |
-| M8 — MCP server | next |
+| M7 — Node graph editor | done (Windows) |
+| M8 — MCP server | **done** (Windows) |
+| M9 — Metrics & analysis | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M8 — MCP server
+
+### What works
+
+- **MCP server** (`mcp/`): JSON-RPC 2.0 core (`initialize` with version negotiation, `ping`,
+  `tools/list`, `tools/call`, `resources/list`, `resources/read`). It has a **stdio** transport
+  (`crowdsim_headless --mcp-stdio`) and a **Streamable HTTP** transport (`--mcp-http
+  127.0.0.1:PORT`, GUI or headless, optional `--mcp-token`). Requests run on the engine thread
+  between steps or frames. ADR 0011.
+- **37 tools**, mapped onto commands: scene (new/load/save/describe, object place/update/delete,
+  glTF import, navmesh rebuild, links), crowd (goals, spawners, agent types, burst spawn,
+  filtered + sampled agent queries), behaviour (list/get/set/validate/node types), scripting
+  (list/get/write/reload/eval), simulation (play/pause/step/run_for/reset/params), metrics, logs,
+  errors, and `screenshot` in the editor (with an optional camera).
+- **Resources**: current scene, behaviour trees, agent types, Lua scripts, docs.
+- New commands: `QueryAgents`, `ListAgentTypes`, `ListBehaviorTrees`, `SpawnAgents`.
+- `docs/ai-integration.md` (connecting Claude Code, conventions, worked workflow),
+  `docs/mcp.example.json`.
+
+### Done-criterion evidence
+
+- CTest `mcp_stdio_workflow` (`tools/mcp_workflow_test.py`) is an MCP client over stdio. From
+  an empty scene it builds a hall with a doorway and defines two agent types with their own
+  trees (rusher, dawdler). It then runs `sim_run_for 60` headless: 1,800 steps in ~0.4 s wall,
+  all 300 agents spawned, 193 arrived, and alive agents split between `rushing` and `dawdling`.
+  It also reads metrics and the scene resource back.
+- Editor over HTTP: `initialize`, bearer token enforced (401 without it), `scene_describe` of
+  the live plaza, and `screenshot` with a camera returned a 1600×900 PNG.
+
+### Tests
+
+New doctest cases: initialize / notifications / errors; every tool has a description and a
+well-formed schema covering the spec's minimum tool list; tool failures are tool errors;
+commands run through tools (place, run, query, eval); resources list/read (path traversal
+rejected); base64; cross-thread request queue. 66 doctest cases and 9 CTest entries pass.
+
+### Known issues
+
+- `heatmap_get` and recording tools come with M9 (metrics).
+- Screenshots are whole editor frames as uncompressed PNG (~5 MB at 1600×900).
+- HTTP responses are plain JSON; no SSE stream or server notifications.
 
 ## M7 — Node graph editor
 

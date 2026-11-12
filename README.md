@@ -41,13 +41,16 @@ build/windows-msvc/bin/Release/crowdsim --scenario plaza --agents 5000        # 
 build/windows-msvc/bin/Release/crowdsim --scenario benchmark --lod 60,200 --no-vsync   # 5k animated characters
 build/windows-msvc/bin/Release/crowdsim --script scenarios/kiosk_square.lua   # Lua: scripted kiosks + tourists
 build/windows-msvc/bin/Release/crowdsim --scenario plaza --edit-bt wanderer    # behaviour tree node editor
+build/windows-msvc/bin/Release/crowdsim_headless --mcp-stdio                   # MCP server for AI clients
+build/windows-msvc/bin/Release/crowdsim --mcp-http 127.0.0.1:8765              # editor + MCP over HTTP
 build/windows-msvc/bin/Release/crowdsim_headless --commands content/commands/build_corridor.commands.json --save-log run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_headless --replay run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_bench
 ```
 
 File formats (scenes, behaviour trees, agent types), the behaviour node reference and the full
-command list: [docs/formats.md](docs/formats.md). Lua API: [docs/scripting.md](docs/scripting.md). Edit any `content/behaviours/*.bt.json` while
+command list: [docs/formats.md](docs/formats.md). Lua API: [docs/scripting.md](docs/scripting.md). AI agents (MCP):
+[docs/ai-integration.md](docs/ai-integration.md). Edit any `content/behaviours/*.bt.json` while
 the editor runs and the agents pick up the change immediately.
 
 `crowdsim_headless` prints a one-line JSON result on stdout (logs go to stderr).
@@ -65,6 +68,7 @@ the editor runs and the agents pick up the change immediately.
 | `assets/` | scene JSON, glTF import, asset library, behaviour/agent JSON, BT graph model |
 | `commands/` | command registry, dispatcher, undo/redo, command log + replay |
 | `script/` | sandboxed LuaJIT + sol2: script BT nodes, entity types, events, script commands |
+| `mcp/` | Model Context Protocol server (stdio + HTTP) with tools and resources over commands |
 | `platform/` | SDL3 window and events |
 | `render/` | bgfx renderer, ImGui backend, embedded shaders |
 | `ui/` | ImGui editor panels: scene editor, BT node editor, agent debugger, script console |

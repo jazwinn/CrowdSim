@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "crowdsim": {
+      "command": "C:/path/to/CrowdSim/build/windows-msvc/bin/Release/crowdsim_headless.exe",
+      "args": ["--mcp-stdio", "--log-level", "warn"]
+    },
+    "crowdsim-gui": {
+      "type": "http",
+      "url": "http://127.0.0.1:8765/mcp",
+      "headers": { "Authorization": "Bearer change-me" }
+    }
+  }
+}
