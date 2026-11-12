@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <cmath>
 #include <filesystem>
 #include <format>
@@ -412,6 +413,136 @@ void registerBuiltinCommands(CommandRegistry& r) {
                return out;
            },
            false});
+
+    r.add({"ListAgentTypes", "Agent types with their behaviour and parameters.", obj({}),
+           [](const Json&, CommandContext& ctx) {
+               CommandOutput out;
+               Json list = Json::array();
+               for (const sim::AgentType& t : ctx.sim.agentTypes()) {
+                   Json j = assets::toJson(t);
+                   j.erase("format");
+                   j.erase("version");
+                   list.push_back(j);
+               }
+               out.result = Json{{"agentTypes", list}};
+               return out;
+           },
+           false});
+
+    r.add({"ListBehaviorTrees", "Behaviour trees in use (name, node count, generation, agent count).", obj({}),
+           [](const Json&, CommandContext& ctx) {
+               CommandOutput out;
+               std::vector<std::uint32_t> users(ctx.sim.behaviorTrees().size(), 0);
+               const sim::AgentPool& a = ctx.sim.agents();
+               for (std::uint32_t i = 0; i < a.size(); ++i) {
+                   if (a.tree[i] < users.size()) {
+                       ++users[a.tree[i]];
+                   }
+               }
+               Json list = Json::array();
+               for (std::size_t t = 0; t < ctx.sim.behaviorTrees().size(); ++t) {
+                   const sim::CompiledTree& tree = ctx.sim.behaviorTrees()[t];
+                   list.push_back(Json{{"name", tree.name},
+                                       {"nodes", tree.nodes.size()},
+                                       {"generation", tree.generation},
+                                       {"agents", users[t]}});
+               }
+               out.result = Json{{"behaviours", list}};
+               return out;
+           },
+           false});
+
+    r.add({"QueryAgents",
+           "Agents matching optional filters (type, state, behaviour, area {center:[x,z], halfExtents:[x,z]}). "
+           "Returns the total count and an evenly spaced sample of at most `limit` agents.",
+           obj({{"type", str("agent type")},
+                {"state", str("state label")},
+                {"behaviour", str("behaviour tree")},
+                {"area", any("{center:[x,z], halfExtents:[x,z]}")},
+                {"limit", integer("max agents listed (default 50, max 500)")}}),
+           [](const Json& p, CommandContext& ctx) {
+               const sim::AgentPool& a = ctx.sim.agents();
+               const auto& types = ctx.sim.agentTypes();
+               const auto& states = ctx.sim.stateNames();
+               const auto& trees = ctx.sim.behaviorTrees();
+               const std::string type = p.value("type", std::string());
+               const std::string state = p.value("state", std::string());
+               const std::string behaviour = p.value("behaviour", std::string());
+               const bool hasArea = p.contains("area");
+               glm::vec2 lo(0.0f);
+               glm::vec2 hi(0.0f);
+               if (hasArea) {
+                   const glm::vec2 c(p["area"].at("center").at(0).get<float>(), p["area"]["center"].at(1).get<float>());
+                   const glm::vec2 h(p["area"].at("halfExtents").at(0).get<float>(),
+                                     p["area"]["halfExtents"].at(1).get<float>());
+                   lo = c - h;
+                   hi = c + h;
+               }
+               std::vector<std::uint32_t> match;
+               for (std::uint32_t i = 0; i < a.size(); ++i) {
+                   if (!type.empty() && (a.agentType[i] >= types.size() || types[a.agentType[i]].name != type)) {
+                       continue;
+                   }
+                   if (!state.empty() && (a.stateId[i] >= states.size() || states[a.stateId[i]] != state)) {
+                       continue;
+                   }
+                   if (!behaviour.empty() && (a.tree[i] >= trees.size() || trees[a.tree[i]].name != behaviour)) {
+                       continue;
+                   }
+                   const glm::vec2 q = a.position[i];
+                   if (hasArea && (q.x < lo.x || q.x > hi.x || q.y < lo.y || q.y > hi.y)) {
+                       continue;
+                   }
+                   match.push_back(i);
+               }
+               const std::size_t limit = std::clamp<std::size_t>(p.value<std::size_t>("limit", 50), 0, 500);
+               Json list = Json::array();
+               const std::size_t n = std::min(limit, match.size());
+               for (std::size_t k = 0; k < n; ++k) {
+                   const std::uint32_t i = match[k * match.size() / std::max<std::size_t>(1, n)];
+                   const auto d = ctx.sim.agentDebug(a.id[i]);
+                   list.push_back(
+                       Json{{"id", a.id[i]},
+                            {"type", d->typeName},
+                            {"state", d->stateName},
+                            {"behaviour", d->treeName},
+                            {"goal", d->goalName},
+                            {"position",
+                             {std::round(d->position.x * 100.0f) / 100.0f, std::round(d->position.y * 100.0f) / 100.0f,
+                              std::round(d->position.z * 100.0f) / 100.0f}},
+                            {"speed", std::round(d->speed * 100.0f) / 100.0f}});
+               }
+               CommandOutput out;
+               out.result = Json{{"total", match.size()}, {"listed", list.size()}, {"agents", list}};
+               return out;
+           },
+           false});
+
+    r.add({"SpawnAgents",
+           "Spawn `count` agents in an area now (adds a one-shot spawner that emits them within a second). "
+           "Returns the spawner id.",
+           obj({{"count", integer("number of agents")},
+                {"area", any("{center:[x,z], halfExtents:[x,z], elevation}")},
+                {"goal", any("goal id or name")},
+                {"type", str("agent type (default: default)")},
+                {"name", str("spawner name")}},
+               {"count", "area", "goal"}),
+           [](const Json& p, CommandContext& ctx) {
+               const auto count = p.at("count").get<std::uint32_t>();
+               if (count == 0 || count > 100000) {
+                   throw std::invalid_argument("count must be 1..100000");
+               }
+               Json spawner{{"name", p.value("name", std::string("Burst"))},
+                            {"area", p.at("area")},
+                            {"rate", std::max(50.0, static_cast<double>(count) * 2.0)},
+                            {"total", count},
+                            {"startTime", ctx.sim.simTimeSeconds()},
+                            {"goal", p.at("goal")}};
+               if (p.contains("type")) {
+                   spawner["agentMix"] = Json::array({Json{{"type", p["type"]}, {"weight", 1}}});
+               }
+               return addEntity(Json{{"spawner", spawner}}, ctx, "spawner", "spawner", "CreateSpawner");
+           }});
 
     r.add({"DefineAgentType", "Add or replace an agent type from its *.agent.json content.",
            obj({{"type", any("crowdsim.agent document: {name, behaviour, radius, preferredSpeed, color, ...}")}},
