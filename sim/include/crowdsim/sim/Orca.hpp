@@ -14,6 +14,13 @@
 namespace crowdsim::sim::orca {
 
 inline constexpr std::uint32_t kMaxNeighbors = 16;
+inline constexpr std::uint32_t kMaxWalls = 8;
+
+/// A static obstacle edge on the ground plane.
+struct Wall {
+    glm::vec2 a;
+    glm::vec2 b;
+};
 
 /// A neighbour as seen from the agent being solved.
 struct Neighbor {
@@ -35,11 +42,14 @@ struct AgentState {
 struct Params {
     float timeHorizon = 2.0f;  ///< seconds of look-ahead for other agents
     float timeStep = 1.0f / 30.0f;
+    float obstacleTimeHorizon = 0.5f;  ///< seconds of look-ahead for walls
+    float wallClearance = 0.05f;       ///< m kept between agent centres and navmesh boundary edges
 };
 
 /// Velocity closest to `self.preferredVelocity` (within maxSpeed) that is
-/// collision-free for `timeHorizon` under ORCA's reciprocity assumption.
+/// collision-free for `timeHorizon` under ORCA's reciprocity assumption. Walls
+/// are hard constraints (at most kMaxWalls are used).
 [[nodiscard]] glm::vec2 computeNewVelocity(const AgentState& self, std::span<const Neighbor> neighbors,
-                                           const Params& params) noexcept;
+                                           std::span<const Wall> walls, const Params& params) noexcept;
 
 }  // namespace crowdsim::sim::orca

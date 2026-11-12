@@ -25,7 +25,9 @@ struct AgentInit {
     float maxSpeed = 1.8f;
     float maxAcceleration = 3.0f;
     glm::vec3 color{1.0f};
-    glm::vec2 goalTarget{0.0f};
+    float height = 0.0f;         ///< world Y (floor height under the agent)
+    std::uint32_t navPoly = 0;   ///< Detour polygon ref, 0 = not on the navmesh
+    glm::vec3 goalTarget{0.0f};  ///< point inside the goal area (on the navmesh)
     std::uint16_t goalIndex = 0;
     std::uint16_t agentType = 0;
     float spawnTime = 0.0f;
@@ -47,11 +49,20 @@ public:
     std::vector<float> maxSpeed;
     std::vector<float> maxAcceleration;
     std::vector<glm::vec3> color;
-    std::vector<glm::vec2> goalTarget;
+    std::vector<float> height;
+    std::vector<float> prevHeight;
+    std::vector<std::uint32_t> navPoly;
+    std::vector<glm::vec3> goalTarget;
     std::vector<std::uint16_t> goalIndex;
     std::vector<std::uint16_t> agentType;
     std::vector<float> spawnTime;
     std::vector<std::uint8_t> arrived;
+    // Off-mesh link traversal (ladders, escalators): active while linkActive != 0.
+    std::vector<std::uint8_t> linkActive;
+    std::vector<float> linkProgress;
+    std::vector<glm::vec3> linkStart;
+    std::vector<glm::vec3> linkEnd;
+    std::vector<std::uint32_t> linkEndPoly;
 
     [[nodiscard]] std::uint32_t size() const noexcept { return static_cast<std::uint32_t>(id.size()); }
     [[nodiscard]] bool empty() const noexcept { return id.empty(); }
@@ -78,11 +89,19 @@ public:
         maxSpeed.push_back(a.maxSpeed);
         maxAcceleration.push_back(a.maxAcceleration);
         color.push_back(a.color);
+        height.push_back(a.height);
+        prevHeight.push_back(a.height);
+        navPoly.push_back(a.navPoly);
         goalTarget.push_back(a.goalTarget);
         goalIndex.push_back(a.goalIndex);
         agentType.push_back(a.agentType);
         spawnTime.push_back(a.spawnTime);
         arrived.push_back(0);
+        linkActive.push_back(0);
+        linkProgress.push_back(0.0f);
+        linkStart.push_back(glm::vec3(0.0f));
+        linkEnd.push_back(glm::vec3(0.0f));
+        linkEndPoly.push_back(0);
     }
 
     /// Remove agent `i` by moving the last agent into its slot.
@@ -109,11 +128,19 @@ private:
         f(maxSpeed);
         f(maxAcceleration);
         f(color);
+        f(height);
+        f(prevHeight);
+        f(navPoly);
         f(goalTarget);
         f(goalIndex);
         f(agentType);
         f(spawnTime);
         f(arrived);
+        f(linkActive);
+        f(linkProgress);
+        f(linkStart);
+        f(linkEnd);
+        f(linkEndPoly);
     }
 };
 

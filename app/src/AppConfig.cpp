@@ -82,6 +82,10 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             number(c.agents);
         } else if (gui && arg == "--no-vsync") {
             c.vsync = false;
+        } else if (gui && arg == "--overlays") {
+            if (auto v = value()) {
+                c.overlays = std::string(*v);
+            }
         } else if (gui && arg == "--sim-speed") {
             number(c.simSpeed);
         } else if (gui && arg == "--camera") {
@@ -120,6 +124,8 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             if (auto v = value()) {
                 c.log.filePath = std::string(*v);
             }
+        } else if (!gui && arg == "--dump-remaining") {
+            c.dumpRemaining = true;
         } else if (!gui && arg == "--steps") {
             number(c.steps);
         } else if (gui && arg == "--frames") {
@@ -170,6 +176,7 @@ std::string usage(std::string_view exeName, bool gui) {
             "  --size WxH          initial window size (default 1600x900)\n"
             "  --no-vsync          present without vsync (for measuring frame time)\n"
             "  --sim-speed X       initial simulation speed multiplier (default 1)\n"
+            "  --overlays LIST     enable overlays: navmesh,flow,velocities,nogrid,noareas,nolinks\n"
             "  --camera x,z,d,y,p  initial camera: target x/z, distance, yaw and pitch in degrees\n"
             "  --frames N          exit after N frames (smoke tests)\n"
             "  --screenshot PATH   save a PNG of the final frame (use with --frames)\n";

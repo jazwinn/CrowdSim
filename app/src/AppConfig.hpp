@@ -23,10 +23,12 @@ struct AppConfig {
     std::uint32_t agents = 5000;  ///< total agents the scenario spawns
     bool vsync = true;            ///< gui: present with vsync
     float simSpeed = 1.0f;        ///< gui: initial simulation speed multiplier
+    std::string overlays;         ///< gui: comma-separated overlays to enable (navmesh,flow,velocities,...)
     /// gui: initial camera (target x, target z, distance, yaw deg, pitch deg); empty = default
     std::optional<std::array<float, 5>> camera;
     std::uint32_t threads = 0;      ///< 0 = hardware concurrency
     std::uint64_t steps = 300;      ///< headless: number of sim steps to run
+    bool dumpRemaining = false;     ///< headless: print the agents still alive at the end
     std::uint64_t frames = 0;       ///< gui: exit after N frames (0 = run until closed)
     std::string screenshotPath;     ///< gui: save a PNG of the last frame before exit
     std::string renderer = "auto";  ///< gui: auto | d3d11 | d3d12 | vulkan | metal | opengl | noop

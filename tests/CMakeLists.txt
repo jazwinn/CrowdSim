@@ -8,6 +8,8 @@ add_executable(crowdsim_tests
   sim/test_determinism.cpp
   sim/test_spatial_hash.cpp
   sim/test_orca.cpp
+  sim/test_navigation.cpp
+  physics/test_physics.cpp
   app/test_command_line.cpp
 )
 target_link_libraries(crowdsim_tests PRIVATE crowdsim_app_common doctest::doctest)
@@ -35,3 +37,9 @@ if(CROWDSIM_BUILD_GUI)
   add_test(NAME gui_smoke COMMAND crowdsim --frames 30 --log-level warn)
   set_tests_properties(gui_smoke PROPERTIES LABELS gui TIMEOUT 60)
 endif()
+
+# M2 scenario test: two-floor building, everyone reaches the upper floor (no stuck agents).
+add_test(NAME scenario_building_all_arrive
+  COMMAND crowdsim_headless --scenario building --agents 1000 --steps 9000 --log-level warn)
+set_tests_properties(scenario_building_all_arrive PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"alive\":0,.*\"spawned\":1000,\"arrived\":1000")

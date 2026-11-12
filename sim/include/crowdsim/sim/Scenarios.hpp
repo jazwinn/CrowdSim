@@ -1,8 +1,8 @@
 #pragma once
 
 /// @file Scenarios.hpp
-/// Built-in test scenes on a flat plane. Replaced by scene assets in M3; kept
-/// afterwards for benchmarks and tests.
+/// Built-in test scenes. Replaced by scene assets in M3; kept afterwards for
+/// benchmarks and tests.
 
 #include <cstdint>
 #include <optional>
@@ -16,6 +16,7 @@ enum class ScenarioKind {
     Stream,       ///< one spawner streaming agents to one goal 120 m away
     Counterflow,  ///< two opposing streams that pass through each other
     Benchmark,    ///< dense counterflow that spawns `agents` almost at once
+    Building,     ///< two-floor building: stairs, ramp, ladder link, walls, pillars
 };
 
 [[nodiscard]] std::optional<ScenarioKind> parseScenario(std::string_view name);

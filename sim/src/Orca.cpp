@@ -19,10 +19,11 @@ struct Line {
 
 /// Small fixed-capacity line set (the half-planes of the ORCA LP).
 struct LineSet {
-    std::array<Line, kMaxNeighbors> lines{};
+    static constexpr std::uint32_t kCapacity = kMaxNeighbors + kMaxWalls;
+    std::array<Line, kCapacity> lines{};
     std::uint32_t count = 0;
     void push(const Line& l) noexcept {
-        if (count < kMaxNeighbors) {
+        if (count < kCapacity) {
             lines[count++] = l;
         }
     }
@@ -107,7 +108,9 @@ std::uint32_t linearProgram2(const LineSet& set, float radius, glm::vec2 optVelo
 }
 
 /// Infeasible case: minimise the maximum penetration into the half-planes from `beginLine` on.
-void linearProgram3(const LineSet& set, std::uint32_t beginLine, float radius, glm::vec2& result) noexcept {
+/// The first `numObstLines` lines (walls) stay hard constraints.
+void linearProgram3(const LineSet& set, std::uint32_t numObstLines, std::uint32_t beginLine, float radius,
+                    glm::vec2& result) noexcept {
     float distance = 0.0f;
     for (std::uint32_t i = beginLine; i < set.count; ++i) {
         const Line& li = set.lines[i];
@@ -115,7 +118,10 @@ void linearProgram3(const LineSet& set, std::uint32_t beginLine, float radius, g
             continue;
         }
         LineSet projected;
-        for (std::uint32_t j = 0; j < i; ++j) {
+        for (std::uint32_t j = 0; j < numObstLines; ++j) {
+            projected.push(set.lines[j]);
+        }
+        for (std::uint32_t j = numObstLines; j < i; ++j) {
             const Line& lj = set.lines[j];
             Line line{};
             const float determinant = det(li.direction, lj.direction);
@@ -146,11 +152,38 @@ void linearProgram3(const LineSet& set, std::uint32_t beginLine, float radius, g
 
 }  // namespace
 
-glm::vec2 computeNewVelocity(const AgentState& self, std::span<const Neighbor> neighbors,
+glm::vec2 computeNewVelocity(const AgentState& self, std::span<const Neighbor> neighbors, std::span<const Wall> walls,
                              const Params& params) noexcept {
     LineSet set;
     const float invTimeHorizon = 1.0f / params.timeHorizon;
     const float invTimeStep = 1.0f / params.timeStep;
+
+    // Walls: a hard half-plane per nearby segment limiting the velocity component
+    // towards the segment's closest point, so the agent cannot reach it within
+    // the obstacle time horizon (or is pushed out within one step if overlapping).
+    for (const Wall& wall : walls) {
+        const glm::vec2 ab = wall.b - wall.a;
+        const float lenSq = absSq(ab);
+        const float t = lenSq > kEpsilon ? std::clamp(glm::dot(self.position - wall.a, ab) / lenSq, 0.0f, 1.0f) : 0.0f;
+        const glm::vec2 toWall = wall.a + t * ab - self.position;
+        const float dist = std::sqrt(absSq(toWall));
+        if (dist <= kEpsilon) {
+            continue;
+        }
+        // The navmesh is already eroded by the agent radius, so boundary edges are
+        // where agent centres may go: keep only a small clearance from them. An
+        // agent already inside the clearance may not approach further but is not
+        // pushed out either (hard push-outs pin agents in corners); the navmesh
+        // move slides it along the boundary.
+        const float gap = std::max(0.0f, dist - params.wallClearance);
+        const glm::vec2 n = toWall / dist;
+        const float maxApproach = gap / params.obstacleTimeHorizon;
+        Line line{};
+        line.point = n * maxApproach;
+        line.direction = glm::vec2(-n.y, n.x);  // permitted side: v . n <= maxApproach
+        set.push(line);
+    }
+    const std::uint32_t numObstLines = set.count;
 
     for (const Neighbor& other : neighbors) {
         const glm::vec2 relativePosition = other.position - self.position;
@@ -210,7 +243,7 @@ glm::vec2 computeNewVelocity(const AgentState& self, std::span<const Neighbor> n
     glm::vec2 result{};
     const std::uint32_t lineFail = linearProgram2(set, self.maxSpeed, self.preferredVelocity, false, result);
     if (lineFail < set.count) {
-        linearProgram3(set, lineFail, self.maxSpeed, result);
+        linearProgram3(set, numObstLines, lineFail, self.maxSpeed, result);
     }
     return result;
 }

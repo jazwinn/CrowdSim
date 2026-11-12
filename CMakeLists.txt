@@ -42,6 +42,8 @@ find_package(glm CONFIG REQUIRED)
 find_package(EnTT CONFIG REQUIRED)
 find_package(enkiTS CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
+find_package(recastnavigation CONFIG REQUIRED)
+find_package(Jolt CONFIG REQUIRED)
 
 if(CROWDSIM_ENABLE_TRACY)
   find_package(Tracy CONFIG REQUIRED)
@@ -59,8 +61,10 @@ endif()
 # sim never links render/ui/platform and vice versa.
 # ---------------------------------------------------------------------------
 add_subdirectory(core)
+add_subdirectory(geometry)
 add_subdirectory(snapshot)
 add_subdirectory(sim)
+add_subdirectory(physics)
 
 if(CROWDSIM_BUILD_GUI)
   add_subdirectory(platform)

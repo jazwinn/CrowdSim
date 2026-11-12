@@ -4,6 +4,7 @@
 /// Environment entities (ECS components): spawners and goals. These are few in
 /// number and live in the EnTT registry; agents live in the AgentPool.
 
+#include <cmath>
 #include <cstdint>
 #include <limits>
 #include <string>
@@ -14,15 +15,21 @@
 
 namespace crowdsim::sim {
 
-/// Axis-aligned rectangle on the ground plane (x = world X, y = world Z).
+/// Axis-aligned rectangle on a floor (x = world X, y = world Z) at height `elevation`.
 struct Area {
     glm::vec2 center{0.0f};
     glm::vec2 halfExtents{1.0f};
+    float elevation = 0.0f;  ///< world Y of the floor the area lies on
 
     [[nodiscard]] bool contains(glm::vec2 p) const noexcept {
         const glm::vec2 d = glm::abs(p - center);
         return d.x <= halfExtents.x && d.y <= halfExtents.y;
     }
+    /// Inside in XZ and within `verticalTolerance` of the area's floor.
+    [[nodiscard]] bool contains3d(glm::vec3 p, float verticalTolerance) const noexcept {
+        return contains({p.x, p.z}) && std::abs(p.y - elevation) <= verticalTolerance;
+    }
+    [[nodiscard]] glm::vec3 center3d() const noexcept { return {center.x, elevation, center.y}; }
     [[nodiscard]] glm::vec2 clamp(glm::vec2 p, float margin = 0.0f) const noexcept {
         const glm::vec2 h = glm::max(halfExtents - glm::vec2(margin), glm::vec2(0.0f));
         return glm::clamp(p, center - h, center + h);

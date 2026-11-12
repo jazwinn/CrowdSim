@@ -11,7 +11,9 @@
     "enkits",
     "nlohmann-json",
     "doctest",
-    "benchmark"
+    "benchmark",
+    "recastnavigation",
+    "joltphysics"
   ],
   "default-features": ["gui"],
   "features": {

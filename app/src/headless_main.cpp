@@ -47,6 +47,23 @@ int main(int argc, char** argv) {
             peakAgents = std::max(peakAgents, sim.agents().size());
         }
         const sim::SimStats stats = sim.stats();
+        if (parsed.config.dumpRemaining) {
+            const sim::AgentPool& a = sim.agents();
+            for (std::uint32_t i = 0; i < std::min<std::uint32_t>(a.size(), 50); ++i) {
+                const std::uint32_t dense = sim.navMesh().denseIndex(a.navPoly[i]);
+                const bool reachable = dense != sim::kNoPoly && sim.flowFields()[a.goalIndex[i]].reachable(dense);
+                std::fprintf(stderr,
+                             "agent %u pos=(%.2f, %.2f, %.2f) vel=(%.2f, %.2f) pref=(%.2f, %.2f) orca=(%.2f, %.2f) "
+                             "poly=%u dense=%u "
+                             "reachable=%d link=%d\n",
+                             a.id[i], static_cast<double>(a.position[i].x), static_cast<double>(a.height[i]),
+                             static_cast<double>(a.position[i].y), static_cast<double>(a.velocity[i].x),
+                             static_cast<double>(a.velocity[i].y), static_cast<double>(a.preferredVelocity[i].x),
+                             static_cast<double>(a.preferredVelocity[i].y), static_cast<double>(a.newVelocity[i].x),
+                             static_cast<double>(a.newVelocity[i].y), a.navPoly[i], dense, reachable ? 1 : 0,
+                             a.linkActive[i]);
+            }
+        }
         const double avgMs = parsed.config.steps > 0 ? totalMs / static_cast<double>(parsed.config.steps) : 0.0;
 
         engine.log().info("Ran {} steps ({:.1f} s simulated) in {:.1f} ms: avg {:.3f} ms/step, max {:.3f} ms",
