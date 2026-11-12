@@ -27,3 +27,7 @@ crowdsim_compile_shaders(crowdsim_render
   VARYING "${shader_dir}/scene/varying.def.sc"
   VERTEX "${shader_dir}/scene/vs_agent.sc" "${shader_dir}/scene/vs_world.sc"
   FRAGMENT "${shader_dir}/scene/fs_agent.sc" "${shader_dir}/scene/fs_ground.sc" "${shader_dir}/scene/fs_flat.sc")
+crowdsim_compile_shaders(crowdsim_render
+  VARYING "${shader_dir}/mesh/varying.def.sc"
+  VERTEX "${shader_dir}/mesh/vs_mesh.sc" "${shader_dir}/mesh/vs_line.sc"
+  FRAGMENT "${shader_dir}/mesh/fs_mesh.sc" "${shader_dir}/mesh/fs_line.sc")

@@ -3,6 +3,7 @@
 #include <bgfx/bgfx.h>
 #include <bx/math.h>
 
+#include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <numbers>
@@ -25,6 +26,7 @@ namespace {
 constexpr float kBodyRadius = 0.28f;  ///< mesh radius; instances scale x/z by radius / kBodyRadius
 constexpr float kBodyHeight = 1.75f;
 constexpr float kGroundHalfSize = 1000.0f;
+constexpr float kGroundY = -0.25f;
 constexpr float kFogDensity = 0.0025f;
 
 struct PosNormalVertex {
@@ -100,6 +102,67 @@ float lerpAngle(float a, float b, float t) {
     return a + (d - kPi) * t;
 }
 
+/// A static vertex buffer and its vertex count.
+struct StaticBuffer {
+    bgfx::VertexBufferHandle vb = BGFX_INVALID_HANDLE;
+    std::uint32_t count = 0;
+    void reset() {
+        if (bgfx::isValid(vb)) {
+            bgfx::destroy(vb);
+        }
+        vb = BGFX_INVALID_HANDLE;
+        count = 0;
+    }
+};
+
+struct LineVertex {
+    float x, y, z;
+    std::uint32_t abgr;
+};
+
+template <typename V>
+StaticBuffer makeBuffer(const std::vector<V>& vertices, const bgfx::VertexLayout& layout) {
+    StaticBuffer b;
+    if (vertices.empty()) {
+        return b;
+    }
+    b.vb = bgfx::createVertexBuffer(
+        bgfx::copy(vertices.data(), static_cast<std::uint32_t>(vertices.size() * sizeof(V))), layout);
+    b.count = static_cast<std::uint32_t>(vertices.size());
+    return b;
+}
+
+std::vector<LineVertex> colored(const std::vector<glm::vec3>& points, std::uint32_t abgr, float lift = 0.0f) {
+    std::vector<LineVertex> out;
+    out.reserve(points.size());
+    for (const glm::vec3& p : points) {
+        out.push_back({p.x, p.y + lift, p.z, abgr});
+    }
+    return out;
+}
+
+/// Arrow heads for line pairs (from, to): two short barbs at each `to`.
+std::vector<glm::vec3> withArrowHeads(const std::vector<glm::vec3>& pairs) {
+    std::vector<glm::vec3> out = pairs;
+    for (std::size_t i = 0; i + 1 < pairs.size(); i += 2) {
+        const glm::vec3 a = pairs[i];
+        const glm::vec3 b = pairs[i + 1];
+        glm::vec3 d = b - a;
+        const float len = std::sqrt(d.x * d.x + d.z * d.z);
+        if (len < 1e-3f) {
+            continue;
+        }
+        d /= len;
+        const float head = std::min(0.6f, 0.35f * len);
+        const glm::vec3 side(-d.z, 0.0f, d.x);
+        out.push_back(b);
+        out.push_back(b - d * head + side * head * 0.5f);
+        out.push_back(b);
+        out.push_back(b - d * head - side * head * 0.5f);
+    }
+    return out;
+}
+
 }  // namespace
 
 struct SceneRenderer::Resources {
@@ -116,6 +179,29 @@ struct SceneRenderer::Resources {
     bgfx::UniformHandle cameraPos = BGFX_INVALID_HANDLE;
     bgfx::UniformHandle color = BGFX_INVALID_HANDLE;
     bool enabled = false;
+
+    // Static scene (re-uploaded when the snapshot's StaticScene version changes).
+    bgfx::VertexLayout meshLayout;
+    bgfx::VertexLayout lineLayout;
+    bgfx::ProgramHandle meshProgram = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle lineProgram = BGFX_INVALID_HANDLE;
+    std::uint64_t staticVersion = ~0ull;
+    StaticBuffer mesh;
+    StaticBuffer navTriangles;
+    StaticBuffer navWalls;
+    StaticBuffer links;
+    std::vector<StaticBuffer> flow;
+
+    void destroyStatic() {
+        mesh.reset();
+        navTriangles.reset();
+        navWalls.reset();
+        links.reset();
+        for (StaticBuffer& f : flow) {
+            f.reset();
+        }
+        flow.clear();
+    }
 };
 
 SceneRenderer::SceneRenderer() : res_(std::make_unique<Resources>()) {
@@ -152,6 +238,18 @@ SceneRenderer::SceneRenderer() : res_(std::make_unique<Resources>()) {
     r.lightDir = bgfx::createUniform("u_lightDir", bgfx::UniformType::Vec4);
     r.cameraPos = bgfx::createUniform("u_cameraPos", bgfx::UniformType::Vec4);
     r.color = bgfx::createUniform("u_color", bgfx::UniformType::Vec4);
+
+    r.meshLayout.begin()
+        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+        .add(bgfx::Attrib::Normal, 3, bgfx::AttribType::Float)
+        .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
+        .end();
+    r.lineLayout.begin()
+        .add(bgfx::Attrib::Position, 3, bgfx::AttribType::Float)
+        .add(bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true)
+        .end();
+    r.meshProgram = createEmbeddedProgram(EmbeddedProgram::Mesh);
+    r.lineProgram = createEmbeddedProgram(EmbeddedProgram::Line);
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -169,6 +267,23 @@ SceneRenderer::~SceneRenderer() {
     bgfx::destroy(r.lightDir);
     bgfx::destroy(r.cameraPos);
     bgfx::destroy(r.color);
+    r.destroyStatic();
+    bgfx::destroy(r.meshProgram);
+    bgfx::destroy(r.lineProgram);
+}
+
+void SceneRenderer::uploadStatic(const snapshot::StaticScene& scene) {
+    Resources& r = *res_;
+    r.destroyStatic();
+    static_assert(sizeof(snapshot::StaticVertex) == 28);
+    r.mesh = makeBuffer(scene.meshVertices, r.meshLayout);
+    r.navTriangles = makeBuffer(colored(scene.navTriangles, 0x5530c060u), r.lineLayout);  // translucent green
+    r.navWalls = makeBuffer(colored(scene.navWalls, 0xff3050ffu, 0.02f), r.lineLayout);   // red-orange
+    r.links = makeBuffer(colored(withArrowHeads(scene.offMeshLinks), 0xff20e0ffu, 0.1f), r.lineLayout);
+    for (const std::vector<glm::vec3>& arrows : scene.flowArrows) {
+        r.flow.push_back(makeBuffer(colored(withArrowHeads(arrows), 0xffffd040u), r.lineLayout));
+    }
+    r.staticVersion = scene.version;
 }
 
 SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alpha, const Camera& camera,
@@ -195,9 +310,10 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
     const float cam[4] = {eye.x, eye.y, eye.z, kFogDensity};
 
     // Ground
-    if (showGround) {
+    if (overlays.ground) {
         float model[16];
-        bx::mtxScale(model, kGroundHalfSize, 1.0f, kGroundHalfSize);
+        // Reference grid just below the scene so it never z-fights with floors at y = 0.
+        bx::mtxSRT(model, kGroundHalfSize, 1.0f, kGroundHalfSize, 0.0f, 0.0f, 0.0f, 0.0f, kGroundY, 0.0f);
         bgfx::setTransform(model);
         bgfx::setVertexBuffer(0, r.quadVb);
         bgfx::setIndexBuffer(r.quadIb, 0, 6);
@@ -208,10 +324,43 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
         ++stats.drawCalls;
     }
 
+    // Static environment.
+    if (snap.staticScene && snap.staticScene->version != r.staticVersion) {
+        uploadStatic(*snap.staticScene);
+    }
+    if (bgfx::isValid(r.mesh.vb)) {
+        bgfx::setVertexBuffer(0, r.mesh.vb);
+        bgfx::setUniform(r.lightDir, light);
+        bgfx::setUniform(r.cameraPos, cam);
+        bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS |
+                       BGFX_STATE_MSAA);
+        bgfx::submit(kViewScene, r.meshProgram);
+        ++stats.drawCalls;
+    }
+    auto drawDebug = [&](const StaticBuffer& b, std::uint64_t extra) {
+        if (!bgfx::isValid(b.vb)) {
+            return;
+        }
+        bgfx::setVertexBuffer(0, b.vb);
+        bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_DEPTH_TEST_LEQUAL | BGFX_STATE_BLEND_ALPHA | extra);
+        bgfx::submit(kViewScene, r.lineProgram);
+        ++stats.drawCalls;
+    };
+    if (overlays.navmesh) {
+        drawDebug(r.navTriangles, 0);
+        drawDebug(r.navWalls, BGFX_STATE_PT_LINES | BGFX_STATE_LINEAA);
+    }
+    if (overlays.flowField && overlays.flowGoal >= 0 && static_cast<std::size_t>(overlays.flowGoal) < r.flow.size()) {
+        drawDebug(r.flow[static_cast<std::size_t>(overlays.flowGoal)], BGFX_STATE_PT_LINES | BGFX_STATE_LINEAA);
+    }
+    if (overlays.links) {
+        drawDebug(r.links, BGFX_STATE_PT_LINES | BGFX_STATE_LINEAA);
+    }
+
     // Spawner / goal areas: decals on the ground. Drawn right after the ground without
     // depth testing (the view is sequential), so they never z-fight with it, and before
     // the agents, which then draw over them.
-    if (showAreas) {
+    if (overlays.areas) {
         for (const snapshot::AreaMarker& area : snap.areas) {
             float model[16];
             bx::mtxSRT(model, area.halfExtents.x, 1.0f, area.halfExtents.y, 0.0f, 0.0f, 0.0f, area.center.x,
@@ -258,6 +407,29 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
         offset += count;
     }
     stats.agentsDrawn = offset;
+
+    // Velocity lines (transient), from each agent's chest along its velocity.
+    if (overlays.velocities && total > 0) {
+        const std::uint32_t verts =
+            std::min<std::uint32_t>(total * 2, bgfx::getAvailTransientVertexBuffer(total * 2, r.lineLayout)) & ~1u;
+        if (verts >= 2) {
+            bgfx::TransientVertexBuffer tvb;
+            bgfx::allocTransientVertexBuffer(&tvb, verts, r.lineLayout);
+            auto* v = reinterpret_cast<LineVertex*>(tvb.data);
+            for (std::uint32_t i = 0; i < verts / 2; ++i) {
+                const snapshot::AgentInstance& a = snap.agents[i];
+                const glm::vec3 p =
+                    a.prevPosition + (a.position - a.prevPosition) * alpha + glm::vec3(0.0f, 1.2f, 0.0f);
+                v[2 * i] = {p.x, p.y, p.z, 0xff40ff40u};
+                v[2 * i + 1] = {p.x + a.velocity.x, p.y, p.z + a.velocity.y, 0xff40ff40u};
+            }
+            bgfx::setVertexBuffer(0, &tvb);
+            bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_DEPTH_TEST_LEQUAL | BGFX_STATE_PT_LINES |
+                           BGFX_STATE_LINEAA);
+            bgfx::submit(kViewScene, r.lineProgram);
+            ++stats.drawCalls;
+        }
+    }
 
     return stats;
 }

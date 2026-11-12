@@ -1,9 +1,10 @@
 #pragma once
 
 /// @file SceneRenderer.hpp
-/// Draws the world from a render snapshot: ground grid, spawner/goal areas and
-/// instanced agents, interpolated between the snapshot's previous and current
-/// step. Read-only with respect to the snapshot; never touches the simulation.
+/// Draws the world from a render snapshot: static environment meshes, a
+/// reference grid, spawner/goal areas, instanced agents (interpolated between
+/// the snapshot's previous and current step) and optional debug overlays.
+/// Read-only with respect to the snapshot; never touches the simulation.
 
 #include <cstdint>
 #include <memory>
@@ -12,7 +13,8 @@
 
 namespace crowdsim::snapshot {
 struct RenderSnapshot;
-}
+struct StaticScene;
+}  // namespace crowdsim::snapshot
 
 namespace crowdsim::render {
 
@@ -29,6 +31,17 @@ struct SceneStats {
     std::uint32_t drawCalls = 0;
 };
 
+/// Toggleable layers.
+struct Overlays {
+    bool ground = true;      ///< reference grid below the scene
+    bool areas = true;       ///< spawner / goal rectangles
+    bool navmesh = false;    ///< navmesh polygons and boundary walls
+    bool flowField = false;  ///< flow arrows for `flowGoal`
+    int flowGoal = 0;
+    bool links = true;        ///< off-mesh links
+    bool velocities = false;  ///< per-agent velocity lines
+};
+
 class SceneRenderer {
 public:
     SceneRenderer();
@@ -40,10 +53,11 @@ public:
     /// Submit the scene to the scene view. `alpha` in [0,1] blends previous -> current step.
     SceneStats render(const snapshot::RenderSnapshot& snap, float alpha, const Camera& camera, const ViewRect& rect);
 
-    bool showAreas = true;
-    bool showGround = true;
+    Overlays overlays;
 
 private:
+    void uploadStatic(const snapshot::StaticScene& scene);
+
     struct Resources;
     std::unique_ptr<Resources> res_;
 };

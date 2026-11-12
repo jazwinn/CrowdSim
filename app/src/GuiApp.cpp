@@ -4,6 +4,9 @@
 #include <imgui.h>
 #include <imgui_impl_sdl3.h>
 
+#include <glm/geometric.hpp>
+#include <glm/trigonometric.hpp>
+
 #include <algorithm>
 #include <array>
 #include <chrono>
@@ -30,8 +33,8 @@ namespace crowdsim::app {
 
 namespace {
 
-constexpr std::array<sim::ScenarioKind, 3> kScenarios = {sim::ScenarioKind::Stream, sim::ScenarioKind::Counterflow,
-                                                         sim::ScenarioKind::Benchmark};
+constexpr std::array<sim::ScenarioKind, 4> kScenarios = {sim::ScenarioKind::Stream, sim::ScenarioKind::Counterflow,
+                                                         sim::ScenarioKind::Benchmark, sim::ScenarioKind::Building};
 
 /// RAII owner of the ImGui context and its SDL3 platform backend. ImGui keeps
 /// a "current context" pointer internally; we create exactly one and destroy
@@ -111,6 +114,25 @@ void updateCamera(render::Camera& camera, bool viewportHovered) {
     }
 }
 
+/// World-space ray through a framebuffer pixel of the 3D viewport.
+struct Ray {
+    glm::vec3 origin;
+    glm::vec3 direction;
+};
+
+Ray viewportRay(const render::Camera& camera, const ui::PixelRect& viewport, float px, float py) {
+    const glm::vec3 eye = camera.eye();
+    const glm::vec3 forward = glm::normalize(camera.target - eye);
+    // Left-handed, +Y up (matches bx::mtxLookAt): right = up x forward.
+    const glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), forward));
+    const glm::vec3 up = glm::cross(forward, right);
+    const float ndcX = 2.0f * (px - viewport.x) / viewport.width - 1.0f;
+    const float ndcY = 1.0f - 2.0f * (py - viewport.y) / viewport.height;
+    const float tanHalf = std::tan(glm::radians(camera.fovYDegrees) * 0.5f);
+    const float aspect = viewport.width / viewport.height;
+    return {eye, glm::normalize(forward + right * (ndcX * tanHalf * aspect) + up * (ndcY * tanHalf))};
+}
+
 }  // namespace
 
 int runGui(EngineContext& engine) {
@@ -133,7 +155,18 @@ int runGui(EngineContext& engine) {
     ImGuiSession imguiSession(window.sdlWindow(), window.displayScale());
     render::ImGuiRenderer imguiRenderer(renderer, render::kViewImGui);
     render::SceneRenderer sceneRenderer;
-    ui::EditorShell shell;
+    ui::OverlayToggles initialOverlays;
+    {
+        const std::string& list = config.overlays;
+        auto has = [&](std::string_view name) { return list.find(name) != std::string::npos; };
+        initialOverlays.navmesh = has("navmesh");
+        initialOverlays.flowField = has("flow");
+        initialOverlays.velocities = has("velocities");
+        initialOverlays.ground = !has("nogrid");
+        initialOverlays.areas = !has("noareas");
+        initialOverlays.links = !has("nolinks");
+    }
+    ui::EditorShell shell(initialOverlays);
     render::Camera camera = defaultCamera(config);
 
     // Sim -> render hand-off. Producer and consumer share this thread today; the
@@ -224,6 +257,24 @@ int runGui(EngineContext& engine) {
         logLines = engine.logService().tail(500);
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
+        // Cursor picking against the collision world (Jolt raycast).
+        bool hasCursor = false;
+        glm::vec3 cursorWorld(0.0f);
+        {
+            const ImGuiIO& io = ImGui::GetIO();
+            const float px = io.MousePos.x * io.DisplayFramebufferScale.x;
+            const float py = io.MousePos.y * io.DisplayFramebufferScale.y;
+            if (px >= viewport.x && py >= viewport.y && px < viewport.x + viewport.width &&
+                py < viewport.y + viewport.height) {
+                const Ray ray = viewportRay(camera, viewport, px, py);
+                if (const auto hit = engine.physics().raycast(ray.origin, ray.direction, 5000.0f)) {
+                    hasCursor = true;
+                    cursorWorld = hit->position;
+                }
+            }
+        }
+        const sim::NavMesh& nav = simulation.navMesh();
+
         const ui::EditorRequests req = shell.draw(ui::EditorFrameData{
             .playing = playing,
             .stepIndex = simulation.stepIndex(),
@@ -239,6 +290,14 @@ int runGui(EngineContext& engine) {
             .agentsSpawned = stats.spawned,
             .agentsArrived = stats.arrived,
             .averageSpeed = stats.averageSpeed,
+            .staticObjects = static_cast<std::uint32_t>(simulation.staticMesh().triangleCount() > 0
+                                                            ? simulation.registry().view<sim::StaticObject>().size()
+                                                            : 0),
+            .navPolygons = nav.polyCount(),
+            .navTiles = nav.tileCount(),
+            .goals = static_cast<std::uint32_t>(simulation.flowFields().size()),
+            .hasCursorWorld = hasCursor,
+            .cursorWorld = {cursorWorld.x, cursorWorld.y, cursorWorld.z},
             .frameMs = frameMs,
             .simStepMs = simStepMs,
             .renderSubmitMs = renderMs,
@@ -273,6 +332,7 @@ int runGui(EngineContext& engine) {
             scenarioIndex = std::clamp(req.scenarioIndex, 0, static_cast<int>(kScenarios.size()) - 1);
             scenarioAgents = req.scenarioAgents;
             sim::buildScenario(simulation, kScenarios[static_cast<std::size_t>(scenarioIndex)], scenarioAgents);
+            engine.syncScene();
             log.info("Loaded scenario '{}' with {} agents", scenarioNames[static_cast<std::size_t>(scenarioIndex)],
                      scenarioAgents);
             clock.reset();
@@ -283,7 +343,15 @@ int runGui(EngineContext& engine) {
             camera = defaultCamera(config);
         }
         simSpeed = req.simSpeed;
-        sceneRenderer.showAreas = req.showAreas;
+        sceneRenderer.overlays = render::Overlays{
+            .ground = req.overlays.ground,
+            .areas = req.overlays.areas,
+            .navmesh = req.overlays.navmesh,
+            .flowField = req.overlays.flowField,
+            .flowGoal = req.overlays.flowGoal,
+            .links = req.overlays.links,
+            .velocities = req.overlays.velocities,
+        };
         if (req.viewport.width >= 1.0f && req.viewport.height >= 1.0f) {
             viewport = req.viewport;
         }

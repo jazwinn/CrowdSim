@@ -10,8 +10,12 @@
 #include "fs_flat_dx11.bin.h"
 #include "fs_ground_dx11.bin.h"
 #include "fs_imgui_dx11.bin.h"
+#include "fs_line_dx11.bin.h"
+#include "fs_mesh_dx11.bin.h"
 #include "vs_agent_dx11.bin.h"
 #include "vs_imgui_dx11.bin.h"
+#include "vs_line_dx11.bin.h"
+#include "vs_mesh_dx11.bin.h"
 #include "vs_world_dx11.bin.h"
 #endif
 #include "fs_agent_glsl.bin.h"
@@ -26,12 +30,24 @@
 #include "fs_imgui_glsl.bin.h"
 #include "fs_imgui_metal.bin.h"
 #include "fs_imgui_spirv.bin.h"
+#include "fs_line_glsl.bin.h"
+#include "fs_line_metal.bin.h"
+#include "fs_line_spirv.bin.h"
+#include "fs_mesh_glsl.bin.h"
+#include "fs_mesh_metal.bin.h"
+#include "fs_mesh_spirv.bin.h"
 #include "vs_agent_glsl.bin.h"
 #include "vs_agent_metal.bin.h"
 #include "vs_agent_spirv.bin.h"
 #include "vs_imgui_glsl.bin.h"
 #include "vs_imgui_metal.bin.h"
 #include "vs_imgui_spirv.bin.h"
+#include "vs_line_glsl.bin.h"
+#include "vs_line_metal.bin.h"
+#include "vs_line_spirv.bin.h"
+#include "vs_mesh_glsl.bin.h"
+#include "vs_mesh_metal.bin.h"
+#include "vs_mesh_spirv.bin.h"
 #include "vs_world_glsl.bin.h"
 #include "vs_world_metal.bin.h"
 #include "vs_world_spirv.bin.h"
@@ -113,6 +129,10 @@ bgfx::ProgramHandle createEmbeddedProgram(EmbeddedProgram program) {
             return createProgram(CS_SHADER_BLOBS(vs_world), CS_SHADER_BLOBS(fs_ground));
         case EmbeddedProgram::Flat:
             return createProgram(CS_SHADER_BLOBS(vs_world), CS_SHADER_BLOBS(fs_flat));
+        case EmbeddedProgram::Mesh:
+            return createProgram(CS_SHADER_BLOBS(vs_mesh), CS_SHADER_BLOBS(fs_mesh));
+        case EmbeddedProgram::Line:
+            return createProgram(CS_SHADER_BLOBS(vs_line), CS_SHADER_BLOBS(fs_line));
     }
     return BGFX_INVALID_HANDLE;
 }

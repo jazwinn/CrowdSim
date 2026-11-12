@@ -12,6 +12,17 @@
 
 namespace crowdsim::ui {
 
+/// Debug-draw layers the user can toggle (mirrors render::Overlays).
+struct OverlayToggles {
+    bool ground = true;
+    bool areas = true;
+    bool navmesh = false;
+    bool flowField = false;
+    int flowGoal = 0;
+    bool links = true;
+    bool velocities = false;
+};
+
 /// Read-only data the shell displays this frame.
 struct EditorFrameData {
     // Simulation
@@ -30,6 +41,13 @@ struct EditorFrameData {
     std::uint64_t agentsSpawned = 0;
     std::uint64_t agentsArrived = 0;
     float averageSpeed = 0.0f;
+    // Scene / navigation
+    std::uint32_t staticObjects = 0;
+    std::uint32_t navPolygons = 0;
+    std::uint32_t navTiles = 0;
+    std::uint32_t goals = 0;
+    bool hasCursorWorld = false;
+    float cursorWorld[3] = {0.0f, 0.0f, 0.0f};
     // Frame timing (measured by the app)
     float frameMs = 0.0f;
     float simStepMs = 0.0f;
@@ -68,12 +86,14 @@ struct EditorRequests {
     // Viewport
     PixelRect viewport;            ///< where the 3D view should be drawn
     bool viewportHovered = false;  ///< mouse is over the 3D view and not over a widget
-    bool showAreas = true;
+    OverlayToggles overlays;
     bool frameAll = false;  ///< reset the camera
 };
 
 class EditorShell {
 public:
+    explicit EditorShell(const OverlayToggles& initialOverlays = {}) : overlays_(initialOverlays) {}
+
     /// Build all panels. Call between ImGui::NewFrame() and ImGui::Render().
     EditorRequests draw(const EditorFrameData& data);
 
@@ -83,7 +103,7 @@ private:
     bool layoutBuilt_ = false;
     bool showDemo_ = false;
     bool autoScrollLog_ = true;
-    bool showAreas_ = true;
+    OverlayToggles overlays_;
     bool viewportDragging_ = false;
     int pendingScenario_ = -1;
     int pendingAgents_ = -1;

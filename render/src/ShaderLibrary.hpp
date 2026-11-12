@@ -12,6 +12,8 @@ enum class EmbeddedProgram {
     Agent,   ///< instanced agent bodies
     Ground,  ///< ground plane with grid
     Flat,    ///< single-colour geometry (area markers, debug)
+    Mesh,    ///< static environment meshes with vertex colours
+    Line,    ///< unlit coloured debug lines / triangles
 };
 
 /// Create a program for the active renderer backend. Returns an invalid handle

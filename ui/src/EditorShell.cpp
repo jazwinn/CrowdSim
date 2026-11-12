@@ -4,6 +4,7 @@
 #include <imgui_internal.h>
 
 #include <algorithm>
+#include <cstdio>
 #include <string>
 
 namespace crowdsim::ui {
@@ -45,6 +46,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
 EditorRequests EditorShell::draw(const EditorFrameData& data) {
     EditorRequests req;
     req.simSpeed = data.simSpeed;
+    req.overlays = overlays_;
 
     // Main menu
     if (ImGui::BeginMainMenuBar()) {
@@ -124,7 +126,13 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         req.viewportHovered = (insideRect && !io.WantCaptureMouse) || viewportDragging_;
 
         ImDrawList* dl = ImGui::GetBackgroundDrawList();
-        const std::string overlay = std::to_string(data.agentsAlive) + " agents";
+        std::string overlay = std::to_string(data.agentsAlive) + " agents";
+        if (data.hasCursorWorld) {
+            char buf[96];
+            std::snprintf(buf, sizeof(buf), "   cursor (%.2f, %.2f, %.2f)", static_cast<double>(data.cursorWorld[0]),
+                          static_cast<double>(data.cursorWorld[1]), static_cast<double>(data.cursorWorld[2]));
+            overlay += buf;
+        }
         dl->AddText(ImVec2(origin.x + 10.0f, origin.y + 8.0f), IM_COL32(230, 230, 230, 220), overlay.c_str());
         dl->AddText(ImVec2(origin.x + 10.0f, origin.y + 8.0f + ImGui::GetTextLineHeightWithSpacing()),
                     IM_COL32(160, 160, 160, 200), "LMB orbit   RMB/MMB pan   wheel zoom   F reset view");
@@ -134,7 +142,20 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     }
 
     ImGui::Begin(kHierarchyWindow);
-    ImGui::TextDisabled("Scene editing arrives in M3");
+    ImGui::Text("Objects   %u", data.staticObjects);
+    ImGui::Text("Navmesh   %u polys, %u tiles", data.navPolygons, data.navTiles);
+    ImGui::Text("Goals     %u", data.goals);
+    ImGui::SeparatorText("Overlays");
+    ImGui::Checkbox("Reference grid", &overlays_.ground);
+    ImGui::Checkbox("Spawner / goal areas", &overlays_.areas);
+    ImGui::Checkbox("Navmesh + walls", &overlays_.navmesh);
+    ImGui::Checkbox("Off-mesh links", &overlays_.links);
+    ImGui::Checkbox("Velocities", &overlays_.velocities);
+    ImGui::Checkbox("Flow field", &overlays_.flowField);
+    if (overlays_.flowField && data.goals > 1) {
+        ImGui::SliderInt("Goal", &overlays_.flowGoal, 0, static_cast<int>(data.goals) - 1);
+    }
+    overlays_.flowGoal = std::clamp(overlays_.flowGoal, 0, std::max(0, static_cast<int>(data.goals) - 1));
     ImGui::End();
 
     ImGui::Begin(kInspectorWindow);
@@ -193,8 +214,6 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         req.scenarioIndex = pendingScenario_;
         req.scenarioAgents = static_cast<std::uint32_t>(pendingAgents_);
     }
-    ImGui::Checkbox("Show spawner/goal areas", &showAreas_);
-    req.showAreas = showAreas_;
     ImGui::End();
 
     ImGui::Begin(kStatsWindow);
