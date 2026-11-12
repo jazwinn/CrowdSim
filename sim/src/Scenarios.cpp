@@ -30,7 +30,7 @@ void addBox(Simulation& sim, std::string name, glm::vec3 position, glm::vec3 siz
     d.size = size;
     d.flags = flags;
     d.color = color;
-    sim.addStaticObject(StaticObject{std::move(name), d});
+    sim.addStaticObject(StaticObject{std::move(name), d, {}, {}, {}});
 }
 
 void addGround(Simulation& sim, float halfX, float halfZ) {
@@ -139,7 +139,7 @@ void buildBuilding(Simulation& sim, std::uint32_t agents) {
     stairs.steps = 20;
     stairs.flags = kSurfaceWalkable;
     stairs.color = kStairColor;
-    sim.addStaticObject(StaticObject{"Stairs", stairs});
+    sim.addStaticObject(StaticObject{"Stairs", stairs, {}, {}, {}});
 
     // Ramp (6 m wide, 16 m long, ~14 degrees) in the east.
     PrimitiveDesc ramp;
@@ -148,7 +148,7 @@ void buildBuilding(Simulation& sim, std::uint32_t agents) {
     ramp.size = {6.0f, 4.0f, 16.0f};
     ramp.flags = kSurfaceWalkable;
     ramp.color = kStairColor;
-    sim.addStaticObject(StaticObject{"Ramp", ramp});
+    sim.addStaticObject(StaticObject{"Ramp", ramp, {}, {}, {}});
 
     // Railing along the upper floor edge, open where stairs, ramp and ladder arrive.
     const float railY = 4.0f;

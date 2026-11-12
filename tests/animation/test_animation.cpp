@@ -76,8 +76,8 @@ TEST_CASE("Walk and run: a planted foot moves backwards at the clip's natural sp
         const snapshot::AnimationClip& clip = c.clip(id);
         const float stance = id == ClipId::Walk ? 0.60f : 0.36f;
         // Flat-foot window of the left foot: 12%..65% of its stance.
-        const auto first = static_cast<std::uint32_t>(std::ceil(0.15f * stance * clip.frameCount));
-        const auto last = static_cast<std::uint32_t>(std::floor(0.60f * stance * clip.frameCount));
+        const auto first = static_cast<std::uint32_t>(std::ceil(0.15f * stance * static_cast<float>(clip.frameCount)));
+        const auto last = static_cast<std::uint32_t>(std::floor(0.60f * stance * static_cast<float>(clip.frameCount)));
         REQUIRE(last > first);
         const Vec3 a = jointAt(c, clip.firstRow + first, "foot_l");
         const Vec3 b = jointAt(c, clip.firstRow + last, "foot_l");

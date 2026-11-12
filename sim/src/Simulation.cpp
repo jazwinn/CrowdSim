@@ -29,10 +29,9 @@ constexpr std::uint64_t kReorderInterval = 64;  ///< steps between spatial re-so
 
 constexpr std::uint32_t kParallelChunk = 256;
 constexpr std::uint32_t kSpawnAttempts = 8;
-constexpr std::uint32_t kCorridorLength = 8;    ///< polygons of look-ahead for string pulling
-constexpr float kWallQueryMargin = 1.0f;        ///< m beyond the agent radius
-constexpr float kOffMeshTriggerRadius = 0.6f;   ///< m from a link start to begin traversing
-constexpr float kGoalVerticalTolerance = 1.5f;  ///< m
+constexpr std::uint32_t kCorridorLength = 8;   ///< polygons of look-ahead for string pulling
+constexpr float kWallQueryMargin = 1.0f;       ///< m beyond the agent radius
+constexpr float kOffMeshTriggerRadius = 0.6f;  ///< m from a link start to begin traversing
 
 float wrapAngle(float a) noexcept {
     constexpr float kPi = std::numbers::pi_v<float>;

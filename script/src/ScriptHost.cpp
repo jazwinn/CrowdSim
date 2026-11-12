@@ -73,7 +73,7 @@ sim::BtParamKind kindFromName(const std::string& t) {
 /// `a` is an agent handle from the `agents` array (an agent pool index, valid for this call).
 class NodeContext {
 public:
-    NodeContext(sim::Simulation& sim, sol::table params) : sim_(sim), params(std::move(params)) {}
+    NodeContext(sim::Simulation& sim, sol::table nodeParams) : params(std::move(nodeParams)), sim_(sim) {}
 
     sol::table params;
 

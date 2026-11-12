@@ -12,7 +12,10 @@ function(crowdsim_set_warnings target)
     endif()
   else()
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic -Wshadow -Wconversion
-                                             -Wno-sign-conversion -Wnon-virtual-dtor)
+                                             -Wno-sign-conversion -Wnon-virtual-dtor
+                                             # Aggregates and designated initializers deliberately rely on
+                                             # default member initializers for omitted fields.
+                                             -Wno-missing-field-initializers)
     if(CROWDSIM_WARNINGS_AS_ERRORS)
       target_compile_options(${target} PRIVATE -Werror)
     endif()
