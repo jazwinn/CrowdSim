@@ -1,0 +1,16 @@
+---
+# Kept deliberately focused: bugs, modern C++, and the project's no-global-state rule.
+Checks: >
+  -*,
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  cppcoreguidelines-avoid-non-const-global-variables,
+  cppcoreguidelines-interfaces-global-init,
+  modernize-use-nullptr,
+  modernize-use-override,
+  performance-*,
+  -performance-enum-size
+WarningsAsErrors: >
+  cppcoreguidelines-avoid-non-const-global-variables
+HeaderFilterRegex: '(core|sim|physics|assets|script|commands|mcp|render|ui|platform|app)/.*'
+FormatStyle: file
