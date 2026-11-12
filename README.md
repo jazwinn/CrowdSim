@@ -34,6 +34,7 @@ build/windows-msvc/bin/Release/crowdsim                       # editor
 build/windows-msvc/bin/Release/crowdsim --renderer vulkan     # pick a backend
 build/windows-msvc/bin/Release/crowdsim_headless --scenario stream --agents 5000 --steps 2700
 build/windows-msvc/bin/Release/crowdsim --scenario counterflow --agents 5000 --sim-speed 4
+build/windows-msvc/bin/Release/crowdsim --scenario building --agents 2000 --overlays navmesh,flow
 build/windows-msvc/bin/Release/crowdsim_bench
 ```
 
@@ -44,8 +45,10 @@ build/windows-msvc/bin/Release/crowdsim_bench
 | Dir | Purpose |
 |---|---|
 | `core/` | logging, job system, RNG, IDs, hashing, fixed-step clock, triple buffer |
+| `geometry/` | triangle meshes and primitives (box, ramp, stairs, plane) |
 | `snapshot/` | plain render-snapshot data passed from sim to render |
-| `sim/` | agent pool, spawners/goals (EnTT), spatial hash, ORCA, scenarios (no rendering dependencies) |
+| `sim/` | agent pool, spawners/goals (EnTT), navmesh (Recast/Detour), flow fields, ORCA, scenarios (no rendering dependencies) |
+| `physics/` | Jolt static collision and raycasts behind `IPhysicsWorld` |
 | `platform/` | SDL3 window and events |
 | `render/` | bgfx renderer, ImGui backend, embedded shaders |
 | `ui/` | ImGui editor panels |

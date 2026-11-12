@@ -37,8 +37,11 @@ RAII owner created by the composition root, and never touch it elsewhere:
 | bgfx | the device (`bgfx::init` is process-wide) | `render::Renderer` (one per process) |
 | Dear ImGui | `GImGui` current-context pointer | `ImGuiSession` in `app/GuiApp.cpp` |
 | Tracy | profiler client (optional build) | compiled out unless `CROWDSIM_ENABLE_TRACY` |
+| Jolt Physics | `Factory::sInstance`, registered types, allocator hooks | `physics::JoltRuntime` (in `EngineContext`) |
+| Recast/Detour | allocator hooks only (defaults; never customised) | — |
 
-The simulation (`sim/`) and headless binary use none of them.
+The simulation (`sim/`) uses none of the GUI ones; the headless binary uses Jolt (through the
+same owner) but no SDL, bgfx or ImGui.
 
 ## Consequences
 

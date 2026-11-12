@@ -5,11 +5,63 @@ Last updated: 2026-11-12
 | Milestone | State |
 |---|---|
 | M0 — Skeleton | done (Windows verified; macOS CI passed once) |
-| M1 — Simulation core | **done** (Windows) |
-| M2 — 3D navigation | next |
+| M1 — Simulation core | done (Windows) |
+| M2 — 3D navigation | **done** (Windows) |
+| M3 — Command layer & scene format | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M2 — 3D navigation
+
+### What works
+
+- **Scene geometry** (`geometry/`): primitives (box, ramp, stairs, plane) with per-triangle
+  `walkable` / `obstacle` flags and baked face shading; combined into one triangle mesh.
+- **Navmesh** (`sim/NavMesh`): tiled Recast build (parallel tiles, deterministic order), Detour
+  queries (one per worker thread), dense polygon index, reverse adjacency, wall segments in a grid,
+  off-mesh links with a routing cost. ADR 0005.
+- **Flow fields** per goal over navmesh polygons; agents string-pull a short corridor with shrunk
+  portals.
+- **Constrained locomotion**: `moveAlongSurface` + detail-mesh height every step (no wall
+  penetration, floors/ramps/stairs followed), ORCA with navmesh walls as hard constraints, level
+  separation, off-mesh link traversal (one-way ladder in the building).
+- **Physics** (`physics/`): Jolt static collision behind `IPhysicsWorld`; raycasts drive cursor
+  picking in the editor. `JoltRuntime` owns Jolt's library globals.
+- **Rendering**: static environment meshes; overlays for navmesh + walls, flow field arrows (per
+  goal), off-mesh links, agent velocities; reference grid moved below floors. CLI `--overlays`.
+- **Scenarios**: `building` — two floors, 20-step stairs, 14° ramp, ladder link, railings,
+  partition with three doorways, pillars, benches; flat scenarios now run on a navmesh too.
+- **Diagnostics**: headless `--dump-remaining` lists agents still alive (position, velocities,
+  polygon, reachability).
+
+### Measured (Windows, i7-13700H, Release)
+
+| Measurement | Result | Budget |
+|---|---|---|
+| Sim step, 5k agents, navmesh benchmark scene | 1.37 ms | ≤ 6 ms |
+| Sim step, 20k / 50k agents | 5.4 ms / 12.2 ms | (M10) |
+| GUI, 5,000 agents alive (stream on navmesh), no vsync | avg 1.06 ms, p99 2.8 ms | ≤ 16.6 ms |
+| Building, 2k agents in GUI | avg 1.6 ms, p99 2.3 ms | |
+| Building navmesh + flow fields + collision build | ~18 ms (20 tiles, 138 polys) | |
+| Building, 1,000 agents, seeds 1–4 | 1,000/1,000 reach the upper floor, none stuck | |
+| Building, 3,000 agents | all arrive by t = 533 s (doorway congestion, no stuck agents) | |
+
+### Tests
+
+New: primitives, navmesh build (both floors on the mesh, pillar excluded, goal reachable from the
+ground floor), **no wall penetration** (every agent on its navmesh polygon at every checked step
+of a 400-agent building run, which also must fully arrive), static-scene snapshot sharing, ORCA
+wall constraint, Jolt raycasts (multi-level), `scenario_building_all_arrive` (1,000 agents).
+All 6 CTest entries + 37 doctest cases pass.
+
+### Known issues
+
+- The building (60 × 40 m) cannot hold 5,000 agents at once (peak ~2,800), so the 5k frame-rate
+  check uses the stream scenario on a navmesh.
+- Doorways and stairs produce realistic but slow queues; flow fields are not density-aware.
+- Navmesh rebuild is whole-scene (fast for these scenes); per-tile incremental rebuild comes with
+  editing in M3.
 
 ## M1 — Simulation core
 
