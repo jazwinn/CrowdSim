@@ -164,6 +164,10 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             if (auto v = value()) {
                 c.log.filePath = std::string(*v);
             }
+        } else if (arg == "--script") {
+            if (auto v = value()) {
+                c.scriptPath = std::string(*v);
+            }
         } else if (arg == "--no-content") {
             c.loadContent = false;
         } else if (!gui && arg == "--list-commands") {
@@ -210,7 +214,8 @@ std::string usage(std::string_view exeName, bool gui) {
         "  --agents N          total agents the scenario spawns (default 5000)\n"
         "  --scene PATH        load a *.scene.json (relative to the content dir) instead of a scenario\n"
         "  --content DIR       content root (default: the repository's content/)\n"
-        "  --no-content        skip content/behaviours and content/agents (built-in definitions only)\n"
+        "  --no-content        skip content/scripts, behaviours and agents (built-in definitions only)\n"
+        "  --script PATH       run a Lua script (content-relative) after the scene loads\n"
         "  --threads N         worker threads incl. main (default: all cores)\n"
         "  --log-level L       trace|debug|info|warn|err|critical|off\n"
         "  --log-file PATH     also write the log to PATH\n"

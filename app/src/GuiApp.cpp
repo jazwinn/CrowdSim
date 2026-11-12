@@ -427,6 +427,11 @@ int runGui(EngineContext& engine) {
         float proj[16];
         render::cameraMatrices(camera, viewport.width / std::max(1.0f, viewport.height), view, proj);
         ui::SceneEditorInput editorInput{simulation, engine.dispatcher(), view, proj};
+        std::vector<std::string> entityTypeNames;
+        for (const auto& t : engine.scripts().entityTypesJson()) {
+            entityTypeNames.push_back(t["name"].get<std::string>());
+        }
+        editorInput.entityTypes = entityTypeNames;
         editorInput.viewportX = viewport.x / fbScaleX;
         editorInput.viewportY = viewport.y / fbScaleY;
         editorInput.viewportW = viewport.width / fbScaleX;
@@ -528,6 +533,16 @@ int runGui(EngineContext& engine) {
             engine.dispatcher().submit(std::move(cmd));
         }
         for (const commands::CommandOutcome& o : engine.dispatcher().flush(engine.commandContext())) {
+            if (o.command == "EvalLua") {
+                if (o.ok) {
+                    shell.consoleOutput(o.result.value("output", std::string()));
+                    if (!o.result.value("value", Json()).is_null()) {
+                        shell.consoleOutput(o.result["value"].dump());
+                    }
+                } else {
+                    shell.consoleOutput(o.error, true);
+                }
+            }
             if (!o.ok) {
                 continue;
             }

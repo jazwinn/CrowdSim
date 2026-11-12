@@ -1,5 +1,7 @@
 #include "EngineContext.hpp"
 
+#include "crowdsim/script/ScriptCommands.hpp"
+
 #include <chrono>
 #include <cmath>
 #include <stdexcept>
@@ -15,8 +17,12 @@ EngineContext::EngineContext(const AppConfig& config)
       assets_(logService_.logger(), config.contentDir),
       commandContext_{simulation_, assets_, control_, logService_.logger(), sceneName_},
       dispatcher_(registry_),
+      scriptHost_(registry_, commandContext_, logService_.logger()),
       contentWatcher_(assets_.contentRoot()) {
     commands::registerBuiltinCommands(registry_);
+    script::registerScriptCommands(registry_, scriptHost_);
+    // Command logs start by re-loading the scripts, then the scene snapshot.
+    commandContext_.logPrelude = [this] { return scriptHost_.logPrelude(); };
     log().info("CrowdSim {} | {} job threads | sim {} Hz | seed {} | content {}", CROWDSIM_VERSION, jobs_.threadCount(),
                config.sim.stepHz, config.sim.seed, assets_.contentRoot().string());
 
@@ -39,6 +45,15 @@ EngineContext::EngineContext(const AppConfig& config)
     dispatcher_.clearHistory();
     dispatcher_.restartLog(commandContext_);
     log().info("Scene '{}' loaded", sceneName_);
+
+    // Scenario script (after the log restart, so it is recorded like any other command).
+    if (!config.scriptPath.empty()) {
+        const commands::CommandOutcome run =
+            execute(commands::makeCommand("LoadScript", {{"path", config.scriptPath}}));
+        if (!run.ok) {
+            throw std::runtime_error("script '" + config.scriptPath + "' failed: " + run.error);
+        }
+    }
     syncScene();
 }
 

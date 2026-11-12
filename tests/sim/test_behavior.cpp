@@ -10,6 +10,7 @@
 #include <string>
 
 #include "ContentWatcher.hpp"
+#include "EngineContext.hpp"
 #include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
@@ -120,12 +121,22 @@ TEST_CASE("Behaviour tree JSON survives compile -> decompile -> JSON") {
     CHECK(assets::behaviorToJson(again) == back);
 }
 
-TEST_CASE("Every behaviour and agent type in content/ loads") {
+TEST_CASE("Every script, behaviour and agent type in content/ loads") {
+    // The engine loads content/scripts first; trees may use the Lua nodes they define.
+    app::AppConfig config;
+    config.log.console = false;
+    config.log.level = spdlog::level::warn;
+    config.agents = 10;
+    app::EngineContext engine(config);
+    CHECK(engine.execute(commands::makeCommand("ScriptErrors")).result["errors"].empty());
+    CHECK(engine.simulation().findBehaviorTree("tourist") != nullptr);
+
     const std::filesystem::path root = CROWDSIM_CONTENT_DIR;
     int trees = 0;
     for (const auto& e : std::filesystem::directory_iterator(root / "behaviours")) {
         std::ifstream in(e.path());
-        CHECK_NOTHROW((void)assets::compileBehaviorJson(Json::parse(in)));
+        CHECK_NOTHROW(
+            (void)assets::compileBehaviorJson(Json::parse(in), engine.simulation().customNodeSpecs()));
         ++trees;
     }
     int types = 0;

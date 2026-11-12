@@ -18,6 +18,7 @@
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
+#include "crowdsim/script/ScriptHost.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
 namespace crowdsim::app {
@@ -47,6 +48,7 @@ public:
     [[nodiscard]] commands::CommandContext& commandContext() noexcept { return commandContext_; }
     [[nodiscard]] commands::SimControl& control() noexcept { return control_; }
     [[nodiscard]] const std::string& sceneName() const noexcept { return sceneName_; }
+    [[nodiscard]] script::ScriptHost& scripts() noexcept { return scriptHost_; }
 
     /// Execute a command now and log a warning if it fails.
     commands::CommandOutcome execute(const commands::Json& command);
@@ -81,6 +83,7 @@ private:
     commands::CommandContext commandContext_;
     commands::CommandRegistry registry_;
     commands::CommandDispatcher dispatcher_;
+    script::ScriptHost scriptHost_;  ///< Lua domain; detaches from the simulation before it is destroyed
     ContentWatcher contentWatcher_;
 
     std::uint64_t physicsVersion_ = ~0ull;

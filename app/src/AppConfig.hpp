@@ -23,6 +23,7 @@ struct AppConfig {
     std::uint32_t agents = 5000;                    ///< total agents the scenario spawns
     std::string contentDir = CROWDSIM_CONTENT_DIR;  ///< root for scenes, models, logs
     std::string scenePath;                          ///< scene file to load instead of a built-in scenario
+    std::string scriptPath;                         ///< Lua script to run after the scene loads (scenario script)
     std::string commandsFile;                       ///< headless: JSON array of commands to execute
     std::string replayFile;                         ///< headless: command log to replay
     std::string saveLogFile;                        ///< headless: write the command log here at exit

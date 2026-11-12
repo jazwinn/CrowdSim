@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <iterator>
 #include <system_error>
 
 namespace crowdsim::app {
@@ -17,13 +18,14 @@ std::vector<ContentChange> ContentWatcher::poll(bool force, std::chrono::millise
         return out;
     }
     lastScan_ = now;
+    scanDirectory(root_ / "scripts", ".lua", "LoadScript", "source", out, true);
     scanDirectory(root_ / "behaviours", ".bt.json", "SetBehaviorTree", "tree", out);
     scanDirectory(root_ / "agents", ".agent.json", "DefineAgentType", "type", out);
     return out;
 }
 
 void ContentWatcher::scanDirectory(const fs::path& dir, const std::string& suffix, const char* command,
-                                   const char* param, std::vector<ContentChange>& out) {
+                                   const char* param, std::vector<ContentChange>& out, bool script) {
     std::error_code ec;
     if (!fs::is_directory(dir, ec)) {
         return;
@@ -50,6 +52,15 @@ void ContentWatcher::scanDirectory(const fs::path& dir, const std::string& suffi
         ContentChange change{file, nullptr, {}};
         try {
             std::ifstream in(file, std::ios::binary);
+            if (script) {
+                const std::string source((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+                const std::string name = file.filename().string();
+                change.command = nlohmann::json{
+                    {"cmd", command},
+                    {"params", {{"name", name.substr(0, name.size() - suffix.size())}, {param, source}}}};
+                out.push_back(std::move(change));
+                continue;
+            }
             const nlohmann::json doc = nlohmann::json::parse(in);
             change.command = nlohmann::json{{"cmd", command}, {"params", {{param, doc}}}};
         } catch (const std::exception& e) {
