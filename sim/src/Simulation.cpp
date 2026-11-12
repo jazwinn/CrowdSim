@@ -964,6 +964,9 @@ void Simulation::writeSnapshot(snapshot::RenderSnapshot& out) const {
             a.radius = agents_.radius[i];
             a.velocity = v;
             a.speed = std::sqrt(glm::dot(v, v));
+            float turn = agents_.heading[i] - agents_.prevHeading[i];
+            turn -= 6.2831853f * std::floor((turn + 3.14159265f) / 6.2831853f);
+            a.turnRate = turn * static_cast<float>(config_.stepHz);
             a.agentType = agents_.agentType[i];
             a.state = agents_.stateId[i];
             a.agentId = agents_.id[i];

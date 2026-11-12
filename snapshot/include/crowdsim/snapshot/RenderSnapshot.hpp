@@ -27,7 +27,8 @@ struct AgentInstance {
     glm::vec3 color{1.0f};
     float radius = 0.3f;
     glm::vec2 velocity{0.0f};  ///< m/s on the ground plane (x, z)
-    float speed = 0.0f;        ///< m/s, drives animation playback later
+    float speed = 0.0f;        ///< m/s, drives animation playback
+    float turnRate = 0.0f;     ///< rad/s about +Y (heading change over the last step)
     std::uint16_t agentType = 0;
     std::uint16_t state = 0;  ///< behaviour state id, for debug colouring
     std::uint32_t agentId = 0;
