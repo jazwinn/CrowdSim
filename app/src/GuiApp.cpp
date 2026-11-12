@@ -297,12 +297,16 @@ int runGui(EngineContext& engine) {
         initialOverlays.links = !has("nolinks");
         initialOverlays.shadows = !has("noshadows");
         initialOverlays.animatedCharacters = !has("capsules");
+        initialOverlays.heatmap = has("heatmap-speed") ? 2 : (has("heatmap") ? 1 : 0);
         if (config.lodDistances) {
             initialOverlays.lodNearDistance = (*config.lodDistances)[0];
             initialOverlays.lodFarDistance = (*config.lodDistances)[1];
         }
     }
     ui::EditorShell shell(initialOverlays);
+    if (config.overlays.find("metrics") != std::string::npos) {
+        shell.focusMetrics();
+    }
     shell.sceneEditor().select(config.selectId);
     if (!config.editBehaviour.empty()) {
         engine.dispatcher().submit(commands::makeCommand("GetBehaviorTree", {{"name", config.editBehaviour}}));
@@ -361,6 +365,9 @@ int runGui(EngineContext& engine) {
         mcpHttp->start(host, port);
         log.info("MCP: listening on http://{}:{}/mcp ({} tools)", host, mcpHttp->port(), mcpServer->tools().size());
     }
+
+    std::uint64_t heatmapVersion = 0;
+    int heatmapKind = 0;
 
     auto publishSnapshot = [&] {
         simulation.writeSnapshot(snapshots.writeSlot());
@@ -541,6 +548,7 @@ int runGui(EngineContext& engine) {
             .editor = &editorInput,
             .sceneFiles = sceneFiles,
             .sceneName = engine.sceneName(),
+            .metrics = &engine.metrics(),
         });
         updateCamera(camera, req.viewportHovered);
 
@@ -656,6 +664,35 @@ int runGui(EngineContext& engine) {
             .links = req.overlays.links,
             .velocities = req.overlays.velocities,
         };
+        // Heatmap overlay from the metrics module, refreshed twice a second.
+        {
+            const metrics::Heatmap& h = engine.metrics().heatmap();
+            const int kind = req.overlays.heatmap;
+            const bool stale = frameIndex % 30 == 0 || kind != heatmapKind;
+            if (kind == 0 && sceneRenderer.heatmap.width != 0) {
+                sceneRenderer.heatmap = render::HeatmapOverlay{};
+                sceneRenderer.heatmap.version = ++heatmapVersion;
+            } else if (kind != 0 && stale && h.width > 0) {
+                render::HeatmapOverlay& o = sceneRenderer.heatmap;
+                o.width = h.width;
+                o.height = h.height;
+                o.cell = h.cell;
+                o.origin = h.origin;
+                o.elevation = h.elevation;
+                o.values.resize(static_cast<std::size_t>(h.width * h.height));
+                float peak = 0.0f;
+                for (int z = 0; z < h.height; ++z) {
+                    for (int x = 0; x < h.width; ++x) {
+                        const float v = kind == 1 ? h.density(x, z) : h.speed(x, z);
+                        o.values[static_cast<std::size_t>(z * h.width + x)] = v;
+                        peak = std::max(peak, v);
+                    }
+                }
+                o.maxValue = kind == 1 ? std::max(peak, 0.5f) : std::max(peak, 1.5f);
+                o.version = ++heatmapVersion;
+            }
+            heatmapKind = kind;
+        }
         sceneRenderer.settings.animatedCharacters = req.overlays.animatedCharacters;
         sceneRenderer.settings.shadows = req.overlays.shadows;
         sceneRenderer.settings.lodNearDistance = req.overlays.lodNearDistance;
@@ -680,6 +717,16 @@ int runGui(EngineContext& engine) {
             highlightVersion = simulation.staticVersion();
         }
         sceneRenderer.extraLines = highlight;
+        // Counting gates: amber line with a tick showing the "forward" side.
+        for (const metrics::Gate& g : engine.metrics().gates()) {
+            const glm::vec3 a(g.a.x, g.elevation + 0.08f, g.a.y);
+            const glm::vec3 b(g.b.x, g.elevation + 0.08f, g.b.y);
+            const glm::vec3 mid = (a + b) * 0.5f;
+            const glm::vec3 d = b - a;
+            const glm::vec3 left = glm::normalize(glm::vec3(-d.z, 0.0f, d.x)) * 0.8f;
+            sceneRenderer.extraLines.push_back({a, b, 0xff00c8ffu});
+            sceneRenderer.extraLines.push_back({mid, mid + left, 0xff00c8ffu});
+        }
         if (const std::uint32_t agentId = shell.sceneEditor().selectedAgent();
             agentId != ui::SceneEditor::kNoAgentSelected) {
             appendAgentHighlight(simulation, agentId, sceneRenderer.extraLines);

@@ -35,7 +35,8 @@
         { "name": "bgfx", "features": ["tools"] },
         { "name": "imgui", "features": ["docking-experimental", "sdl3-binding"] },
         "imguizmo",
-        "imgui-node-editor"
+        "imgui-node-editor",
+        "implot"
       ]
     },
     "tracy": {

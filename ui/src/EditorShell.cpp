@@ -2,6 +2,7 @@
 
 #include <imgui.h>
 #include <imgui_internal.h>
+#include <implot.h>
 
 #include <algorithm>
 #include <cstdio>
@@ -22,6 +23,7 @@ constexpr const char* kInspectorWindow = "Inspector";
 constexpr const char* kHistoryWindow = "History";
 constexpr const char* kScriptWindow = "Script";
 constexpr const char* kBehaviourWindow = "Behaviour";
+constexpr const char* kMetricsWindow = "Metrics";
 
 }  // namespace
 
@@ -43,6 +45,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kHierarchyWindow, left);
     ImGui::DockBuilderDockWindow(kSimWindow, rightTop);
     ImGui::DockBuilderDockWindow(kStatsWindow, rightTop);
+    ImGui::DockBuilderDockWindow(kMetricsWindow, rightTop);
     ImGui::DockBuilderDockWindow(kInspectorWindow, rightBottom);
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
     ImGui::DockBuilderDockWindow(kHistoryWindow, bottom);
@@ -93,6 +96,14 @@ void EditorShell::fileMenu(const EditorFrameData& data, EditorRequests& req) {
         req.quit = true;
     }
     ImGui::EndMenu();
+}
+
+EditorShell::EditorShell(const OverlayToggles& initialOverlays) : overlays_(initialOverlays) {
+    ImPlot::CreateContext();
+}
+
+EditorShell::~EditorShell() {
+    ImPlot::DestroyContext();
 }
 
 EditorRequests EditorShell::draw(const EditorFrameData& data) {
@@ -225,6 +236,8 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::Checkbox("Off-mesh links", &overlays_.links);
         ImGui::Checkbox("Velocities", &overlays_.velocities);
         ImGui::Checkbox("Flow field", &overlays_.flowField);
+        ImGui::SetNextItemWidth(120.0f);
+        ImGui::Combo("Heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0");
         if (overlays_.flowField && data.goals > 1) {
             ImGui::SliderInt("Goal", &overlays_.flowGoal, 0, static_cast<int>(data.goals) - 1);
         }
@@ -378,6 +391,25 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::SameLine();
     if (ImGui::Button("Clear")) {
         consoleLines_.clear();
+    }
+    ImGui::End();
+
+    // Metrics: plots, gates, recording. Docks with Simulation / Stats in older layouts.
+    ImGui::Begin(kStatsWindow);
+    const ImGuiID statsDock = ImGui::GetWindowDockID();
+    ImGui::End();
+    if (statsDock != 0) {
+        ImGui::SetNextWindowDockID(statsDock, ImGuiCond_FirstUseEver);
+    }
+    if (focusMetrics_ > 0) {
+        ImGui::SetNextWindowFocus();
+        --focusMetrics_;
+    }
+    ImGui::Begin(kMetricsWindow);
+    if (data.metrics != nullptr) {
+        const float gatePoint[2] = {data.editor != nullptr ? data.editor->cameraTarget[0] : 0.0f,
+                                    data.editor != nullptr ? data.editor->cameraTarget[2] : 0.0f};
+        metricsPanel_.draw(*data.metrics, gatePoint, req.commands);
     }
     ImGui::End();
 

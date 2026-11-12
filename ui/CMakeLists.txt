@@ -4,6 +4,7 @@ crowdsim_add_library(ui
   SOURCES
     src/AgentDebugger.cpp
     src/BtEditor.cpp
+    src/MetricsPanel.cpp
     src/EditorShell.cpp
     src/SceneEditor.cpp
   DEPS
@@ -11,6 +12,8 @@ crowdsim_add_library(ui
     imgui::imgui
     imguizmo::imguizmo
     unofficial::imgui-node-editor::imgui-node-editor
+    implot::implot
+    CrowdSim::metrics
     CrowdSim::sim
     CrowdSim::assets
     CrowdSim::commands

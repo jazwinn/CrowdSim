@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 
 #include "crowdsim/ui/BtEditor.hpp"
+#include "crowdsim/ui/MetricsPanel.hpp"
 #include "crowdsim/ui/SceneEditor.hpp"
 
 namespace crowdsim::ui {
@@ -32,6 +33,7 @@ struct OverlayToggles {
     bool shadows = true;
     float lodNearDistance = 30.0f;
     float lodFarDistance = 90.0f;
+    int heatmap = 0;  ///< 0 off, 1 density, 2 speed
 };
 
 /// Read-only data the shell displays this frame.
@@ -82,6 +84,7 @@ struct EditorFrameData {
     const SceneEditorInput* editor = nullptr;  ///< null disables editing panels
     std::span<const std::string> sceneFiles;   ///< content-relative *.scene.json files
     std::string_view sceneName;
+    const metrics::MetricsCollector* metrics = nullptr;  ///< for the Metrics panel
 };
 
 /// Rectangle in framebuffer pixels.
@@ -116,7 +119,10 @@ struct EditorRequests {
 
 class EditorShell {
 public:
-    explicit EditorShell(const OverlayToggles& initialOverlays = {}) : overlays_(initialOverlays) {}
+    explicit EditorShell(const OverlayToggles& initialOverlays = {});
+    ~EditorShell();
+    EditorShell(const EditorShell&) = delete;
+    EditorShell& operator=(const EditorShell&) = delete;
 
     /// Build all panels. Call between ImGui::NewFrame() and ImGui::Render().
     EditorRequests draw(const EditorFrameData& data);
@@ -130,12 +136,15 @@ public:
     [[nodiscard]] BtEditor& behaviourEditor() noexcept { return btEditor_; }
     /// Bring the Behaviour (node editor) panel to the front next frame.
     void focusBehaviourEditor() noexcept { focusBehaviour_ = true; }
+    /// Bring the Metrics panel to the front next frame.
+    void focusMetrics() noexcept { focusMetrics_ = 3; }
     /// Append a result / error to the Script console transcript.
     void consoleOutput(const std::string& text, bool error = false);
 
 private:
     SceneEditor sceneEditor_;
     BtEditor btEditor_;
+    MetricsPanel metricsPanel_;
     char saveAsName_[128] = "my_scene";
 
     bool layoutBuilt_ = false;
@@ -149,6 +158,7 @@ private:
     std::vector<ConsoleLine> consoleLines_;
     bool consoleScroll_ = false;
     bool focusBehaviour_ = false;
+    int focusMetrics_ = 0;  ///< frames left to keep the Metrics tab in front (docking settles first)
     OverlayToggles overlays_;
     bool viewportDragging_ = false;
     int pendingScenario_ = -1;
