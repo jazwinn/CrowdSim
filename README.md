@@ -32,7 +32,9 @@ cmake --preset headless
 ```bash
 build/windows-msvc/bin/Release/crowdsim                       # editor
 build/windows-msvc/bin/Release/crowdsim --renderer vulkan     # pick a backend
-build/windows-msvc/bin/Release/crowdsim_headless --steps 900 --seed 7
+build/windows-msvc/bin/Release/crowdsim_headless --scenario stream --agents 5000 --steps 2700
+build/windows-msvc/bin/Release/crowdsim --scenario counterflow --agents 5000 --sim-speed 4
+build/windows-msvc/bin/Release/crowdsim_bench
 ```
 
 `crowdsim_headless` prints a one-line JSON result on stdout (logs go to stderr).
@@ -41,11 +43,13 @@ build/windows-msvc/bin/Release/crowdsim_headless --steps 900 --seed 7
 
 | Dir | Purpose |
 |---|---|
-| `core/` | logging, job system, RNG, IDs, hashing, fixed-step clock |
-| `sim/` | ECS world and simulation systems (no rendering dependencies) |
+| `core/` | logging, job system, RNG, IDs, hashing, fixed-step clock, triple buffer |
+| `snapshot/` | plain render-snapshot data passed from sim to render |
+| `sim/` | agent pool, spawners/goals (EnTT), spatial hash, ORCA, scenarios (no rendering dependencies) |
 | `platform/` | SDL3 window and events |
 | `render/` | bgfx renderer, ImGui backend, embedded shaders |
 | `ui/` | ImGui editor panels |
 | `app/` | composition root: GUI and headless executables |
-| `tests/` | doctest unit tests and headless smoke/determinism tests |
+| `tests/` | doctest unit tests and headless smoke/determinism/scenario tests |
+| `bench/` | Google Benchmark suite (sim step at 1k–50k agents) |
 | `tools/` | CI checks (e.g. no mutable global state) |
