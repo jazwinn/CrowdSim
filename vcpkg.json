@@ -10,7 +10,8 @@
     "entt",
     "enkits",
     "nlohmann-json",
-    "doctest"
+    "doctest",
+    "benchmark"
   ],
   "default-features": ["gui"],
   "features": {

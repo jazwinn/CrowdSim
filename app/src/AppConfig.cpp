@@ -70,6 +70,42 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             if (!result.error && (c.sim.stepHz < 1.0 || c.sim.stepHz > 1000.0)) {
                 result.error = "--hz must be in [1, 1000]";
             }
+        } else if (arg == "--scenario") {
+            if (auto v = value()) {
+                if (auto kind = sim::parseScenario(*v)) {
+                    c.scenario = *kind;
+                } else {
+                    result.error = std::format("unknown scenario '{}'", *v);
+                }
+            }
+        } else if (arg == "--agents") {
+            number(c.agents);
+        } else if (gui && arg == "--no-vsync") {
+            c.vsync = false;
+        } else if (gui && arg == "--sim-speed") {
+            number(c.simSpeed);
+        } else if (gui && arg == "--camera") {
+            if (auto v = value()) {
+                std::array<float, 5> cam{};
+                std::size_t start = 0;
+                std::size_t n = 0;
+                bool ok = true;
+                while (ok && n < cam.size()) {
+                    const std::size_t comma = v->find(',', start);
+                    const std::string_view part =
+                        v->substr(start, comma == std::string_view::npos ? v->npos : comma - start);
+                    ok = parseNumber(part, cam[n++]);
+                    if (comma == std::string_view::npos) {
+                        break;
+                    }
+                    start = comma + 1;
+                }
+                if (!ok || n != cam.size()) {
+                    result.error = std::format("invalid --camera '{}', expected x,z,distance,yaw,pitch", *v);
+                } else {
+                    c.camera = cam;
+                }
+            }
         } else if (arg == "--threads") {
             number(c.threads);
         } else if (arg == "--log-level") {
@@ -120,6 +156,8 @@ std::string usage(std::string_view exeName, bool gui) {
     text +=
         "  --seed N            world RNG seed (default 1)\n"
         "  --hz N              simulation rate in Hz (default 30)\n"
+        "  --scenario NAME     stream | counterflow | benchmark (default stream)\n"
+        "  --agents N          total agents the scenario spawns (default 5000)\n"
         "  --threads N         worker threads incl. main (default: all cores)\n"
         "  --log-level L       trace|debug|info|warn|err|critical|off\n"
         "  --log-file PATH     also write the log to PATH\n"
@@ -130,6 +168,9 @@ std::string usage(std::string_view exeName, bool gui) {
             "\nGUI options:\n"
             "  --renderer R        auto|d3d11|d3d12|vulkan|metal|opengl|noop\n"
             "  --size WxH          initial window size (default 1600x900)\n"
+            "  --no-vsync          present without vsync (for measuring frame time)\n"
+            "  --sim-speed X       initial simulation speed multiplier (default 1)\n"
+            "  --camera x,z,d,y,p  initial camera: target x/z, distance, yaw and pitch in degrees\n"
             "  --frames N          exit after N frames (smoke tests)\n"
             "  --screenshot PATH   save a PNG of the final frame (use with --frames)\n";
     } else {

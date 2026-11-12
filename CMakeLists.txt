@@ -7,6 +7,7 @@ cmake_minimum_required(VERSION 3.25)
 option(CROWDSIM_BUILD_GUI "Build the windowed editor (SDL3 + bgfx + ImGui)" ON)
 option(CROWDSIM_ENABLE_TRACY "Compile in the Tracy profiler client" OFF)
 option(CROWDSIM_BUILD_TESTS "Build unit and integration tests" ON)
+option(CROWDSIM_BUILD_BENCH "Build benchmarks" ON)
 option(CROWDSIM_WARNINGS_AS_ERRORS "Treat warnings in project code as errors" ON)
 
 set(VCPKG_MANIFEST_NO_DEFAULT_FEATURES ON)
@@ -58,6 +59,7 @@ endif()
 # sim never links render/ui/platform and vice versa.
 # ---------------------------------------------------------------------------
 add_subdirectory(core)
+add_subdirectory(snapshot)
 add_subdirectory(sim)
 
 if(CROWDSIM_BUILD_GUI)
@@ -72,4 +74,9 @@ if(CROWDSIM_BUILD_TESTS)
   enable_testing()
   find_package(doctest CONFIG REQUIRED)
   add_subdirectory(tests)
+endif()
+
+if(CROWDSIM_BUILD_BENCH)
+  find_package(benchmark CONFIG REQUIRED)
+  add_subdirectory(bench)
 endif()

@@ -3,6 +3,7 @@
 /// @file AppConfig.hpp
 /// Command-line configuration shared by the GUI and headless executables.
 
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -10,6 +11,7 @@
 #include <string_view>
 
 #include "crowdsim/core/Logging.hpp"
+#include "crowdsim/sim/Scenarios.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
 namespace crowdsim::app {
@@ -17,6 +19,12 @@ namespace crowdsim::app {
 struct AppConfig {
     core::LogConfig log;
     sim::SimConfig sim;
+    sim::ScenarioKind scenario = sim::ScenarioKind::Stream;
+    std::uint32_t agents = 5000;  ///< total agents the scenario spawns
+    bool vsync = true;            ///< gui: present with vsync
+    float simSpeed = 1.0f;        ///< gui: initial simulation speed multiplier
+    /// gui: initial camera (target x, target z, distance, yaw deg, pitch deg); empty = default
+    std::optional<std::array<float, 5>> camera;
     std::uint32_t threads = 0;      ///< 0 = hardware concurrency
     std::uint64_t steps = 300;      ///< headless: number of sim steps to run
     std::uint64_t frames = 0;       ///< gui: exit after N frames (0 = run until closed)
