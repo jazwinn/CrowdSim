@@ -127,8 +127,10 @@ void CrowdRenderer::assignSlots(const snapshot::RenderSnapshot& snap) {
     agentSlot_.resize(n);
     for (std::uint32_t i = 0; i < n; ++i) {
         const std::uint32_t id = snap.agents[i].agentId;
-        auto it = slotOf_.find(id);
-        if (it == slotOf_.end()) {
+        if (id >= slotOf_.size()) {
+            slotOf_.resize(static_cast<std::size_t>(id) + 1 + slotOf_.size() / 2, 0);
+        }
+        if (slotOf_[id] == 0) {
             std::uint32_t slot = 0;
             if (!freeSlots_.empty()) {
                 slot = freeSlots_.back();
@@ -137,20 +139,20 @@ void CrowdRenderer::assignSlots(const snapshot::RenderSnapshot& snap) {
                 slot = static_cast<std::uint32_t>(slots_.size());
                 slots_.emplace_back();
             }
-            slots_[slot].gait = animation::initialGaitState(id);
-            it = slotOf_.emplace(id, slot).first;
+            slots_[slot] = Slot{animation::initialGaitState(id), frame_, id, true};
+            slotOf_[id] = slot + 1;
         }
-        agentSlot_[i] = it->second;
-        slots_[it->second].lastFrame = frame_;
+        agentSlot_[i] = slotOf_[id] - 1;
+        slots_[agentSlot_[i]].lastFrame = frame_;
     }
     // Forget agents that have not been seen for a while (despawned).
     if (frame_ % 64 == 0) {
-        for (auto it = slotOf_.begin(); it != slotOf_.end();) {
-            if (slots_[it->second].lastFrame + 2 < frame_) {
-                freeSlots_.push_back(it->second);
-                it = slotOf_.erase(it);
-            } else {
-                ++it;
+        for (std::uint32_t k = 0; k < slots_.size(); ++k) {
+            Slot& s = slots_[k];
+            if (s.used && s.lastFrame + 2 < frame_) {
+                slotOf_[s.id] = 0;
+                s.used = false;
+                freeSlots_.push_back(k);
             }
         }
     }

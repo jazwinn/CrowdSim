@@ -112,6 +112,8 @@ private:
     struct Slot {
         animation::GaitState gait;
         std::uint64_t lastFrame = 0;
+        std::uint32_t id = 0;
+        bool used = false;
     };
 
     void assignSlots(const snapshot::RenderSnapshot& snap);
@@ -120,7 +122,7 @@ private:
     Gpu gpu_;
     bgfx::VertexLayout layout_;
 
-    std::unordered_map<std::uint32_t, std::uint32_t> slotOf_;  ///< agent id -> slot
+    std::vector<std::uint32_t> slotOf_;  ///< agent id -> slot + 1 (0 = none); ids are dense
     std::vector<Slot> slots_;
     std::vector<std::uint32_t> freeSlots_;
     std::uint64_t frame_ = 0;
