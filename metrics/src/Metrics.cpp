@@ -16,7 +16,8 @@ constexpr float kStuckSpeed = 0.15f;
 constexpr float kStuckSeconds = 10.0f;
 constexpr std::size_t kMaxSamples = 40000;
 constexpr std::size_t kMaxRows = 10'000'000;
-constexpr int kMaxHeatmapCells = 300;  ///< per axis
+constexpr int kMaxHeatmapCells = 300;        ///< per axis
+constexpr std::uint64_t kHeatmapStride = 3;  ///< steps between heatmap accumulations
 
 float cross(glm::vec2 a, glm::vec2 b) {
     return a.x * b.y - a.y * b.x;
@@ -172,9 +173,11 @@ void MetricsCollector::afterStep(sim::Simulation& sim) {
         }
     }
 
-    // Heatmap accumulation (every step).
+    // Heatmap accumulation: every third step with three steps' worth of time (the same
+    // time average for a third of the serial work).
     ensureHeatmap();
-    if (heatmap_.width > 0) {
+    if (heatmap_.width > 0 && sim.stepIndex() % kHeatmapStride == 0) {
+        const float hdt = dt * static_cast<float>(kHeatmapStride);
         for (std::uint32_t i = 0; i < a.size(); ++i) {
             const int x = static_cast<int>((a.position[i].x - heatmap_.origin.x) / heatmap_.cell);
             const int z = static_cast<int>((a.position[i].y - heatmap_.origin.y) / heatmap_.cell);
@@ -183,10 +186,10 @@ void MetricsCollector::afterStep(sim::Simulation& sim) {
             }
             const auto c = static_cast<std::size_t>(z * heatmap_.width + x);
             const glm::vec2 v = a.velocity[i];
-            heatmap_.agentSeconds[c] += dt;
-            heatmap_.speedSeconds[c] += std::sqrt(v.x * v.x + v.y * v.y) * dt;
+            heatmap_.agentSeconds[c] += hdt;
+            heatmap_.speedSeconds[c] += std::sqrt(v.x * v.x + v.y * v.y) * hdt;
         }
-        heatmap_.elapsed += dt;
+        heatmap_.elapsed += hdt;
         ++heatmap_.version;
     }
 
