@@ -8,7 +8,9 @@ on:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Only cancel superseded PR runs: on main, let runs finish so the vcpkg binary
+  # cache gets saved (the first dependency build takes ~40 minutes).
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   # Must match "builtin-baseline" in vcpkg.json.
@@ -88,8 +90,9 @@ jobs:
           fi
           mkdir -p "$VCPKG_DEFAULT_BINARY_CACHE"
 
-      - name: Cache vcpkg binaries
-        uses: actions/cache@v4
+      - name: Restore vcpkg binary cache
+        id: vcpkg-cache
+        uses: actions/cache/restore@v4
         with:
           path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
           key: vcpkg-${{ matrix.triplet }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
@@ -98,6 +101,14 @@ jobs:
       - name: Configure
         shell: bash
         run: VCPKG_ROOT="$CS_VCPKG_DIR" cmake --preset ${{ matrix.preset }}
+
+      # Save as soon as dependencies are built, so later failures don't lose them.
+      - name: Save vcpkg binary cache
+        if: steps.vcpkg-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.VCPKG_DEFAULT_BINARY_CACHE }}
+          key: vcpkg-${{ matrix.triplet }}-${{ env.VCPKG_COMMIT }}-${{ hashFiles('vcpkg.json') }}
 
       - name: Build
         run: cmake --build build/${{ matrix.preset }} --config Release --parallel
