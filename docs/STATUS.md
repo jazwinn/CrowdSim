@@ -6,11 +6,57 @@ Last updated: 2026-11-12
 |---|---|
 | M0 — Skeleton | done (Windows verified; macOS CI passed once) |
 | M1 — Simulation core | done (Windows) |
-| M2 — 3D navigation | **done** (Windows) |
-| M3 — Command layer & scene format | next |
+| M2 — 3D navigation | done (Windows) |
+| M3 — Command layer & scene format | **done** (Windows) |
+| M4 — Behaviour trees | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M3 — Command layer & scene format
+
+### What works
+
+- **Commands** (`commands/`): JSON commands with JSON-Schema params, a registry of 25 built-ins
+  (scene, entities, navigation, simulation, play controls), dispatcher applying them between steps,
+  undo/redo via handler-provided inverses (gizmo drags merge into one step), Undo/Redo as commands.
+  ADR 0006; reference in `docs/formats.md`.
+- **Command log + replay**: self-contained logs (scene snapshot at step 0 + every applied command
+  with its step index); `crowdsim_headless --replay` reproduces runs bit-identically.
+- **Scene format** (`assets/`): versioned `*.scene.json` with migration hook; byte-identical
+  save → load → save; stable entity ids; goal references by id or name.
+- **glTF import** (cgltf): node-name and `extras` tag conventions → walkable/obstacle, glTF axes
+  converted; mesh objects referenced by content-relative path and cached.
+- **Simulation scene API**: add/update/remove for objects, links, goals and spawners by `SceneId`
+  (removing a goal removes its agents; moving one retargets them).
+- **Editor**: hierarchy with Add menu (floor, wall, pillar, obstacle, ramp, stairs, goal, spawner,
+  ladder link, glTF import), JSON-driven inspector for every entity kind, ImGuizmo translate (W) /
+  rotate (E) with snapping, click-to-select via per-object Jolt bodies and area picking, amber
+  selection outline, Delete / Ctrl+D duplicate / Ctrl+Z / Ctrl+Y, History panel, File menu (new,
+  open, save, save as, save command log).
+- **Headless**: `--scene`, `--commands` batch (one JSON result line per command), `--replay`,
+  `--save-log`, `--export-scene`, `--list-commands`.
+- **Content**: `content/scenes/two_floor_building.scene.json`, `corridor_bottleneck.scene.json`,
+  `content/commands/build_corridor.commands.json`, `content/models/test_room.gltf`.
+
+### Done-criterion evidence
+
+- doctest `M3: a scene built by commands saves, reloads and replays identically`: build by
+  commands, run 150 steps, add a pillar mid-run, run, undo, run; save → load reproduces the scene
+  JSON exactly, and replaying the log in a fresh engine gives the identical state hash.
+- CTest `commands_replay_identical`: the corridor command batch (create scene, 5 objects, goal,
+  spawner, 120 s of simulation with 1,500 agents) replayed in a separate process gives the same
+  state hash.
+- Screenshot: editor with selection outline, gizmo and inspector (`screenshots/m3_editor.png`,
+  not committed).
+
+### Known issues
+
+- Navmesh rebuilds are whole-scene after each edit (deferred during gizmo drags).
+- The inspector edits raw JSON fields generically; dedicated widgets (e.g. agent-type mixes) come
+  with M4.
+- Gizmo rotation direction relies on ImGuizmo's Euler convention, detected at runtime; verified
+  visually only for translation so far.
 
 ## M2 — 3D navigation
 
