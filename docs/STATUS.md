@@ -9,11 +9,69 @@ Last updated: 2026-11-12
 | M2 — 3D navigation | done (Windows) |
 | M3 — Command layer & scene format | done (Windows) |
 | M4 — Behaviour trees | done (Windows) |
-| M5 — Animated characters | **done** (Windows) |
-| M6 — Lua scripting | next |
+| M5 — Animated characters | done (Windows) |
+| M6 — Lua scripting | **done** (Windows) |
+| M7 — Node graph editor | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M6 — Lua scripting
+
+### What works
+
+- **Script module** (`script/`): one sandboxed LuaJIT state (sol2) owned by the engine. No
+  `os/io/debug/ffi/jit/require/dofile/loadfile/string.dump`, text-only `load`. Every call has an
+  instruction budget (20 M), a 0.5 s budget and a 256 MB allocator cap; errors are logged, kept
+  for the UI / `ScriptErrors`, and never stop the simulation. ADR 0009; API in
+  `docs/scripting.md`.
+- **API**: `scene.*` (through commands), `entities.register_type/spawn/list`,
+  `agents.register_type/count/count_near/get`, `bt.register_node/set/node_types`, `sim.*`,
+  `metrics.get`, `events.on` (agent spawned / arrived / despawned, step), `log.*`, a
+  world-seeded `math.random`.
+- **Script BT nodes**: typed parameters validated at tree compile time; ticked after the parallel
+  decision phase, serially, batched per node instance, with a `ctx` for reading and steering
+  agents; results arrive on the next decision tick. Deterministic for any thread count.
+- **Scripted entity types**: object templates with `on_spawn` / `on_tick` (own rate). They are
+  placed with `SpawnEntity` (undoable) or from the editor's *Add… → Scripted (Lua)* menu.
+- **Hot reload**: `content/scripts/*.lua` load at start-up (before trees) and re-run when saved;
+  nodes, types and event handlers are replaced by name or owner.
+- **Scenario scripts**: `--script scenarios/kiosk_square.lua` (GUI and headless).
+- **Commands**: `LoadScript`, `ReloadScript`, `EvalLua`, `SpawnEntity`, `ListScripts`,
+  `GetScript`, `ScriptErrors`, `ListEntityTypes`. Command logs start with the loaded scripts'
+  sources, so they replay in a fresh process.
+- **Editor**: Script console (Ctrl+Enter runs through `EvalLua`; output and errors shown inline).
+- **Content**: `scripts/info_kiosk.lua` (entity type + `VisitAttraction` node),
+  `behaviours/tourist.bt.json`, `agents/tourist.agent.json`, `scenarios/kiosk_square.lua`.
+
+### Done-criterion evidence
+
+- doctest `M6: a BT node and an object type defined in Lua at runtime drive a running
+  simulation`: with no content loaded, the stream scenario is already running. A `LoadScript`
+  then defines the `Linger` node and the `beacon` entity type. Lua then places a beacon, defines
+  a tree and an agent type that use the node, and switches the running spawner to them. New
+  agents enter the Lua-set `lingering` state, more than 20 complete the node, and the beacon's
+  `on_tick` runs, all with no script errors.
+- Kiosk scenario (headless, 120 s): 71 completed kiosk visits, 4,119 browsing-seconds, no
+  errors; the saved command log replays in a fresh process to the identical state hash.
+
+### Tests
+
+New doctest cases: sandbox (missing libraries, bytecode rejected, text `load`, seeded
+`math.random`); limits (runaway loop, 1 GB allocation, `error()`, unknown command, all recorded,
+host still usable); the M6 criterion; hot reload changes running agents' node behaviour; Lua
+nodes are identical at 1 and 7 threads and a replayed log matches. All 58 doctest cases and 8
+CTest entries pass.
+
+Screenshot (not committed): `screenshots/m6_kiosks.png` — tourists gathering at scripted kiosks,
+Script console docked.
+
+### Known issues
+
+- Script nodes report their result one decision tick (100 ms) late, by design.
+- Lua globals are shared between scripts; name clashes are possible.
+- Entity `on_tick` callbacks that call `scene.update` on an object trigger a navmesh rebuild;
+  keep per-tick work to queries and Lua state.
 
 ## M5 — Animated characters
 

@@ -39,13 +39,14 @@ build/windows-msvc/bin/Release/crowdsim --scenario building --agents 2000 --over
 build/windows-msvc/bin/Release/crowdsim --scene scenes/two_floor_building.scene.json
 build/windows-msvc/bin/Release/crowdsim --scenario plaza --agents 5000        # behaviour trees; click an agent to debug it
 build/windows-msvc/bin/Release/crowdsim --scenario benchmark --lod 60,200 --no-vsync   # 5k animated characters
+build/windows-msvc/bin/Release/crowdsim --script scenarios/kiosk_square.lua   # Lua: scripted kiosks + tourists
 build/windows-msvc/bin/Release/crowdsim_headless --commands content/commands/build_corridor.commands.json --save-log run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_headless --replay run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_bench
 ```
 
 File formats (scenes, behaviour trees, agent types), the behaviour node reference and the full
-command list: [docs/formats.md](docs/formats.md). Edit any `content/behaviours/*.bt.json` while
+command list: [docs/formats.md](docs/formats.md). Lua API: [docs/scripting.md](docs/scripting.md). Edit any `content/behaviours/*.bt.json` while
 the editor runs and the agents pick up the change immediately.
 
 `crowdsim_headless` prints a one-line JSON result on stdout (logs go to stderr).
@@ -62,11 +63,12 @@ the editor runs and the agents pick up the change immediately.
 | `physics/` | Jolt static collision and raycasts behind `IPhysicsWorld` |
 | `assets/` | scene JSON, glTF import, asset library |
 | `commands/` | command registry, dispatcher, undo/redo, command log + replay |
+| `script/` | sandboxed LuaJIT + sol2: script BT nodes, entity types, events, script commands |
 | `platform/` | SDL3 window and events |
 | `render/` | bgfx renderer, ImGui backend, embedded shaders |
 | `ui/` | ImGui editor panels |
 | `app/` | composition root: GUI and headless executables |
-| `content/` | sample scenes, behaviour trees, agent types, command batches, models |
+| `content/` | sample scenes, behaviour trees, agent types, Lua scripts and scenarios, command batches, models |
 | `tests/` | doctest unit tests and headless smoke/determinism/scenario tests |
 | `bench/` | Google Benchmark suite (sim step at 1k–50k agents) |
 | `tools/` | CI checks (e.g. no mutable global state) |

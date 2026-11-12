@@ -164,6 +164,10 @@ every command with its JSON Schema.
 | `ListBehaviorNodeTypes` | no | Node types with parameter schemas. |
 | `DefineAgentType` | yes | Add or replace an agent type from `*.agent.json` content. |
 | `SetAgentTypeBehaviour` | yes | Switch an agent type to another tree (its agents restart). |
+| `LoadScript` / `ReloadScript` | yes (with source) | Run or hot-reload a Lua script (see `docs/scripting.md`). |
+| `EvalLua` | yes | Evaluate Lua; returns printed output and the result. |
+| `SpawnEntity` | yes | Place an instance of a Lua-registered entity type. |
+| `ListScripts` / `GetScript` / `ScriptErrors` / `ListEntityTypes` | no | Scripting queries. |
 | `RebuildNavmesh` | yes | Rebuild navmesh + flow fields now; returns polygon/tile/wall counts. |
 | `SetNavigationSettings` | yes | Change navmesh build settings. |
 | `SetSimParams` | yes | Locomotion parameters and/or seed. |
