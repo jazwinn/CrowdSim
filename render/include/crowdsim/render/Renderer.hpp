@@ -18,7 +18,8 @@ class logger;
 namespace crowdsim::render {
 
 /// bgfx view ids, in submission order.
-inline constexpr std::uint16_t kViewScene = 0;
+inline constexpr std::uint16_t kViewBackground = 0;  ///< full-framebuffer clear
+inline constexpr std::uint16_t kViewScene = 1;       ///< 3D scene, restricted to the viewport rect
 inline constexpr std::uint16_t kViewImGui = 255;
 
 struct RendererConfig {

@@ -3,11 +3,13 @@
 #include <imgui.h>
 #include <imgui_internal.h>
 
+#include <algorithm>
+#include <string>
+
 namespace crowdsim::ui {
 
 namespace {
 
-constexpr const char* kViewportWindow = "Viewport";
 constexpr const char* kSimWindow = "Simulation";
 constexpr const char* kStatsWindow = "Stats";
 constexpr const char* kLogWindow = "Log";
@@ -36,7 +38,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kStatsWindow, rightTop);
     ImGui::DockBuilderDockWindow(kInspectorWindow, rightBottom);
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
-    ImGui::DockBuilderDockWindow(kViewportWindow, center);
+    // The central node stays empty: it is the 3D viewport.
     ImGui::DockBuilderFinish(dockspaceId);
 }
 
@@ -102,14 +104,37 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     }
     ImGui::DockSpaceOverViewport(dockspaceId, ImGui::GetMainViewport(), ImGuiDockNodeFlags_PassthruCentralNode);
 
-    // Viewport: transparent, the 3D scene is rendered behind the UI.
-    ImGui::SetNextWindowBgAlpha(0.0f);
-    ImGui::Begin(kViewportWindow, nullptr, ImGuiWindowFlags_NoBackground | ImGuiWindowFlags_NoScrollbar);
-    ImGui::TextDisabled("3D viewport (scene rendering arrives in M1)");
-    ImGui::End();
+    // 3D viewport = the dockspace's central node, left empty so ImGui passes it
+    // through and draws nothing there. The scene renders into its rectangle.
+    if (const ImGuiDockNode* central = ImGui::DockBuilderGetCentralNode(dockspaceId); central != nullptr) {
+        const ImGuiIO& io = ImGui::GetIO();
+        const ImVec2 base = ImGui::GetMainViewport()->Pos;
+        const ImVec2 scale = io.DisplayFramebufferScale;
+        const ImVec2 origin = central->Pos;
+        req.viewport = PixelRect{(origin.x - base.x) * scale.x, (origin.y - base.y) * scale.y,
+                                 central->Size.x * scale.x, central->Size.y * scale.y};
+        const ImVec2 mouse = io.MousePos;
+        const bool insideRect = mouse.x >= origin.x && mouse.y >= origin.y && mouse.x < origin.x + central->Size.x &&
+                                mouse.y < origin.y + central->Size.y;
+        // Keep ownership while dragging even if the cursor leaves the rectangle.
+        viewportDragging_ = viewportDragging_ && ImGui::IsAnyMouseDown();
+        if (insideRect && !io.WantCaptureMouse && ImGui::IsAnyMouseDown()) {
+            viewportDragging_ = true;
+        }
+        req.viewportHovered = (insideRect && !io.WantCaptureMouse) || viewportDragging_;
+
+        ImDrawList* dl = ImGui::GetBackgroundDrawList();
+        const std::string overlay = std::to_string(data.agentsAlive) + " agents";
+        dl->AddText(ImVec2(origin.x + 10.0f, origin.y + 8.0f), IM_COL32(230, 230, 230, 220), overlay.c_str());
+        dl->AddText(ImVec2(origin.x + 10.0f, origin.y + 8.0f + ImGui::GetTextLineHeightWithSpacing()),
+                    IM_COL32(160, 160, 160, 200), "LMB orbit   RMB/MMB pan   wheel zoom   F reset view");
+    }
+    if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F, false)) {
+        req.frameAll = true;
+    }
 
     ImGui::Begin(kHierarchyWindow);
-    ImGui::TextDisabled("Empty scene");
+    ImGui::TextDisabled("Scene editing arrives in M3");
     ImGui::End();
 
     ImGui::Begin(kInspectorWindow);
@@ -137,13 +162,48 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::Text("Rate      %.0f Hz", data.stepHz);
     ImGui::Text("Seed      %llu", static_cast<unsigned long long>(data.seed));
     ImGui::Text("Hash      %016llx", static_cast<unsigned long long>(data.stateHash));
+
+    ImGui::SeparatorText("Crowd");
+    ImGui::Text("Alive     %u", data.agentsAlive);
+    ImGui::Text("Spawned   %llu", static_cast<unsigned long long>(data.agentsSpawned));
+    ImGui::Text("Arrived   %llu", static_cast<unsigned long long>(data.agentsArrived));
+    ImGui::Text("Avg speed %.2f m/s", data.averageSpeed);
+
+    ImGui::SeparatorText("Scenario");
+    if (pendingScenario_ < 0) {
+        pendingScenario_ = data.scenarioIndex;
+        pendingAgents_ = static_cast<int>(data.scenarioAgents);
+    }
+    if (!data.scenarioNames.empty()) {
+        const std::string current(data.scenarioNames[static_cast<std::size_t>(pendingScenario_)]);
+        if (ImGui::BeginCombo("Scene", current.c_str())) {
+            for (std::size_t i = 0; i < data.scenarioNames.size(); ++i) {
+                const std::string name(data.scenarioNames[i]);
+                if (ImGui::Selectable(name.c_str(), static_cast<int>(i) == pendingScenario_)) {
+                    pendingScenario_ = static_cast<int>(i);
+                }
+            }
+            ImGui::EndCombo();
+        }
+    }
+    ImGui::InputInt("Agents", &pendingAgents_, 500, 5000);
+    pendingAgents_ = std::clamp(pendingAgents_, 0, 200000);
+    if (ImGui::Button("Load scenario")) {
+        req.rebuildScenario = true;
+        req.scenarioIndex = pendingScenario_;
+        req.scenarioAgents = static_cast<std::uint32_t>(pendingAgents_);
+    }
+    ImGui::Checkbox("Show spawner/goal areas", &showAreas_);
+    req.showAreas = showAreas_;
     ImGui::End();
 
     ImGui::Begin(kStatsWindow);
     const float fps = data.frameMs > 0.0f ? 1000.0f / data.frameMs : 0.0f;
     ImGui::Text("Frame     %.2f ms (%.0f FPS)", data.frameMs, fps);
     ImGui::Text("Sim step  %.3f ms", data.simStepMs);
+    ImGui::Text("Render    %.3f ms (CPU submit)", data.renderSubmitMs);
     ImGui::Text("Renderer  %.*s", static_cast<int>(data.rendererName.size()), data.rendererName.data());
+    ImGui::Text("Drawn     %u agents, %u draws", data.agentsDrawn, data.drawCalls);
     ImGui::Text("Viewport  %u x %u", data.framebufferWidth, data.framebufferHeight);
     ImGui::Text("Jobs      %u threads", data.jobThreads);
     ImGui::End();

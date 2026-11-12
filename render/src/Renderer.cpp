@@ -121,8 +121,12 @@ Renderer::Renderer(spdlog::logger& log, const RendererConfig& config)
     }
     log_.info("Renderer: {} ({}x{})", backendName(), width_, height_);
 
+    bgfx::setViewClear(kViewBackground, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, clearColor_, 1.0f, 0);
+    bgfx::setViewName(kViewBackground, "Background");
     bgfx::setViewClear(kViewScene, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, clearColor_, 1.0f, 0);
     bgfx::setViewName(kViewScene, "Scene");
+    // Submission order matters for ground decals; opaque geometry relies on the depth buffer.
+    bgfx::setViewMode(kViewScene, bgfx::ViewMode::Sequential);
 }
 
 Renderer::~Renderer() {
@@ -139,8 +143,9 @@ void Renderer::resize(std::uint32_t width, std::uint32_t height) {
 }
 
 void Renderer::beginFrame() {
-    bgfx::setViewRect(kViewScene, 0, 0, static_cast<std::uint16_t>(width_), static_cast<std::uint16_t>(height_));
-    bgfx::touch(kViewScene);  // clear even when nothing is submitted
+    bgfx::setViewRect(kViewBackground, 0, 0, static_cast<std::uint16_t>(width_), static_cast<std::uint16_t>(height_));
+    bgfx::touch(kViewBackground);  // clear even when nothing is submitted
+    bgfx::touch(kViewScene);
 }
 
 void Renderer::endFrame() {
