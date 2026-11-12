@@ -16,7 +16,8 @@
     "joltphysics",
     "cgltf",
     "luajit",
-    "sol2"
+    "sol2",
+    { "name": "cpp-httplib", "default-features": false }
   ],
   "default-features": ["gui"],
   "features": {
