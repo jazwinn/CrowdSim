@@ -1,5 +1,7 @@
 #include <cmath>
+#include <filesystem>
 #include <format>
+#include <fstream>
 #include <stdexcept>
 
 #include <spdlog/logger.h>
@@ -357,6 +359,56 @@ void registerBuiltinCommands(CommandRegistry& r) {
            [](const Json&, CommandContext& ctx) {
                CommandOutput out;
                out.result = Json{{"nodeTypes", assets::btNodeTypesJson(ctx.sim.customNodeSpecs())}};
+               return out;
+           },
+           false});
+
+    r.add({"GetBehaviorTree",
+           "A behaviour tree as a *.bt.json document. Returns the content/behaviours file (with its editor "
+           "layout) when it matches the tree in use, else the live tree.",
+           obj({{"name", str("behaviour tree name")}}, {"name"}),
+           [](const Json& p, CommandContext& ctx) {
+               const std::string name = p.at("name").get<std::string>();
+               const sim::CompiledTree* live = ctx.sim.findBehaviorTree(name);
+               const auto file = ctx.assets.resolve("behaviours/" + name + ".bt.json");
+               CommandOutput out;
+               std::error_code ec;
+               if (std::filesystem::exists(file, ec)) {
+                   try {
+                       std::ifstream in(file, std::ios::binary);
+                       const Json doc = Json::parse(in);
+                       const sim::CompiledTree fromFile = assets::compileBehaviorJson(doc, ctx.sim.customNodeSpecs());
+                       if (live == nullptr || assets::behaviorToJson(fromFile) == assets::behaviorToJson(*live)) {
+                           out.result = Json{{"tree", doc}, {"source", "file"}};
+                           return out;
+                       }
+                   } catch (const std::exception& e) {
+                       ctx.log.warn("GetBehaviorTree: {} is not usable: {}", file.string(), e.what());
+                   }
+               }
+               if (live == nullptr) {
+                   throw std::invalid_argument("no behaviour tree named '" + name + "'");
+               }
+               out.result = Json{{"tree", assets::behaviorToJson(*live)}, {"source", "live"}};
+               return out;
+           },
+           false});
+
+    r.add({"SaveBehaviorTree",
+           "Validate a *.bt.json document and write it to content/behaviours/<name>.bt.json (keeps the editor "
+           "layout). Does not apply it; the file watcher or SetBehaviorTree does.",
+           obj({{"tree", any("crowdsim.bt document")}}, {"tree"}),
+           [](const Json& p, CommandContext& ctx) {
+               const Json& doc = p.at("tree");
+               const sim::CompiledTree tree = assets::compileBehaviorJson(doc, ctx.sim.customNodeSpecs());
+               CommandOutput out;
+               if (!ctx.replaying) {
+                   const auto file = ctx.assets.resolve("behaviours/" + tree.name + ".bt.json");
+                   std::filesystem::create_directories(file.parent_path());
+                   std::ofstream(file, std::ios::binary) << doc.dump(2) << '\n';
+                   out.result = Json{{"path", ctx.assets.relativize(file)}};
+                   ctx.log.info("Saved behaviour '{}' to {}", tree.name, file.string());
+               }
                return out;
            },
            false});
