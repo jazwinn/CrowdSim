@@ -13,3 +13,6 @@ __pycache__/
 imgui.ini
 *.log
 /content/logs/
+
+# Exported trajectories / metrics (M9)
+content/recordings/

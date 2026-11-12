@@ -14,6 +14,7 @@ add_executable(crowdsim_tests
   script/test_scripting.cpp
   assets/test_bt_graph.cpp
   mcp/test_mcp.cpp
+  metrics/test_metrics.cpp
   physics/test_physics.cpp
   commands/test_commands.cpp
   app/test_command_line.cpp
