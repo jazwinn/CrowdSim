@@ -24,6 +24,7 @@ import sys
 from pathlib import Path
 
 MODULE_DIRS = ["core", "geometry", "snapshot", "sim", "physics", "assets", "commands", "animation", "script", "mcp",
+               "metrics",
                "render", "ui", "platform", "app", "bench"]
 EXTENSIONS = {".h", ".hpp", ".cpp", ".cc", ".inl", ".mm"}
 SUPPRESS = "global-state-ok:"

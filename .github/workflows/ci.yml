@@ -31,7 +31,7 @@ jobs:
         run: python tools/check_global_state.py
       - name: clang-format
         run: |
-          find core geometry snapshot sim physics assets commands animation script mcp platform render ui app tests bench -type f \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
+          find core geometry snapshot sim physics assets commands animation script mcp metrics platform render ui app tests bench -type f \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
             | xargs -0 clang-format --dry-run --Werror
 
   build:
@@ -124,7 +124,7 @@ jobs:
       - name: clang-tidy (global variables)
         shell: bash
         run: |
-          find core geometry sim physics assets commands animation script mcp platform render ui app -name '*.cpp' -print0 \
+          find core geometry sim physics assets commands animation script mcp metrics platform render ui app -name '*.cpp' -print0 \
             | xargs -0 -n 8 clang-tidy -p build/${{ matrix.preset }} --quiet \
                 -checks='-*,cppcoreguidelines-avoid-non-const-global-variables' \
                 -warnings-as-errors='*'
