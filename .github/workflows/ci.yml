@@ -40,13 +40,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Linux and macOS are deferred until the application is feature-complete
-        # (see docs/STATUS.md). To re-enable, restore these entries:
-        #   - { name: "Linux (GCC)", os: ubuntu-24.04, preset: linux, triplet: x64-linux,
-        #       gui_smoke: 'xvfb-run -a -s "-screen 0 1280x720x24" crowdsim --frames 30 --renderer opengl --log-level warn' }
-        #   - { name: "macOS (Apple Silicon)", os: macos-15, preset: macos, triplet: arm64-osx,
-        #       gui_smoke: "crowdsim --frames 30 --renderer noop --log-level warn" }
         include:
+          - name: Linux (GCC)
+            os: ubuntu-24.04
+            preset: linux
+            triplet: x64-linux
+            gui_smoke: xvfb-run -a -s "-screen 0 1280x720x24" crowdsim --frames 30 --renderer opengl --log-level warn
+          - name: macOS (Apple Silicon)
+            os: macos-15
+            preset: macos
+            triplet: arm64-osx
+            gui_smoke: crowdsim --frames 30 --renderer noop --log-level warn
           - name: Windows (MSVC)
             os: windows-latest
             preset: windows-ninja
