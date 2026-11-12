@@ -10,11 +10,54 @@ Last updated: 2026-11-12
 | M3 — Command layer & scene format | done (Windows) |
 | M4 — Behaviour trees | done (Windows) |
 | M5 — Animated characters | done (Windows) |
-| M6 — Lua scripting | **done** (Windows) |
-| M7 — Node graph editor | next |
+| M6 — Lua scripting | done (Windows) |
+| M7 — Node graph editor | **done** (Windows) |
+| M8 — MCP server | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M7 — Node graph editor
+
+### What works
+
+- **Behaviour panel** (imgui-node-editor): open any tree (or the selected agent's), create nodes
+  from a categorised right-click menu (built-in and Lua script nodes, with descriptions), link
+  parent → child by dragging, delete links and nodes, reorder children by dragging them up or
+  down, and edit parameters inline (set values bright, defaults dimmed).
+- **Validation inline**: graph rules (child counts, single parent, no cycles, one root, unknown or
+  mistyped parameters, duplicate ids) are shown on the offending nodes, and the real compiler runs
+  every frame; Apply and Save are disabled while anything is wrong.
+- **Apply** = `SetBehaviorTree` (hot reload into running agents); **Save** = `SaveBehaviorTree`
+  (writes `content/behaviours/<name>.bt.json` with the layout); **Layout** tidies the graph.
+- **Live highlighting**: the selected agent's running nodes and links glow green, last-visited
+  nodes yellow.
+- `assets::BtGraph`: the editor's model (rules, validation, JSON conversion, auto layout), with
+  no UI dependency. Layout is stored in the document's `editor.positions` block. ADR 0010.
+- Commands `GetBehaviorTree` (file with layout when it matches the tree in use, else live) and
+  `SaveBehaviorTree`; GUI flag `--edit-bt NAME`.
+
+### Done-criterion evidence
+
+- doctest `M7: a tree built in the editor drives agents and round-trips to identical JSON`. The
+  tree is built through the same graph operations the panel performs (add, link, edit
+  parameters). Graph → JSON → graph → JSON is byte-identical. Applying it with SetBehaviorTree
+  and switching a running spawner to it gives agents the editor-set `edited` state, and more than
+  50 finish the tree and despawn. SaveBehaviorTree → GetBehaviorTree returns the identical document
+  from the file.
+- Screenshots (not committed): `screenshots/m7_editor.png` (wanderer tree), `m7_live.png` (live
+  highlighting of a selected commuter).
+
+### Tests
+
+New: linking rules and per-node validation; child order follows y; files without layout load in
+JSON order; the M7 criterion. 61 doctest cases and 8 CTest entries pass.
+
+### Known issues
+
+- The panel docks with the log by default and is small there; `--edit-bt` (or dragging it out)
+  gives it room.
+- No undo inside the graph editor itself; Apply is undoable (it is a command).
 
 ## M6 — Lua scripting
 

@@ -40,6 +40,7 @@ build/windows-msvc/bin/Release/crowdsim --scene scenes/two_floor_building.scene.
 build/windows-msvc/bin/Release/crowdsim --scenario plaza --agents 5000        # behaviour trees; click an agent to debug it
 build/windows-msvc/bin/Release/crowdsim --scenario benchmark --lod 60,200 --no-vsync   # 5k animated characters
 build/windows-msvc/bin/Release/crowdsim --script scenarios/kiosk_square.lua   # Lua: scripted kiosks + tourists
+build/windows-msvc/bin/Release/crowdsim --scenario plaza --edit-bt wanderer    # behaviour tree node editor
 build/windows-msvc/bin/Release/crowdsim_headless --commands content/commands/build_corridor.commands.json --save-log run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_headless --replay run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_bench
@@ -61,12 +62,12 @@ the editor runs and the agents pick up the change immediately.
 | `animation/` | procedural character, ozz-animation clip baking into a VAT, gait controller |
 | `sim/` | agent pool, spawners/goals (EnTT), navmesh (Recast/Detour), flow fields, ORCA, behaviour trees, scenarios (no rendering dependencies) |
 | `physics/` | Jolt static collision and raycasts behind `IPhysicsWorld` |
-| `assets/` | scene JSON, glTF import, asset library |
+| `assets/` | scene JSON, glTF import, asset library, behaviour/agent JSON, BT graph model |
 | `commands/` | command registry, dispatcher, undo/redo, command log + replay |
 | `script/` | sandboxed LuaJIT + sol2: script BT nodes, entity types, events, script commands |
 | `platform/` | SDL3 window and events |
 | `render/` | bgfx renderer, ImGui backend, embedded shaders |
-| `ui/` | ImGui editor panels |
+| `ui/` | ImGui editor panels: scene editor, BT node editor, agent debugger, script console |
 | `app/` | composition root: GUI and headless executables |
 | `content/` | sample scenes, behaviour trees, agent types, Lua scripts and scenarios, command batches, models |
 | `tests/` | doctest unit tests and headless smoke/determinism/scenario tests |
