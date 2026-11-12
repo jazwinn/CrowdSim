@@ -10,11 +10,12 @@ add_executable(crowdsim_tests
   sim/test_orca.cpp
   sim/test_navigation.cpp
   sim/test_behavior.cpp
+  animation/test_animation.cpp
   physics/test_physics.cpp
   commands/test_commands.cpp
   app/test_command_line.cpp
 )
-target_link_libraries(crowdsim_tests PRIVATE crowdsim_app_common doctest::doctest)
+target_link_libraries(crowdsim_tests PRIVATE crowdsim_app_common CrowdSim::animation doctest::doctest)
 crowdsim_set_warnings(crowdsim_tests)
 
 add_test(NAME unit COMMAND crowdsim_tests)
