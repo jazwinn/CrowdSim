@@ -7,12 +7,17 @@
 // `static const uint8_t <name>_<profile>[]`.
 #if defined(CROWDSIM_SHADER_DX11)
 #include "fs_agent_dx11.bin.h"
+#include "fs_agent_shadow_dx11.bin.h"
+#include "fs_crowd_dx11.bin.h"
 #include "fs_flat_dx11.bin.h"
 #include "fs_ground_dx11.bin.h"
 #include "fs_imgui_dx11.bin.h"
 #include "fs_line_dx11.bin.h"
 #include "fs_mesh_dx11.bin.h"
+#include "fs_mesh_shadow_dx11.bin.h"
+#include "fs_shadow_dx11.bin.h"
 #include "vs_agent_dx11.bin.h"
+#include "vs_crowd_dx11.bin.h"
 #include "vs_imgui_dx11.bin.h"
 #include "vs_line_dx11.bin.h"
 #include "vs_mesh_dx11.bin.h"
@@ -20,7 +25,13 @@
 #endif
 #include "fs_agent_glsl.bin.h"
 #include "fs_agent_metal.bin.h"
+#include "fs_agent_shadow_glsl.bin.h"
+#include "fs_agent_shadow_metal.bin.h"
+#include "fs_agent_shadow_spirv.bin.h"
 #include "fs_agent_spirv.bin.h"
+#include "fs_crowd_glsl.bin.h"
+#include "fs_crowd_metal.bin.h"
+#include "fs_crowd_spirv.bin.h"
 #include "fs_flat_glsl.bin.h"
 #include "fs_flat_metal.bin.h"
 #include "fs_flat_spirv.bin.h"
@@ -35,10 +46,19 @@
 #include "fs_line_spirv.bin.h"
 #include "fs_mesh_glsl.bin.h"
 #include "fs_mesh_metal.bin.h"
+#include "fs_mesh_shadow_glsl.bin.h"
+#include "fs_mesh_shadow_metal.bin.h"
+#include "fs_mesh_shadow_spirv.bin.h"
 #include "fs_mesh_spirv.bin.h"
+#include "fs_shadow_glsl.bin.h"
+#include "fs_shadow_metal.bin.h"
+#include "fs_shadow_spirv.bin.h"
 #include "vs_agent_glsl.bin.h"
 #include "vs_agent_metal.bin.h"
 #include "vs_agent_spirv.bin.h"
+#include "vs_crowd_glsl.bin.h"
+#include "vs_crowd_metal.bin.h"
+#include "vs_crowd_spirv.bin.h"
 #include "vs_imgui_glsl.bin.h"
 #include "vs_imgui_metal.bin.h"
 #include "vs_imgui_spirv.bin.h"
@@ -133,6 +153,14 @@ bgfx::ProgramHandle createEmbeddedProgram(EmbeddedProgram program) {
             return createProgram(CS_SHADER_BLOBS(vs_mesh), CS_SHADER_BLOBS(fs_mesh));
         case EmbeddedProgram::Line:
             return createProgram(CS_SHADER_BLOBS(vs_line), CS_SHADER_BLOBS(fs_line));
+        case EmbeddedProgram::Crowd:
+            return createProgram(CS_SHADER_BLOBS(vs_crowd), CS_SHADER_BLOBS(fs_crowd));
+        case EmbeddedProgram::CrowdShadow:
+            return createProgram(CS_SHADER_BLOBS(vs_crowd), CS_SHADER_BLOBS(fs_shadow));
+        case EmbeddedProgram::AgentShadow:
+            return createProgram(CS_SHADER_BLOBS(vs_agent), CS_SHADER_BLOBS(fs_agent_shadow));
+        case EmbeddedProgram::MeshShadow:
+            return createProgram(CS_SHADER_BLOBS(vs_mesh), CS_SHADER_BLOBS(fs_mesh_shadow));
     }
     return BGFX_INVALID_HANDLE;
 }

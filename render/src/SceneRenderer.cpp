@@ -4,11 +4,15 @@
 #include <bx/math.h>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstring>
 #include <numbers>
 #include <vector>
 
+#include <glm/geometric.hpp>
+
+#include "CrowdRenderer.hpp"
 #include "ShaderLibrary.hpp"
 #include "crowdsim/core/Profile.hpp"
 #include "crowdsim/render/Renderer.hpp"
@@ -45,13 +49,6 @@ struct PosNormalVertex {
 struct PosVertex {
     float x, y, z;
 };
-
-/// Instance data matching i_data0 / i_data1 in vs_agent.sc.
-struct AgentInstanceData {
-    float x, y, z, heading;
-    float r, g, b, scale;
-};
-static_assert(sizeof(AgentInstanceData) == 32);
 
 /// Upright capsule standing on y = 0, facing +Z.
 void buildCapsule(std::vector<PosNormalVertex>& vertices, std::vector<std::uint16_t>& indices) {
@@ -101,13 +98,36 @@ void buildCapsule(std::vector<PosNormalVertex>& vertices, std::vector<std::uint1
     }
 }
 
-float lerpAngle(float a, float b, float t) {
-    constexpr float kPi = std::numbers::pi_v<float>;
-    float d = std::fmod(b - a + kPi, 2.0f * kPi);
-    if (d < 0.0f) {
-        d += 2.0f * kPi;
+constexpr std::uint16_t kShadowMapSize = 2048;
+constexpr float kShadowDepthBias = 0.0004f;
+constexpr float kShadowNormalOffset = 0.04f;
+
+/// Instanced capsules (far LOD / no character), in transient batches. Returns draw calls.
+template <typename Bind>
+std::uint32_t drawCapsules(bgfx::ViewId view, const std::vector<CapsuleInstance>& list, bgfx::VertexBufferHandle vb,
+                           bgfx::IndexBufferHandle ib, bgfx::ProgramHandle program, std::uint64_t state, Bind&& bind) {
+    constexpr std::uint16_t kStride = sizeof(CapsuleInstance);
+    const auto total = static_cast<std::uint32_t>(list.size());
+    std::uint32_t offset = 0;
+    std::uint32_t draws = 0;
+    while (offset < total && bgfx::isValid(program)) {
+        const std::uint32_t count = bgfx::getAvailInstanceDataBuffer(total - offset, kStride);
+        if (count == 0) {
+            break;
+        }
+        bgfx::InstanceDataBuffer idb;
+        bgfx::allocInstanceDataBuffer(&idb, count, kStride);
+        std::memcpy(idb.data, list.data() + offset, static_cast<std::size_t>(count) * kStride);
+        bgfx::setVertexBuffer(0, vb);
+        bgfx::setIndexBuffer(ib);
+        bgfx::setInstanceDataBuffer(&idb);
+        bind();
+        bgfx::setState(state);
+        bgfx::submit(view, program);
+        ++draws;
+        offset += count;
     }
-    return a + (d - kPi) * t;
+    return draws;
 }
 
 /// A static vertex buffer and its vertex count.
@@ -200,6 +220,19 @@ struct SceneRenderer::Resources {
     StaticBuffer links;
     std::vector<StaticBuffer> flow;
 
+    // Animated crowd and shadows.
+    CrowdRenderer crowd;
+    bgfx::ProgramHandle crowdProgram = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle crowdShadowProgram = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle agentShadowProgram = BGFX_INVALID_HANDLE;
+    bgfx::ProgramHandle meshShadowProgram = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle shadowMap = BGFX_INVALID_HANDLE;
+    bgfx::FrameBufferHandle shadowFb = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle lightMtx = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle shadowParams = BGFX_INVALID_HANDLE;
+    bgfx::UniformHandle shadowSampler = BGFX_INVALID_HANDLE;
+    bool shadowsSupported = false;
+
     void destroyStatic() {
         mesh.reset();
         navTriangles.reset();
@@ -258,6 +291,41 @@ SceneRenderer::SceneRenderer() : res_(std::make_unique<Resources>()) {
         .end();
     r.meshProgram = createEmbeddedProgram(EmbeddedProgram::Mesh);
     r.lineProgram = createEmbeddedProgram(EmbeddedProgram::Line);
+
+    r.crowdProgram = createEmbeddedProgram(EmbeddedProgram::Crowd);
+    r.crowdShadowProgram = createEmbeddedProgram(EmbeddedProgram::CrowdShadow);
+    r.agentShadowProgram = createEmbeddedProgram(EmbeddedProgram::AgentShadow);
+    r.meshShadowProgram = createEmbeddedProgram(EmbeddedProgram::MeshShadow);
+    r.lightMtx = bgfx::createUniform("u_lightMtx", bgfx::UniformType::Mat4);
+    r.shadowParams = bgfx::createUniform("u_shadowParams", bgfx::UniformType::Vec4);
+    r.shadowSampler = bgfx::createUniform("s_shadowMap", bgfx::UniformType::Sampler);
+    // Depth texture compared in the shader (PCF). Always created so lit shaders have
+    // something bound; only rendered into when shadows are on and supported.
+    constexpr std::uint64_t kShadowFlags = BGFX_TEXTURE_RT | BGFX_SAMPLER_COMPARE_LEQUAL | BGFX_SAMPLER_UVW_CLAMP;
+    const bgfx::TextureFormat::Enum format = bgfx::isTextureValid(0, false, 1, bgfx::TextureFormat::D32F, kShadowFlags)
+                                                 ? bgfx::TextureFormat::D32F
+                                                 : bgfx::TextureFormat::D16;
+    r.shadowsSupported = (bgfx::getCaps()->supported & BGFX_CAPS_TEXTURE_COMPARE_LEQUAL) != 0 &&
+                         bgfx::isTextureValid(0, false, 1, format, kShadowFlags);
+    r.shadowMap = bgfx::createTexture2D(kShadowMapSize, kShadowMapSize, false, 1, format, kShadowFlags);
+    if (r.shadowsSupported) {
+        r.shadowFb = bgfx::createFrameBuffer(1, &r.shadowMap, false);
+    }
+    // Without every shadow program there is no consistent shadow map: turn shadows off.
+    r.shadowsSupported = r.shadowsSupported && bgfx::isValid(r.crowdShadowProgram) &&
+                         bgfx::isValid(r.agentShadowProgram) && bgfx::isValid(r.meshShadowProgram);
+    bgfx::setViewName(kViewShadow, "Shadow");
+    bgfx::setViewClear(kViewShadow, BGFX_CLEAR_DEPTH, 0, 1.0f, 0);
+}
+
+bool SceneRenderer::shadowsSupported() const noexcept {
+    return res_->shadowsSupported;
+}
+
+void SceneRenderer::setCharacter(std::shared_ptr<const snapshot::CharacterAsset> character) {
+    if (res_->enabled) {
+        res_->crowd.setCharacter(std::move(character));
+    }
 }
 
 SceneRenderer::~SceneRenderer() {
@@ -278,6 +346,19 @@ SceneRenderer::~SceneRenderer() {
     r.destroyStatic();
     bgfx::destroy(r.meshProgram);
     bgfx::destroy(r.lineProgram);
+    r.crowd.setCharacter(nullptr);
+    for (bgfx::ProgramHandle p : {r.crowdProgram, r.crowdShadowProgram, r.agentShadowProgram, r.meshShadowProgram}) {
+        if (bgfx::isValid(p)) {
+            bgfx::destroy(p);
+        }
+    }
+    if (bgfx::isValid(r.shadowFb)) {
+        bgfx::destroy(r.shadowFb);
+    }
+    bgfx::destroy(r.shadowMap);
+    bgfx::destroy(r.lightMtx);
+    bgfx::destroy(r.shadowParams);
+    bgfx::destroy(r.shadowSampler);
 }
 
 void SceneRenderer::uploadStatic(const snapshot::StaticScene& scene) {
@@ -295,7 +376,7 @@ void SceneRenderer::uploadStatic(const snapshot::StaticScene& scene) {
 }
 
 SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alpha, const Camera& camera,
-                                 const ViewRect& rect) {
+                                 const ViewRect& rect, float frameSeconds) {
     CS_PROFILE_ZONE();
     SceneStats stats;
     Resources& r = *res_;
@@ -313,6 +394,76 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
 
     const float light[4] = {0.45f, 0.8f, 0.35f, 0.0f};
     const float cam[4] = {eye.x, eye.y, eye.z, kFogDensity};
+    const bgfx::Caps* caps = bgfx::getCaps();
+
+    // --- Directional light shadow map: an orthographic square around the camera target,
+    // snapped to whole texels so it does not shimmer while the camera pans.
+    const bool shadowsOn = settings.shadows && r.shadowsSupported;
+    float lightMtx[16];
+    bx::mtxIdentity(lightMtx);
+    float lightViewProj[16];
+    bx::mtxIdentity(lightViewProj);
+    const float shadowParams[4] = {1.0f / kShadowMapSize, kShadowDepthBias, shadowsOn ? 1.0f : 0.0f,
+                                   kShadowNormalOffset};
+    if (shadowsOn) {
+        const glm::vec3 toLight = glm::normalize(glm::vec3(light[0], light[1], light[2]));
+        const glm::vec3 fwd = -toLight;
+        const glm::vec3 right = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), fwd));
+        const glm::vec3 up = glm::cross(fwd, right);
+        const float extent = std::clamp(camera.distance * 0.9f, 15.0f, std::max(15.0f, settings.shadowDistance));
+        const float texel = 2.0f * extent / kShadowMapSize;
+        const glm::vec3 target = camera.target;
+        const float fr = std::floor(glm::dot(target, right) / texel) * texel;
+        const float fu = std::floor(glm::dot(target, up) / texel) * texel;
+        const glm::vec3 focus = right * fr + up * fu + fwd * glm::dot(target, fwd);
+        const glm::vec3 lightEye = focus + toLight * 120.0f;
+        float lightView[16];
+        float lightProj[16];
+        bx::mtxLookAt(lightView, bx::Vec3(lightEye.x, lightEye.y, lightEye.z), bx::Vec3(focus.x, focus.y, focus.z),
+                      bx::Vec3(0.0f, 1.0f, 0.0f));
+        bx::mtxOrtho(lightProj, -extent, extent, -extent, extent, 1.0f, 260.0f, 0.0f, caps->homogeneousDepth);
+        bx::mtxMul(lightViewProj, lightView, lightProj);
+        const float sy = caps->originBottomLeft ? 0.5f : -0.5f;
+        const float sz = caps->homogeneousDepth ? 0.5f : 1.0f;
+        const float tz = caps->homogeneousDepth ? 0.5f : 0.0f;
+        const float crop[16] = {0.5f, 0.0f, 0.0f, 0.0f, 0.0f, sy,   0.0f, 0.0f,
+                                0.0f, 0.0f, sz,   0.0f, 0.5f, 0.5f, tz,   1.0f};
+        float tmp[16];
+        bx::mtxMul(tmp, lightProj, crop);
+        bx::mtxMul(lightMtx, lightView, tmp);
+        bgfx::setViewRect(kViewShadow, 0, 0, kShadowMapSize, kShadowMapSize);
+        bgfx::setViewFrameBuffer(kViewShadow, r.shadowFb);
+        bgfx::setViewTransform(kViewShadow, lightView, lightProj);
+        bgfx::touch(kViewShadow);
+    }
+    auto bindShadow = [&]() {
+        bgfx::setTexture(1, r.shadowSampler, r.shadowMap);
+        bgfx::setUniform(r.lightMtx, lightMtx);
+        bgfx::setUniform(r.shadowParams, shadowParams);
+    };
+
+    // --- Crowd: cull, pick LODs, animate (parallel).
+    {
+        const auto start = std::chrono::steady_clock::now();
+        float viewProj[16];
+        bx::mtxMul(viewProj, view, proj);
+        CrowdFrameInput in;
+        in.snapshot = &snap;
+        in.alpha = alpha;
+        in.dt = frameSeconds;
+        in.eye = eye;
+        in.camera = Frustum::fromViewProj(viewProj, caps->homogeneousDepth);
+        in.light = Frustum::fromViewProj(lightViewProj, caps->homogeneousDepth);
+        in.shadows = shadowsOn;
+        in.animated = settings.animatedCharacters;
+        in.lodNear = settings.lodNearDistance;
+        in.lodFar = std::max(settings.lodNearDistance, settings.lodFarDistance);
+        in.capsuleRadius = kBodyRadius;
+        r.crowd.prepare(in, jobs_);
+        stats.prepareMs = static_cast<float>(
+            std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count());
+    }
+    const CrowdLists& crowd = r.crowd.lists();
 
     // Ground
     if (overlays.ground) {
@@ -323,6 +474,7 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
         bgfx::setVertexBuffer(0, r.quadVb);
         bgfx::setIndexBuffer(r.quadIb, 0, 6);
         bgfx::setUniform(r.cameraPos, cam);
+        bindShadow();
         bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS |
                        BGFX_STATE_MSAA);
         bgfx::submit(kViewScene, r.groundProgram);
@@ -333,10 +485,25 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
     if (snap.staticScene && snap.staticScene->version != r.staticVersion) {
         uploadStatic(*snap.staticScene);
     }
+    constexpr std::uint64_t kShadowState = BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS;
+    if (shadowsOn) {
+        if (bgfx::isValid(r.mesh.vb) && bgfx::isValid(r.meshShadowProgram)) {
+            bgfx::setVertexBuffer(0, r.mesh.vb);
+            bgfx::setState(kShadowState);
+            bgfx::submit(kViewShadow, r.meshShadowProgram);
+            ++stats.drawCalls;
+        }
+        stats.drawCalls +=
+            r.crowd.drawVat(kViewShadow, 1, crowd.shadowVat, r.crowdShadowProgram, kShadowState, nullptr);
+        stats.drawCalls += drawCapsules(kViewShadow, crowd.shadowCapsule, r.capsuleVb, r.capsuleIb,
+                                        r.agentShadowProgram, kShadowState, [] {});
+        stats.shadowCasters = static_cast<std::uint32_t>(crowd.shadowVat.size() + crowd.shadowCapsule.size());
+    }
     if (bgfx::isValid(r.mesh.vb)) {
         bgfx::setVertexBuffer(0, r.mesh.vb);
         bgfx::setUniform(r.lightDir, light);
         bgfx::setUniform(r.cameraPos, cam);
+        bindShadow();
         bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS |
                        BGFX_STATE_MSAA);
         bgfx::submit(kViewScene, r.meshProgram);
@@ -362,56 +529,45 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
         drawDebug(r.links, BGFX_STATE_PT_LINES | BGFX_STATE_LINEAA);
     }
 
-    // Spawner / goal areas: decals on the ground. Drawn right after the ground without
-    // depth testing (the view is sequential), so they never z-fight with it, and before
-    // the agents, which then draw over them.
+    // Spawner / goal areas: translucent decals lifted slightly above their floor and depth
+    // tested (without writing depth), so walls in front hide them; agents draw over them.
     if (overlays.areas) {
         for (const snapshot::AreaMarker& area : snap.areas) {
             float model[16];
             bx::mtxSRT(model, area.halfExtents.x, 1.0f, area.halfExtents.y, 0.0f, 0.0f, 0.0f, area.center.x,
-                       area.center.y, area.center.z);
+                       area.center.y + 0.03f, area.center.z);
             bgfx::setTransform(model);
             bgfx::setVertexBuffer(0, r.quadVb);
             bgfx::setIndexBuffer(r.quadIb, 0, 6);
             const float c[4] = {area.color.r, area.color.g, area.color.b, area.color.a};
             bgfx::setUniform(r.color, c);
-            bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_BLEND_ALPHA | BGFX_STATE_MSAA);
+            bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_DEPTH_TEST_LEQUAL | BGFX_STATE_BLEND_ALPHA |
+                           BGFX_STATE_MSAA);
             bgfx::submit(kViewScene, r.flatProgram);
             ++stats.drawCalls;
         }
     }
 
-    // Agents, instanced. Interpolate previous -> current step.
+    // Agents: animated characters near / mid, capsules far (or everywhere without a character).
     const auto total = static_cast<std::uint32_t>(snap.agents.size());
-    constexpr std::uint16_t kStride = sizeof(AgentInstanceData);
-    std::uint32_t offset = 0;
-    while (offset < total) {
-        const std::uint32_t wanted = total - offset;
-        const std::uint32_t count = bgfx::getAvailInstanceDataBuffer(wanted, kStride);
-        if (count == 0) {
-            break;  // out of transient memory this frame
-        }
-        bgfx::InstanceDataBuffer idb;
-        bgfx::allocInstanceDataBuffer(&idb, count, kStride);
-        auto* out = reinterpret_cast<AgentInstanceData*>(idb.data);
-        for (std::uint32_t i = 0; i < count; ++i) {
-            const snapshot::AgentInstance& a = snap.agents[offset + i];
-            const glm::vec3 p = a.prevPosition + (a.position - a.prevPosition) * alpha;
-            out[i] = AgentInstanceData{p.x,       p.y,       p.z,       lerpAngle(a.prevHeading, a.heading, alpha),
-                                       a.color.r, a.color.g, a.color.b, a.radius / kBodyRadius};
-        }
-        bgfx::setVertexBuffer(0, r.capsuleVb);
-        bgfx::setIndexBuffer(r.capsuleIb);
-        bgfx::setInstanceDataBuffer(&idb);
-        bgfx::setUniform(r.lightDir, light);
-        bgfx::setUniform(r.cameraPos, cam);
-        bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z | BGFX_STATE_DEPTH_TEST_LESS |
-                       BGFX_STATE_CULL_CCW | BGFX_STATE_MSAA);
-        bgfx::submit(kViewScene, r.agentProgram);
-        ++stats.drawCalls;
-        offset += count;
+    {
+        constexpr std::uint64_t kAgentState = BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_WRITE_Z |
+                                              BGFX_STATE_DEPTH_TEST_LESS | BGFX_STATE_CULL_CCW | BGFX_STATE_MSAA;
+        auto bindLit = [&]() {
+            bgfx::setUniform(r.lightDir, light);
+            bgfx::setUniform(r.cameraPos, cam);
+            bindShadow();
+        };
+        stats.drawCalls += r.crowd.drawVat(kViewScene, 0, crowd.near, r.crowdProgram, kAgentState, bindLit);
+        stats.drawCalls += r.crowd.drawVat(kViewScene, 1, crowd.mid, r.crowdProgram, kAgentState, bindLit);
+        stats.drawCalls +=
+            drawCapsules(kViewScene, crowd.far, r.capsuleVb, r.capsuleIb, r.agentProgram, kAgentState, bindLit);
+        stats.agentsNear = static_cast<std::uint32_t>(crowd.near.size());
+        stats.agentsMid = static_cast<std::uint32_t>(crowd.mid.size());
+        stats.agentsFar = static_cast<std::uint32_t>(crowd.far.size());
+        stats.agentsCulled = crowd.culled;
+        stats.agentsDrawn = stats.agentsNear + stats.agentsMid + stats.agentsFar;
     }
-    stats.agentsDrawn = offset;
 
     // Velocity lines (transient), from each agent's chest along its velocity.
     if (overlays.velocities && total > 0) {

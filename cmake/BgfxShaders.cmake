@@ -29,6 +29,7 @@ function(crowdsim_compile_shaders target)
   set(out_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/shaders")
   file(MAKE_DIRECTORY "${out_dir}")
   set(outputs "")
+  file(GLOB common_includes "${CMAKE_CURRENT_SOURCE_DIR}/shaders/common/*.sh")
 
   foreach(type VERTEX FRAGMENT)
     if(type STREQUAL "VERTEX")
@@ -48,8 +49,9 @@ function(crowdsim_compile_shaders target)
           OUTPUT "${out}"
           COMMAND "${BGFX_SHADERC}" -f "${src}" -o "${out}" --type ${shaderc_type}
                   --platform ${platform} -p ${profile} -i "${BGFX_SHADER_INCLUDE_DIR}"
+                  -i "${CMAKE_CURRENT_SOURCE_DIR}/shaders/common"
                   --varyingdef "${ARG_VARYING}" --bin2c ${name}_${id} -O 3
-          DEPENDS "${src}" "${ARG_VARYING}"
+          DEPENDS "${src}" "${ARG_VARYING}" ${common_includes}
           COMMENT "shaderc ${name} (${id})"
           VERBATIM)
         list(APPEND outputs "${out}")

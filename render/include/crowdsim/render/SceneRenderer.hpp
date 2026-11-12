@@ -17,7 +17,11 @@
 namespace crowdsim::snapshot {
 struct RenderSnapshot;
 struct StaticScene;
+struct CharacterAsset;
 }  // namespace crowdsim::snapshot
+namespace crowdsim::core {
+class JobSystem;
+}
 
 namespace crowdsim::render {
 
@@ -32,6 +36,21 @@ struct ViewRect {
 struct SceneStats {
     std::uint32_t agentsDrawn = 0;
     std::uint32_t drawCalls = 0;
+    std::uint32_t agentsNear = 0;  ///< full-detail animated characters
+    std::uint32_t agentsMid = 0;   ///< reduced animated characters
+    std::uint32_t agentsFar = 0;   ///< capsules
+    std::uint32_t agentsCulled = 0;
+    std::uint32_t shadowCasters = 0;
+    float prepareMs = 0.0f;  ///< CPU time to cull, pick LODs and animate
+};
+
+/// Crowd rendering quality settings.
+struct RenderSettings {
+    bool animatedCharacters = true;  ///< VAT characters near/mid; capsules everywhere when off
+    float lodNearDistance = 30.0f;   ///< full-detail characters within this distance (m)
+    float lodFarDistance = 90.0f;    ///< reduced characters up to here, capsules beyond
+    bool shadows = true;
+    float shadowDistance = 70.0f;  ///< max half-size of the shadowed square around the camera target
 };
 
 /// A coloured line segment drawn this frame (selection outlines, gizmos, debug).
@@ -60,10 +79,20 @@ public:
     SceneRenderer(const SceneRenderer&) = delete;
     SceneRenderer& operator=(const SceneRenderer&) = delete;
 
-    /// Submit the scene to the scene view. `alpha` in [0,1] blends previous -> current step.
-    SceneStats render(const snapshot::RenderSnapshot& snap, float alpha, const Camera& camera, const ViewRect& rect);
+    /// Submit the scene to the scene view. `alpha` in [0,1] blends previous -> current step;
+    /// `frameSeconds` advances character animation.
+    SceneStats render(const snapshot::RenderSnapshot& snap, float alpha, const Camera& camera, const ViewRect& rect,
+                      float frameSeconds = 1.0f / 60.0f);
+
+    /// Character used for agents (VAT mesh LODs + baked clips); null = capsules only.
+    void setCharacter(std::shared_ptr<const snapshot::CharacterAsset> character);
+    /// Job system for parallel culling / animation (optional).
+    void setJobSystem(core::JobSystem* jobs) noexcept { jobs_ = jobs; }
+    /// True if this backend can render the shadow map (depth compare textures).
+    [[nodiscard]] bool shadowsSupported() const noexcept;
 
     Overlays overlays;
+    RenderSettings settings;
     /// Extra lines for this frame; the caller refills it every frame.
     std::vector<DebugLine> extraLines;
 
@@ -72,6 +101,7 @@ private:
 
     struct Resources;
     std::unique_ptr<Resources> res_;
+    core::JobSystem* jobs_ = nullptr;
 };
 
 }  // namespace crowdsim::render

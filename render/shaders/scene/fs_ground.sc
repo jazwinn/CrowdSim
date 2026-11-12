@@ -1,6 +1,7 @@
 $input v_wpos
 
 #include <bgfx_shader.sh>
+#include "shadow.sh"
 
 uniform vec4 u_cameraPos;  // xyz = camera position, w = fog density
 
@@ -24,6 +25,8 @@ void main()
     vec2 axis = abs(p) / max(fwidth(p) * 2.0, vec2(1e-4, 1e-4));
     color = mix(color, vec3(0.75, 0.30, 0.30), 1.0 - min(axis.y, 1.0));
     color = mix(color, vec3(0.30, 0.45, 0.80), 1.0 - min(axis.x, 1.0));
+
+    color *= 0.6 + 0.4 * shadowVisibility(v_wpos, vec3(0.0, 1.0, 0.0));
 
     float dist = length(v_wpos - u_cameraPos.xyz);
     float fog = 1.0 - exp(-dist * u_cameraPos.w);
