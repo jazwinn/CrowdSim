@@ -270,8 +270,12 @@ bool SceneEditor::editJson(const char* label, Json& value, Json& patch, const st
 }
 
 void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& commands) {
+    if (selectedAgent_ != kNoAgentSelected) {
+        drawAgentInspector(in);
+        return;
+    }
     if (selected_ == 0 || assets::entityKindOf(in.sim, selected_) == assets::EntityKind::None) {
-        ImGui::TextDisabled("Nothing selected. Click an object in the viewport or the Scene list.");
+        ImGui::TextDisabled("Nothing selected. Click an object or agent in the viewport, or the Scene list.");
         return;
     }
     // Keep a working copy while a widget is being edited, so drags are not reset every frame.

@@ -37,8 +37,9 @@ namespace {
 using commands::Json;
 using commands::makeCommand;
 
-constexpr std::array<sim::ScenarioKind, 4> kScenarios = {sim::ScenarioKind::Stream, sim::ScenarioKind::Counterflow,
-                                                         sim::ScenarioKind::Benchmark, sim::ScenarioKind::Building};
+constexpr std::array<sim::ScenarioKind, 5> kScenarios = {sim::ScenarioKind::Stream, sim::ScenarioKind::Counterflow,
+                                                         sim::ScenarioKind::Benchmark, sim::ScenarioKind::Building,
+                                                         sim::ScenarioKind::Plaza};
 
 /// RAII owner of the ImGui context and its SDL3 platform backend. ImGui keeps
 /// a "current context" pointer internally; we create exactly one and destroy
@@ -170,6 +171,50 @@ std::vector<render::DebugLine> selectionLines(const sim::Simulation& sim, sim::S
     return lines;
 }
 
+/// Agent under a ray: the closest agent whose capsule (radius, 1.8 m tall) the ray
+/// passes through. Returns {id, distance along the ray}.
+std::optional<std::pair<std::uint32_t, float>> pickAgent(const sim::Simulation& sim, const Ray& ray) {
+    const sim::AgentPool& a = sim.agents();
+    std::optional<std::pair<std::uint32_t, float>> best;
+    for (std::uint32_t i = 0; i < a.size(); ++i) {
+        const glm::vec3 c(a.position[i].x, a.height[i] + 0.9f, a.position[i].y);
+        const float t = glm::dot(c - ray.origin, ray.direction);
+        if (t <= 0.0f || (best && t >= best->second)) {
+            continue;
+        }
+        const glm::vec3 p = ray.origin + ray.direction * t;
+        const float dx = p.x - c.x;
+        const float dz = p.z - c.z;
+        const float r = a.radius[i] + 0.1f;
+        if (dx * dx + dz * dz <= r * r && std::abs(p.y - c.y) <= 0.9f) {
+            best = std::pair{a.id[i], t};
+        }
+    }
+    return best;
+}
+
+/// Ring around the selected agent plus a line to where it is heading.
+void appendAgentHighlight(const sim::Simulation& sim, std::uint32_t agentId, std::vector<render::DebugLine>& lines) {
+    const auto info = sim.agentDebug(agentId);
+    if (!info) {
+        return;
+    }
+    constexpr std::uint32_t kRing = 0xff20d0ffu;
+    constexpr std::uint32_t kTarget = 0xff60ff60u;
+    const glm::vec3 p = info->position + glm::vec3(0.0f, 0.05f, 0.0f);
+    constexpr int kSegments = 24;
+    const float r = 0.55f;
+    for (int k = 0; k < kSegments; ++k) {
+        const float a0 = 6.2831853f * static_cast<float>(k) / kSegments;
+        const float a1 = 6.2831853f * static_cast<float>(k + 1) / kSegments;
+        lines.push_back({p + glm::vec3(std::cos(a0) * r, 0.0f, std::sin(a0) * r),
+                         p + glm::vec3(std::cos(a1) * r, 0.0f, std::sin(a1) * r), kRing});
+    }
+    if (info->moveMode == sim::MoveMode::Point) {
+        lines.push_back({p, info->moveTarget + glm::vec3(0.0f, 0.05f, 0.0f), kTarget});
+    }
+}
+
 std::vector<std::string> listContentFiles(const assets::AssetLibrary& assets, const char* dir, const char* suffix) {
     std::vector<std::string> files;
     std::error_code ec;
@@ -232,6 +277,10 @@ int runGui(EngineContext& engine) {
     }
     ui::EditorShell shell(initialOverlays);
     shell.sceneEditor().select(config.selectId);
+    if (config.selectAgentId != ui::SceneEditor::kNoAgentSelected) {
+        shell.sceneEditor().selectAgent(config.selectAgentId);
+        shell.sceneEditor().followAgent = true;
+    }
     render::Camera camera = defaultCamera(config);
 
     // Sim -> render hand-off. Producer and consumer share this thread today; the
@@ -307,6 +356,9 @@ int runGui(EngineContext& engine) {
         if (frameIndex > 0) {
             recentFrameMs[frameIndex % recentFrameMs.size()] = static_cast<float>(dt * 1000.0);
         }
+
+        // --- Hot reload edited behaviour / agent-type files ----------------------------
+        engine.reloadContent();
 
         // --- Simulate ---------------------------------------------------------------
         {
@@ -414,7 +466,12 @@ int runGui(EngineContext& engine) {
             if (moved < 4.0f) {
                 const Ray ray = viewportRay(camera, viewport, mouseX, mouseY);
                 const auto hit = engine.pick(ray.origin, ray.direction);
-                shell.sceneEditor().select(hit ? hit->id : sim::kNoSceneId);
+                const auto agent = pickAgent(simulation, ray);
+                if (agent && (!hit || agent->second < hit->distance + 0.3f)) {
+                    shell.sceneEditor().selectAgent(agent->first);
+                } else {
+                    shell.sceneEditor().select(hit ? hit->id : sim::kNoSceneId);
+                }
             }
         }
         ImGui::Render();
@@ -509,6 +566,15 @@ int runGui(EngineContext& engine) {
             highlightVersion = simulation.staticVersion();
         }
         sceneRenderer.extraLines = highlight;
+        if (const std::uint32_t agentId = shell.sceneEditor().selectedAgent();
+            agentId != ui::SceneEditor::kNoAgentSelected) {
+            appendAgentHighlight(simulation, agentId, sceneRenderer.extraLines);
+            if (shell.sceneEditor().followAgent) {
+                if (const auto info = simulation.agentDebug(agentId)) {
+                    camera.target = glm::mix(camera.target, info->position, 0.15f);
+                }
+            }
+        }
 
         // --- Render -------------------------------------------------------------------
         const auto renderStart = Clock::now();

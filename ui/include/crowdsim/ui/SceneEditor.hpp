@@ -52,7 +52,20 @@ public:
     void handleShortcuts(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
 
     [[nodiscard]] std::uint32_t selected() const noexcept { return selected_; }
-    void select(std::uint32_t id) noexcept { selected_ = id; }
+    /// Select a scene entity (clears the agent selection).
+    void select(std::uint32_t id) noexcept {
+        selected_ = id;
+        selectedAgent_ = kNoAgentSelected;
+    }
+    /// Select an agent by id for the behaviour-tree debugger (clears the entity selection).
+    void selectAgent(std::uint32_t agentId) noexcept {
+        selectedAgent_ = agentId;
+        selected_ = 0;
+    }
+    [[nodiscard]] std::uint32_t selectedAgent() const noexcept { return selectedAgent_; }
+    static constexpr std::uint32_t kNoAgentSelected = 0xFFFFFFFFu;
+    /// Inspector "Follow" toggle: the app keeps the camera on the selected agent.
+    bool followAgent = false;
     /// True while the gizmo is hovered or dragged (the app must not orbit/pick then).
     [[nodiscard]] bool gizmoActive() const noexcept { return gizmoActive_; }
 
@@ -62,9 +75,11 @@ public:
 
 private:
     void addMenu(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
+    void drawAgentInspector(const SceneEditorInput& in);
     bool editJson(const char* label, nlohmann::json& value, nlohmann::json& patch, const std::string& path);
 
     std::uint32_t selected_ = 0;
+    std::uint32_t selectedAgent_ = kNoAgentSelected;
     bool gizmoActive_ = false;
     bool gizmoTranslate_ = true;
     std::uint32_t dragSerial_ = 0;

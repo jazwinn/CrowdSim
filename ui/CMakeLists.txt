@@ -2,6 +2,7 @@
 # data structs and returns requested actions for the app to apply.
 crowdsim_add_library(ui
   SOURCES
+    src/AgentDebugger.cpp
     src/EditorShell.cpp
     src/SceneEditor.cpp
   DEPS
