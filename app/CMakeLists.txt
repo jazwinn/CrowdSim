@@ -2,6 +2,7 @@
 
 add_library(crowdsim_app_common STATIC
   src/AppConfig.cpp
+  src/ContentWatcher.cpp
   src/EngineContext.cpp
 )
 target_include_directories(crowdsim_app_common PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src")

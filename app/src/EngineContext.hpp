@@ -12,6 +12,7 @@
 #include <unordered_map>
 
 #include "AppConfig.hpp"
+#include "ContentWatcher.hpp"
 #include "crowdsim/assets/AssetLibrary.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/core/JobSystem.hpp"
@@ -58,6 +59,11 @@ public:
     /// spawners via their floor rectangles.
     [[nodiscard]] std::optional<EntityHit> pick(glm::vec3 origin, glm::vec3 direction) const;
 
+    /// Apply new or modified behaviour / agent-type files from the content dir
+    /// as commands (hot reload). Cheap to call every frame; scans twice a second.
+    /// Returns the number of files applied.
+    std::size_t reloadContent(bool force = false);
+
     /// Run requested steps (Step / RunFor), at most `maxSteps` now. Returns steps run.
     std::uint64_t runPendingSteps(std::uint64_t maxSteps);
 
@@ -75,6 +81,7 @@ private:
     commands::CommandContext commandContext_;
     commands::CommandRegistry registry_;
     commands::CommandDispatcher dispatcher_;
+    ContentWatcher contentWatcher_;
 
     std::uint64_t physicsVersion_ = ~0ull;
     std::unordered_map<std::uint32_t, sim::SceneId> bodyToEntity_;

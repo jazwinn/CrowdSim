@@ -108,6 +108,8 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             c.vsync = false;
         } else if (gui && arg == "--select") {
             number(c.selectId);
+        } else if (gui && arg == "--select-agent") {
+            number(c.selectAgentId);
         } else if (gui && arg == "--overlays") {
             if (auto v = value()) {
                 c.overlays = std::string(*v);
@@ -150,6 +152,8 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             if (auto v = value()) {
                 c.log.filePath = std::string(*v);
             }
+        } else if (arg == "--no-content") {
+            c.loadContent = false;
         } else if (!gui && arg == "--list-commands") {
             c.listCommands = true;
         } else if (!gui && arg == "--dump-remaining") {
@@ -194,6 +198,7 @@ std::string usage(std::string_view exeName, bool gui) {
         "  --agents N          total agents the scenario spawns (default 5000)\n"
         "  --scene PATH        load a *.scene.json (relative to the content dir) instead of a scenario\n"
         "  --content DIR       content root (default: the repository's content/)\n"
+        "  --no-content        skip content/behaviours and content/agents (built-in definitions only)\n"
         "  --threads N         worker threads incl. main (default: all cores)\n"
         "  --log-level L       trace|debug|info|warn|err|critical|off\n"
         "  --log-file PATH     also write the log to PATH\n"
@@ -208,6 +213,8 @@ std::string usage(std::string_view exeName, bool gui) {
             "  --sim-speed X       initial simulation speed multiplier (default 1)\n"
             "  --overlays LIST     enable overlays: navmesh,flow,velocities,nogrid,noareas,nolinks\n"
             "  --camera x,z,d,y,p  initial camera: target x/z, distance, yaw and pitch in degrees\n"
+            "  --select ID         select a scene entity at startup\n"
+            "  --select-agent ID   inspect (and follow) an agent at startup\n"
             "  --frames N          exit after N frames (smoke tests)\n"
             "  --screenshot PATH   save a PNG of the final frame (use with --frames)\n";
     } else {

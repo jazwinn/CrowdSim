@@ -14,10 +14,17 @@ EngineContext::EngineContext(const AppConfig& config)
       simulation_(sim::SimServices{logService_.logger(), jobs_}, config.sim),
       assets_(logService_.logger(), config.contentDir),
       commandContext_{simulation_, assets_, control_, logService_.logger(), sceneName_},
-      dispatcher_(registry_) {
+      dispatcher_(registry_),
+      contentWatcher_(assets_.contentRoot()) {
     commands::registerBuiltinCommands(registry_);
     log().info("CrowdSim {} | {} job threads | sim {} Hz | seed {} | content {}", CROWDSIM_VERSION, jobs_.threadCount(),
                config.sim.stepHz, config.sim.seed, assets_.contentRoot().string());
+
+    // Content library first: scenarios only define the built-in types that are missing.
+    if (config.loadContent) {
+        const std::size_t loaded = reloadContent(true);
+        log().info("Loaded {} behaviour/agent definitions from {}", loaded, assets_.contentRoot().string());
+    }
 
     // Initial scene: a scene file if given, else a built-in scenario. Through commands, like everything else.
     const commands::CommandOutcome outcome =
@@ -90,6 +97,27 @@ std::optional<EntityHit> EngineContext::pick(glm::vec3 origin, glm::vec3 directi
         tryArea(id, simulation_.findSpawner(id)->area);
     }
     return best;
+}
+
+std::size_t EngineContext::reloadContent(bool force) {
+    if (!config_.loadContent) {
+        return 0;
+    }
+    std::size_t applied = 0;
+    for (const ContentChange& change : contentWatcher_.poll(force)) {
+        if (!change.error.empty()) {
+            log().warn("Content: {}: {}", change.file.filename().string(), change.error);
+            continue;
+        }
+        const commands::CommandOutcome outcome = execute(change.command);
+        if (outcome.ok) {
+            ++applied;
+            if (!force) {
+                log().info("Hot reload: {}", change.file.filename().string());
+            }
+        }
+    }
+    return applied;
 }
 
 std::uint64_t EngineContext::runPendingSteps(std::uint64_t maxSteps) {

@@ -59,6 +59,15 @@ void dumpRemaining(sim::Simulation& sim) {
                      static_cast<double>(a.velocity[i].y), static_cast<double>(a.preferredVelocity[i].x),
                      static_cast<double>(a.preferredVelocity[i].y), static_cast<double>(a.newVelocity[i].x),
                      static_cast<double>(a.newVelocity[i].y), a.navPoly[i], dense, reachable ? 1 : 0, a.linkActive[i]);
+        if (const auto d = sim.agentDebug(a.id[i])) {
+            std::fprintf(stderr,
+                         "    type=%s tree=%s state=%s goal=%s mode=%d target=(%.2f, %.2f, %.2f) queue=%d "
+                         "group=%u corridor=%d/%d\n",
+                         d->typeName.c_str(), d->treeName.c_str(), d->stateName.c_str(), d->goalName.c_str(),
+                         static_cast<int>(d->moveMode), static_cast<double>(d->moveTarget.x),
+                         static_cast<double>(d->moveTarget.y), static_cast<double>(d->moveTarget.z), d->queueStage,
+                         d->groupId, static_cast<int>(a.corridorStatus[i]), static_cast<int>(a.corridorLength[i]));
+        }
     }
 }
 
