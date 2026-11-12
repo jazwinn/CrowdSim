@@ -73,6 +73,7 @@ add_subdirectory(physics)
 add_subdirectory(assets)
 add_subdirectory(commands)
 add_subdirectory(animation)
+add_subdirectory(script)
 
 if(CROWDSIM_BUILD_GUI)
   add_subdirectory(platform)

@@ -11,6 +11,7 @@ add_executable(crowdsim_tests
   sim/test_navigation.cpp
   sim/test_behavior.cpp
   animation/test_animation.cpp
+  script/test_scripting.cpp
   physics/test_physics.cpp
   commands/test_commands.cpp
   app/test_command_line.cpp
