@@ -9,6 +9,7 @@ add_executable(crowdsim_tests
   sim/test_spatial_hash.cpp
   sim/test_orca.cpp
   sim/test_navigation.cpp
+  sim/test_behavior.cpp
   physics/test_physics.cpp
   commands/test_commands.cpp
   app/test_command_line.cpp
@@ -51,3 +52,9 @@ add_test(NAME commands_replay_identical
           -DCOMMANDS=${CMAKE_SOURCE_DIR}/content/commands/build_corridor.commands.json
           -DWORKDIR=${CMAKE_CURRENT_BINARY_DIR}
           -P ${CMAKE_CURRENT_SOURCE_DIR}/replay.cmake)
+
+# M4: the plaza (commuters, wanderers, queuers at kiosks, groups) fully drains.
+add_test(NAME scenario_plaza_all_leave
+  COMMAND crowdsim_headless --scenario plaza --agents 2000 --steps 15000 --log-level warn)
+set_tests_properties(scenario_plaza_all_leave PROPERTIES
+  PASS_REGULAR_EXPRESSION "\"alive\":0,.*\"spawned\":2000")

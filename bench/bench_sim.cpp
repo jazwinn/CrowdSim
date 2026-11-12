@@ -61,6 +61,24 @@ void SimStepSingleThread(benchmark::State& state) {
 }
 BENCHMARK(SimStepSingleThread)->Arg(5000)->Iterations(300)->Unit(benchmark::kMillisecond)->UseRealTime();
 
+/// M4: the plaza runs every agent through a behaviour tree (commuters, wanderers on
+/// path corridors, kiosk queues, groups). Warmed up until most agents are in.
+void PlazaStep(benchmark::State& state) {
+    const auto agents = static_cast<std::uint32_t>(state.range(0));
+    core::LogService logs(core::LogConfig{.console = false});
+    core::JobSystem jobs(0);
+    sim::Simulation sim({logs.logger(), jobs}, sim::SimConfig{});
+    sim::buildScenario(sim, sim::ScenarioKind::Plaza, agents);
+    for (int i = 0; i < 3600 && sim.stats().spawned < agents; ++i) {
+        sim.step();
+    }
+    for (auto _ : state) {
+        sim.step();
+    }
+    state.counters["agents"] = static_cast<double>(sim.agents().size());
+}
+BENCHMARK(PlazaStep)->Arg(5000)->Arg(20000)->Iterations(300)->Unit(benchmark::kMillisecond)->UseRealTime();
+
 void WriteSnapshot(benchmark::State& state) {
     Fixture f(static_cast<std::uint32_t>(state.range(0)));
     snapshot::RenderSnapshot snap;
