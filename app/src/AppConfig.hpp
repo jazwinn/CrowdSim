@@ -42,6 +42,9 @@ struct AppConfig {
     bool dumpRemaining = false;                        ///< headless: print the agents still alive at the end
     bool listCommands = false;                         ///< headless: print every command with its JSON schema and exit
     bool loadContent = true;        ///< load content/behaviours and content/agents (and hot reload them)
+    bool mcpStdio = false;          ///< headless: serve MCP on stdin/stdout
+    std::string mcpHttp;            ///< serve MCP over HTTP on host:port (e.g. 127.0.0.1:8765)
+    std::string mcpToken;           ///< optional bearer token required by the HTTP transport
     std::uint64_t frames = 0;       ///< gui: exit after N frames (0 = run until closed)
     std::string screenshotPath;     ///< gui: save a PNG of the last frame before exit
     std::string renderer = "auto";  ///< gui: auto | d3d11 | d3d12 | vulkan | metal | opengl | noop

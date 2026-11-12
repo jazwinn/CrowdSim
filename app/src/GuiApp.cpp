@@ -14,14 +14,21 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <future>
+#include <iterator>
+#include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
 #include "EngineContext.hpp"
+#include "McpInstructions.hpp"
 #include "crowdsim/animation/ProceduralCharacter.hpp"
 #include "crowdsim/core/FixedStepClock.hpp"
 #include "crowdsim/core/Profile.hpp"
 #include "crowdsim/core/TripleBuffer.hpp"
+#include "crowdsim/mcp/McpServer.hpp"
+#include "crowdsim/mcp/Transports.hpp"
 #include "crowdsim/platform/Window.hpp"
 #include "crowdsim/render/Camera.hpp"
 #include "crowdsim/render/ImGuiRenderer.hpp"
@@ -310,6 +317,51 @@ int runGui(EngineContext& engine) {
     // Sim -> render hand-off. Producer and consumer share this thread today; the
     // triple buffer keeps the contract ready for a dedicated simulation thread.
     core::TripleBuffer<snapshot::RenderSnapshot> snapshots;
+    // MCP over HTTP (optional): requests run here on the main thread, between frames.
+    struct PendingShot {
+        std::promise<mcp::ToolResult> promise;
+        std::filesystem::path file;
+        int framesLeft = 0;
+    };
+    std::vector<std::shared_ptr<PendingShot>> pendingShots;
+    int shotCounter = 0;
+    mcp::McpServices mcpServices = engine.mcpServices();
+    std::optional<mcp::McpServer> mcpServer;
+    mcp::McpRequestQueue mcpQueue;
+    std::unique_ptr<mcp::HttpTransport> mcpHttp;
+    if (!config.mcpHttp.empty()) {
+        mcpServices.screenshot = [&](const Json& args) {
+            if (args.contains("camera")) {
+                const Json& c = args["camera"];
+                if (c.contains("target")) {
+                    camera.target = {c["target"].at(0).get<float>(), 0.0f, c["target"].at(1).get<float>()};
+                }
+                camera.distance = c.value("distance", camera.distance);
+                if (c.contains("yaw")) {
+                    camera.yaw = glm::radians(c["yaw"].get<float>());
+                }
+                if (c.contains("pitch")) {
+                    camera.pitch = glm::radians(c["pitch"].get<float>());
+                }
+            }
+            auto shot = std::make_shared<PendingShot>();
+            shot->file = std::filesystem::temp_directory_path() /
+                         std::format("crowdsim_mcp_{}_{}.png", static_cast<const void*>(&engine), ++shotCounter);
+            std::error_code ec;
+            std::filesystem::remove(shot->file, ec);
+            shot->framesLeft = 240;
+            renderer.requestScreenshot(shot->file.string());
+            pendingShots.push_back(shot);
+            return shot->promise.get_future().share();
+        };
+        mcpServer.emplace("crowdsim", CROWDSIM_VERSION, kMcpInstructions);
+        mcp::registerCrowdSimTools(*mcpServer, mcpServices);
+        mcpHttp = std::make_unique<mcp::HttpTransport>(mcpQueue, config.mcpToken);
+        const auto [host, port] = mcp::parseHostPort(config.mcpHttp);
+        mcpHttp->start(host, port);
+        log.info("MCP: listening on http://{}:{}/mcp ({} tools)", host, mcpHttp->port(), mcpServer->tools().size());
+    }
+
     auto publishSnapshot = [&] {
         simulation.writeSnapshot(snapshots.writeSlot());
         snapshots.publish();
@@ -511,6 +563,11 @@ int runGui(EngineContext& engine) {
         }
         ImGui::Render();
 
+        // --- MCP requests (main thread, between steps) -----------------------------------
+        if (mcpServer) {
+            mcpQueue.process(*mcpServer);
+        }
+
         // --- Turn UI requests into commands and apply them between steps ---------------
         if (req.togglePlay) {
             req.commands.push_back(makeCommand(control.playing ? "Pause" : "Play"));
@@ -647,6 +704,26 @@ int runGui(EngineContext& engine) {
             0.9f * renderMs +
             0.1f * static_cast<float>(std::chrono::duration<double, std::milli>(Clock::now() - renderStart).count());
         renderer.endFrame();
+        // Deliver finished MCP screenshots (bgfx writes the PNG during a later frame).
+        for (auto it = pendingShots.begin(); it != pendingShots.end();) {
+            PendingShot& shot = **it;
+            std::error_code ec;
+            if (std::filesystem::exists(shot.file, ec) && std::filesystem::file_size(shot.file, ec) > 0) {
+                std::ifstream in(shot.file, std::ios::binary);
+                const std::string png((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+                in.close();
+                std::filesystem::remove(shot.file, ec);
+                shot.promise.set_value(mcp::ToolResult::image(
+                    mcp::base64Encode(png),
+                    std::format("{}x{} viewport at t = {:.1f} s", fb.width, fb.height, simulation.simTimeSeconds())));
+                it = pendingShots.erase(it);
+            } else if (--shot.framesLeft <= 0) {
+                shot.promise.set_value(mcp::ToolResult::error("screenshot timed out"));
+                it = pendingShots.erase(it);
+            } else {
+                ++it;
+            }
+        }
         (void)snap;
 
         ++frameIndex;

@@ -172,6 +172,16 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             if (auto v = value()) {
                 c.scriptPath = std::string(*v);
             }
+        } else if (!gui && arg == "--mcp-stdio") {
+            c.mcpStdio = true;
+        } else if (arg == "--mcp-http") {
+            if (auto v = value()) {
+                c.mcpHttp = std::string(*v);
+            }
+        } else if (arg == "--mcp-token") {
+            if (auto v = value()) {
+                c.mcpToken = std::string(*v);
+            }
         } else if (arg == "--no-content") {
             c.loadContent = false;
         } else if (!gui && arg == "--list-commands") {
@@ -220,6 +230,8 @@ std::string usage(std::string_view exeName, bool gui) {
         "  --content DIR       content root (default: the repository's content/)\n"
         "  --no-content        skip content/scripts, behaviours and agents (built-in definitions only)\n"
         "  --script PATH       run a Lua script (content-relative) after the scene loads\n"
+        "  --mcp-http ADDR     serve MCP (Streamable HTTP) on ADDR, e.g. 127.0.0.1:8765\n"
+        "  --mcp-token TOKEN   require 'Authorization: Bearer TOKEN' on MCP HTTP requests\n"
         "  --threads N         worker threads incl. main (default: all cores)\n"
         "  --log-level L       trace|debug|info|warn|err|critical|off\n"
         "  --log-file PATH     also write the log to PATH\n"
@@ -245,6 +257,7 @@ std::string usage(std::string_view exeName, bool gui) {
             "\nHeadless options:\n"
             "  --steps N           number of fixed simulation steps to run (default 300)\n"
             "  --list-commands     print every command (name, description, params schema) as JSON\n"
+            "  --mcp-stdio         serve MCP on stdin/stdout (for AI clients; logs go to stderr)\n"
             "  --dump-remaining    print agents still alive at the end (diagnostics)\n"
             "  --commands FILE     execute a JSON array of commands (prints one result per line)\n"
             "  --replay FILE       replay a command log and print the final state hash\n"

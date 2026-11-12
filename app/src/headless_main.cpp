@@ -11,6 +11,7 @@
 #include <exception>
 #include <format>
 #include <fstream>
+#include <iostream>
 #include <string_view>
 #include <vector>
 
@@ -18,7 +19,10 @@
 
 #include "AppConfig.hpp"
 #include "EngineContext.hpp"
+#include "McpInstructions.hpp"
 #include "crowdsim/assets/SceneSerializer.hpp"
+#include "crowdsim/mcp/McpServer.hpp"
+#include "crowdsim/mcp/Transports.hpp"
 
 namespace {
 
@@ -119,6 +123,28 @@ int main(int argc, char** argv) {
                            {"ms", ms},
                            {"state_hash", std::format("{:016x}", hash)}});
             return 0;
+        }
+
+        // MCP server: stdio (one client, until stdin closes) or HTTP (until killed).
+        if (config.mcpStdio || !config.mcpHttp.empty()) {
+            mcp::McpServices services = engine.mcpServices();
+            mcp::McpServer server("crowdsim", CROWDSIM_VERSION, app::kMcpInstructions);
+            mcp::registerCrowdSimTools(server, services);
+            if (config.mcpStdio) {
+                engine.log().info("MCP: serving on stdio ({} tools)", server.tools().size());
+                mcp::runStdio(server, std::cin, std::cout);
+                return 0;
+            }
+            mcp::McpRequestQueue queue;
+            mcp::HttpTransport http(queue, config.mcpToken);
+            const auto [host, port] = mcp::parseHostPort(config.mcpHttp);
+            http.start(host, port);
+            engine.log().info("MCP: listening on http://{}:{}/mcp ({} tools)", host, http.port(),
+                              server.tools().size());
+            for (;;) {
+                queue.waitForWork(std::chrono::milliseconds(200));
+                queue.process(server);
+            }
         }
 
         // Command batch: each result is printed as one JSON line.

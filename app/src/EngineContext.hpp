@@ -17,6 +17,7 @@
 #include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
+#include "crowdsim/mcp/CrowdSimTools.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
 #include "crowdsim/script/ScriptHost.hpp"
 #include "crowdsim/sim/Simulation.hpp"
@@ -65,6 +66,9 @@ public:
     /// as commands (hot reload). Cheap to call every frame; scans twice a second.
     /// Returns the number of files applied.
     std::size_t reloadContent(bool force = false);
+
+    /// MCP tool services bound to this engine (call from the engine thread only).
+    [[nodiscard]] mcp::McpServices mcpServices();
 
     /// Run requested steps (Step / RunFor), at most `maxSteps` now. Returns steps run.
     std::uint64_t runPendingSteps(std::uint64_t maxSteps);

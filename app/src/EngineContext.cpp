@@ -114,6 +114,23 @@ std::optional<EntityHit> EngineContext::pick(glm::vec3 origin, glm::vec3 directi
     return best;
 }
 
+mcp::McpServices EngineContext::mcpServices() {
+    return mcp::McpServices{
+        .execute = [this](const commands::Json& command) { return execute(command); },
+        .runSteps =
+            [this](std::uint64_t maxSteps) {
+                syncScene();
+                return runPendingSteps(maxSteps);
+            },
+        .sim = simulation_,
+        .logs = logService_,
+        .contentRoot = assets_.contentRoot(),
+        .docsDir = CROWDSIM_DOCS_DIR,
+        .sceneName = [this] { return sceneName_; },
+        .screenshot = nullptr,
+    };
+}
+
 std::size_t EngineContext::reloadContent(bool force) {
     if (!config_.loadContent) {
         return 0;
