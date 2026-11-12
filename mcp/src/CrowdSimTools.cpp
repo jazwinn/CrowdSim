@@ -1,0 +1,425 @@
+#include "crowdsim/mcp/CrowdSimTools.hpp"
+
+#include <algorithm>
+#include <chrono>
+#include <fstream>
+#include <map>
+#include <sstream>
+#include <stdexcept>
+
+#include "crowdsim/assets/JsonTypes.hpp"
+#include "crowdsim/assets/SceneSerializer.hpp"
+#include "crowdsim/commands/Command.hpp"
+#include "crowdsim/core/Logging.hpp"
+#include "crowdsim/sim/Simulation.hpp"
+
+namespace crowdsim::mcp {
+
+namespace {
+
+using commands::makeCommand;
+
+Json str(const char* d) {
+    return Json{{"type", "string"}, {"description", d}};
+}
+Json num(const char* d) {
+    return Json{{"type", "number"}, {"description", d}};
+}
+Json integer(const char* d) {
+    return Json{{"type", "integer"}, {"description", d}};
+}
+Json object(const char* d) {
+    return Json{{"type", "object"}, {"description", d}};
+}
+Json schema(Json props = Json::object(), Json required = Json::array()) {
+    return Json{{"type", "object"}, {"properties", std::move(props)}, {"required", std::move(required)}};
+}
+
+constexpr std::size_t kMaxText = 8 * 1024;  ///< script output / log text returned to the model
+
+std::string clip(std::string s) {
+    if (s.size() > kMaxText) {
+        s = s.substr(s.size() - kMaxText);
+        s = "[... truncated]\n" + s;
+    }
+    return s;
+}
+
+std::string readFile(const std::filesystem::path& p) {
+    std::ifstream in(p, std::ios::binary);
+    std::ostringstream ss;
+    ss << in.rdbuf();
+    return ss.str();
+}
+
+}  // namespace
+
+Json metricsSummary(const sim::Simulation& sim) {
+    const sim::SimStats s = sim.stats();
+    Json goals = Json::array();
+    for (sim::SceneId id : sim.goalIds()) {
+        const sim::Goal* g = sim.findGoal(id);
+        goals.push_back(Json{{"id", id}, {"name", g->name}, {"arrivals", g->arrivals}});
+    }
+    std::map<std::string, std::uint32_t> byType;
+    std::map<std::string, std::uint32_t> byState;
+    const sim::AgentPool& a = sim.agents();
+    for (std::uint32_t i = 0; i < a.size(); ++i) {
+        if (a.agentType[i] < sim.agentTypes().size()) {
+            ++byType[sim.agentTypes()[a.agentType[i]].name];
+        }
+        if (a.stateId[i] < sim.stateNames().size()) {
+            ++byState[sim.stateNames()[a.stateId[i]]];
+        }
+    }
+    return Json{{"time", sim.simTimeSeconds()},
+                {"step", sim.stepIndex()},
+                {"alive", s.alive},
+                {"spawned", s.spawned},
+                {"arrived", s.arrived},
+                {"despawned", s.despawned},
+                {"averageSpeed", std::round(s.averageSpeed * 1000.0f) / 1000.0f},
+                {"goals", goals},
+                {"aliveByType", byType},
+                {"aliveByState", byState}};
+}
+
+void registerCrowdSimTools(McpServer& server, McpServices& svc) {
+    // A tool that runs one command; `build` turns tool arguments into command params.
+    auto command = [&server, &svc](const char* tool, const char* description, Json inputSchema, const char* cmd,
+                                   std::function<Json(const Json&)> build = nullptr) {
+        server.addTool({tool, description, std::move(inputSchema),
+                        [&svc, cmd, build](const Json& args) {
+                            const commands::CommandOutcome o =
+                                svc.execute(makeCommand(cmd, build ? build(args) : args));
+                            if (!o.ok) {
+                                return ToolResult::error(o.error);
+                            }
+                            return ToolResult::json(o.result.is_null() ? Json::object() : o.result);
+                        },
+                        nullptr});
+    };
+    auto patchArgs = [](const Json& a) { return Json{{"id", a.at("id")}, {"patch", a.at("patch")}}; };
+
+    // --- Scene ----------------------------------------------------------------------------
+    command("scene_new", "Start an empty scene (removes all objects, goals, spawners, agents).",
+            schema({{"name", str("scene name")}}), "CreateScene");
+    command("scene_load", "Load a *.scene.json from the content directory, e.g. scenes/corridor_bottleneck.scene.json.",
+            schema({{"path", str("content-relative path")}}, {"path"}), "LoadScene");
+    command("scene_save", "Save the scene to a *.scene.json in the content directory.",
+            schema({{"path", str("content-relative path, e.g. scenes/my.scene.json")}, {"name", str("scene name")}},
+                   {"path"}),
+            "SaveScene");
+    server.addTool(
+        {"scene_describe",
+         "Structured summary of the scene: objects, goals (with arrivals), spawners, links, navmesh, "
+         "behaviours and agent types. Lists are capped at 100 entries.",
+         schema(),
+         [&svc](const Json&) {
+             const sim::Simulation& sim = svc.sim;
+             auto list = [&](const std::vector<sim::SceneId>& ids) {
+                 Json out = Json::array();
+                 for (std::size_t k = 0; k < ids.size() && k < 100; ++k) {
+                     out.push_back(assets::entityToJson(sim, ids[k]));
+                 }
+                 return out;
+             };
+             Json behaviours = Json::array();
+             for (const sim::CompiledTree& t : sim.behaviorTrees()) {
+                 behaviours.push_back(t.name);
+             }
+             Json types = Json::array();
+             for (const sim::AgentType& t : sim.agentTypes()) {
+                 types.push_back(Json{{"name", t.name}, {"behaviour", t.behaviour}});
+             }
+             return ToolResult::json(
+                 Json{{"name", svc.sceneName ? svc.sceneName() : std::string()},
+                      {"time", sim.simTimeSeconds()},
+                      {"agentsAlive", sim.agents().size()},
+                      {"navmesh", {{"polygons", sim.navMesh().polyCount()}, {"tiles", sim.navMesh().tileCount()}}},
+                      {"objectCount", sim.staticObjectIds().size()},
+                      {"objects", list(sim.staticObjectIds())},
+                      {"goals", list(sim.goalIds())},
+                      {"spawners", list(sim.spawnerIds())},
+                      {"links", list(sim.offMeshLinkIds())},
+                      {"behaviours", behaviours},
+                      {"agentTypes", types}});
+         },
+         nullptr});
+    command("object_place",
+            "Place a static object. object: {name, type: box|ramp|stairs|plane|mesh, position:[x,y,z], size:[x,y,z], "
+            "rotationY (deg), color '#rrggbb', tags: ['walkable'|'obstacle', ...], steps (stairs), asset (mesh)}. "
+            "position is the footprint centre at its lowest point. Returns its id.",
+            schema({{"object", object("object fields (see description)")}}, {"object"}), "PlaceObject");
+    command("object_update", "Merge-patch any entity (object, goal, spawner, link) by id.",
+            schema({{"id", integer("entity id")}, {"patch", object("fields to change")}}, {"id", "patch"}),
+            "UpdateEntity", patchArgs);
+    command("object_delete", "Delete any entity by id.", schema({{"id", integer("entity id")}}, {"id"}),
+            "DeleteEntity");
+    command("gltf_import",
+            "Import a glTF/GLB (content-relative path) as a mesh object; node names/extras mark walkable/obstacle.",
+            schema({{"path", str("content-relative path")},
+                    {"position", Json{{"type", "array"}, {"description", "[x, y, z]"}}},
+                    {"rotationY", num("degrees")},
+                    {"scale", num("uniform scale")},
+                    {"name", str("object name")}},
+                   {"path"}),
+            "ImportGltf");
+    command("navmesh_rebuild", "Rebuild the navmesh and flow fields now (normally automatic).", schema(),
+            "RebuildNavmesh");
+    command("link_create",
+            "Add an off-mesh link (ladder/escalator): {start:[x,y,z], end:[x,y,z], radius, bidirectional, extraCost}.",
+            schema({{"link", object("link fields")}}, {"link"}), "CreateOffMeshLink");
+
+    // --- Crowd ----------------------------------------------------------------------------
+    command("goal_create",
+            "Add a goal area: {name, area:{center:[x,z], halfExtents:[x,z], elevation}, capacity, serviceTime, "
+            "queueDirection:[x,z]}. Returns its id.",
+            schema({{"goal", object("goal fields")}}, {"goal"}), "CreateGoal");
+    command("goal_update", "Merge-patch a goal.",
+            schema({{"id", integer("goal id")}, {"patch", object("fields")}}, {"id", "patch"}), "UpdateEntity",
+            patchArgs);
+    command("spawner_create",
+            "Add a spawner: {name, area:{center:[x,z], halfExtents:[x,z], elevation}, rate (agents/s), total, "
+            "startTime, goal (id or name), agentMix:[{type, weight}], groupSize:[min,max], agent:{...}}.",
+            schema({{"spawner", object("spawner fields")}}, {"spawner"}), "CreateSpawner");
+    command("spawner_update", "Merge-patch a spawner.",
+            schema({{"id", integer("spawner id")}, {"patch", object("fields")}}, {"id", "patch"}), "UpdateEntity",
+            patchArgs);
+    command("agent_type_define",
+            "Define or replace an agent type: {name, behaviour, radius:[min,max], preferredSpeed:[min,max], "
+            "maxSpeedFactor, maxAcceleration, personalSpace, height, color, colorJitter, tags}.",
+            schema({{"type", object("agent type fields")}}, {"type"}), "DefineAgentType");
+    command("agent_type_list", "All agent types with their parameters.", schema(), "ListAgentTypes");
+    command("agents_spawn", "Spawn agents in an area now (one-shot spawner). Returns the spawner id.",
+            schema({{"count", integer("agents")},
+                    {"area", object("{center:[x,z], halfExtents:[x,z], elevation}")},
+                    {"goal", Json{{"description", "goal id or name"}}},
+                    {"type", str("agent type")}},
+                   {"count", "area", "goal"}),
+            "SpawnAgents");
+    command("agents_query",
+            "Count agents matching filters and list an evenly spaced sample (default 50, max 500): id, type, state, "
+            "behaviour, goal, position, speed.",
+            schema({{"type", str("agent type")},
+                    {"state", str("state label")},
+                    {"behaviour", str("behaviour tree")},
+                    {"area", object("{center:[x,z], halfExtents:[x,z]}")},
+                    {"limit", integer("max listed")}}),
+            "QueryAgents");
+
+    // --- Behaviour ------------------------------------------------------------------------
+    command("bt_list", "Behaviour trees in use with node counts and how many agents run them.", schema(),
+            "ListBehaviorTrees");
+    command("bt_get", "A behaviour tree as *.bt.json.", schema({{"name", str("tree name")}}, {"name"}),
+            "GetBehaviorTree");
+    command("bt_set",
+            "Add or replace (hot reload) a behaviour tree from a full *.bt.json document "
+            "{format:'crowdsim.bt', version:1, name, root:{type, id, params, children}}. Running agents restart it.",
+            schema({{"tree", object("crowdsim.bt document")}}, {"tree"}), "SetBehaviorTree");
+    command("bt_validate", "Check a behaviour tree document without applying it.",
+            schema({{"tree", object("crowdsim.bt document")}}, {"tree"}), "ValidateBehaviorTree");
+    command("bt_node_types", "Node types (built-in and Lua) with parameter schemas and child limits.", schema(),
+            "ListBehaviorNodeTypes");
+
+    // --- Scripting ------------------------------------------------------------------------
+    command("script_list", "Loaded Lua scripts and their status.", schema(), "ListScripts");
+    command("script_get", "Source of a loaded Lua script.", schema({{"name", str("script name")}}, {"name"}),
+            "GetScript");
+    server.addTool(
+        {"script_write",
+         "Write content/scripts/<name>.lua and run it (registers nodes / entity types; replaces the "
+         "previous version). See resource crowdsim://docs/scripting.md for the API.",
+         schema({{"name", str("script name: letters, digits, _")}, {"source", str("Lua source")}}, {"name", "source"}),
+         [&svc](const Json& args) {
+             const std::string name = args.at("name").get<std::string>();
+             if (name.empty() ||
+                 name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") !=
+                     std::string::npos) {
+                 return ToolResult::error("script names may only use letters, digits and _");
+             }
+             const std::string source = args.at("source").get<std::string>();
+             const auto file = svc.contentRoot / "scripts" / (name + ".lua");
+             std::filesystem::create_directories(file.parent_path());
+             std::ofstream(file, std::ios::binary) << source;
+             const commands::CommandOutcome o =
+                 svc.execute(makeCommand("LoadScript", {{"name", name}, {"source", source}}));
+             if (!o.ok) {
+                 return ToolResult::error("written to scripts/" + name + ".lua but failed: " + o.error);
+             }
+             Json r = o.result;
+             r["output"] = clip(r.value("output", std::string()));
+             r["path"] = "scripts/" + name + ".lua";
+             return ToolResult::json(r);
+         },
+         nullptr});
+    command("script_reload", "Re-run content/scripts/<name>.lua.", schema({{"name", str("script name")}}, {"name"}),
+            "ReloadScript");
+    server.addTool({"script_eval",
+                    "Evaluate Lua in the sandbox (instruction/time/memory limited); returns printed output (last 8 KB) "
+                    "and the returned value.",
+                    schema({{"source", str("Lua code")}}, {"source"}),
+                    [&svc](const Json& args) {
+                        const commands::CommandOutcome o = svc.execute(makeCommand("EvalLua", args));
+                        if (!o.ok) {
+                            return ToolResult::error(o.error);
+                        }
+                        Json r = o.result;
+                        r["output"] = clip(r.value("output", std::string()));
+                        return ToolResult::json(r);
+                    },
+                    nullptr});
+
+    // --- Simulation -------------------------------------------------------------------------
+    command("sim_play", "Run in real time (GUI).", schema(), "Play");
+    command("sim_pause", "Pause real-time playback.", schema(), "Pause");
+    server.addTool({"sim_step", "Advance a number of fixed steps (30 per simulated second by default) now.",
+                    schema({{"steps", integer("steps (default 1, max 100000)")}}),
+                    [&svc](const Json& args) {
+                        const auto steps = std::clamp<std::uint64_t>(args.value<std::uint64_t>("steps", 1), 1, 100000);
+                        const commands::CommandOutcome o = svc.execute(makeCommand("Step", {{"steps", steps}}));
+                        if (!o.ok) {
+                            return ToolResult::error(o.error);
+                        }
+                        const std::uint64_t ran = svc.runSteps(steps);
+                        return ToolResult::json(Json{{"steps", ran}, {"time", svc.sim.simTimeSeconds()}});
+                    },
+                    nullptr});
+    server.addTool({"sim_run_for",
+                    "Advance the simulation by simulated seconds as fast as possible (headless-friendly) and return a "
+                    "metrics summary: alive/spawned/arrived, per-goal arrivals, agents by type and state.",
+                    schema({{"seconds", num("simulated seconds (max 3600)")}}, {"seconds"}),
+                    [&svc](const Json& args) {
+                        const double seconds = std::clamp(args.at("seconds").get<double>(), 0.0, 3600.0);
+                        const commands::CommandOutcome o = svc.execute(makeCommand("RunFor", {{"seconds", seconds}}));
+                        if (!o.ok) {
+                            return ToolResult::error(o.error);
+                        }
+                        const auto start = std::chrono::steady_clock::now();
+                        const std::uint64_t ran = svc.runSteps(~0ull);
+                        const double ms =
+                            std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - start).count();
+                        return ToolResult::json(
+                            Json{{"steps", ran}, {"wallMs", std::round(ms)}, {"metrics", metricsSummary(svc.sim)}});
+                    },
+                    nullptr});
+    command("sim_reset", "Remove all agents and return to t = 0 (the scene is kept).", schema(), "ResetSimulation");
+    command("sim_set_params", "Set the seed and/or locomotion parameters: {seed, locomotion:{...}}.",
+            schema({{"seed", integer("world seed")}, {"locomotion", object("locomotion parameters")}}), "SetSimParams");
+
+    // --- Analysis ---------------------------------------------------------------------------
+    server.addTool({"metrics_get", "Current metrics summary (counts, per-goal arrivals, agents by type and state).",
+                    schema(), [&svc](const Json&) { return ToolResult::json(metricsSummary(svc.sim)); }, nullptr});
+
+    // --- Logs -------------------------------------------------------------------------------
+    server.addTool({"log_tail", "Most recent log lines (default 50, max 300), optionally only those containing text.",
+                    schema({{"lines", integer("number of lines")}, {"contains", str("filter text")}}),
+                    [&svc](const Json& args) {
+                        const auto n = std::clamp<std::size_t>(args.value<std::size_t>("lines", 50), 1, 300);
+                        const std::string filter = args.value("contains", std::string());
+                        std::vector<std::string> lines = svc.logs.tail(0);
+                        std::vector<std::string> out;
+                        for (auto it = lines.rbegin(); it != lines.rend() && out.size() < n; ++it) {
+                            if (filter.empty() || it->find(filter) != std::string::npos) {
+                                out.push_back(*it);
+                            }
+                        }
+                        std::reverse(out.begin(), out.end());
+                        return ToolResult::json(Json{{"lines", out}});
+                    },
+                    nullptr});
+    server.addTool({"errors_get", "Recent warnings/errors from the log and recent Lua errors.", schema(),
+                    [&svc](const Json&) {
+                        Json log = Json::array();
+                        for (const std::string& line : svc.logs.tail(0)) {
+                            if (line.find("[error]") != std::string::npos ||
+                                line.find("[warning]") != std::string::npos ||
+                                line.find("[critical]") != std::string::npos) {
+                                log.push_back(line);
+                            }
+                        }
+                        while (log.size() > 50) {
+                            log.erase(log.begin());
+                        }
+                        const commands::CommandOutcome scripts = svc.execute(makeCommand("ScriptErrors"));
+                        return ToolResult::json(
+                            Json{{"log", log}, {"lua", scripts.ok ? scripts.result["errors"] : Json::array()}});
+                    },
+                    nullptr});
+
+    // --- Vision (GUI) -------------------------------------------------------------------------
+    if (svc.screenshot) {
+        server.addTool({"screenshot",
+                        "PNG of the editor window (3D view and panels; GUI mode only). Optional camera: "
+                        "{target:[x,z], distance, yaw, pitch} (degrees) moves the view first; omitted = current view.",
+                        schema({{"camera", object("{target:[x,z], distance, yaw, pitch}")}}), nullptr,
+                        [&svc](const Json& args) { return svc.screenshot(args); }});
+    }
+
+    // --- Resources ----------------------------------------------------------------------------
+    server.setResources(
+        {[&svc]() {
+             std::vector<Resource> out;
+             out.push_back({"crowdsim://scene", "Current scene", "The scene as *.scene.json", "application/json"});
+             for (const sim::CompiledTree& t : svc.sim.behaviorTrees()) {
+                 out.push_back({"crowdsim://bt/" + t.name, "Behaviour " + t.name, "*.bt.json", "application/json"});
+             }
+             for (const sim::AgentType& t : svc.sim.agentTypes()) {
+                 out.push_back(
+                     {"crowdsim://agent-type/" + t.name, "Agent type " + t.name, "*.agent.json", "application/json"});
+             }
+             const commands::CommandOutcome scripts = svc.execute(makeCommand("ListScripts"));
+             for (const Json& s : scripts.result.value("scripts", Json::array())) {
+                 const std::string name = s["name"].get<std::string>();
+                 out.push_back({"crowdsim://script/" + name, "Script " + name, "Lua source", "text/x-lua"});
+             }
+             std::error_code ec;
+             for (const auto& e : std::filesystem::directory_iterator(svc.docsDir, ec)) {
+                 if (e.path().extension() == ".md") {
+                     const std::string file = e.path().filename().string();
+                     out.push_back({"crowdsim://docs/" + file, file, "CrowdSim documentation", "text/markdown"});
+                 }
+             }
+             return out;
+         },
+         [&svc](const std::string& uri) -> std::optional<std::pair<std::string, std::string>> {
+             auto after = [&](const char* prefix) -> std::optional<std::string> {
+                 const std::string p(prefix);
+                 return uri.rfind(p, 0) == 0 ? std::optional<std::string>(uri.substr(p.size())) : std::nullopt;
+             };
+             if (uri == "crowdsim://scene") {
+                 return std::pair{std::string("application/json"),
+                                  assets::saveScene(svc.sim, svc.sceneName ? svc.sceneName() : "scene").dump(2)};
+             }
+             if (const auto name = after("crowdsim://bt/")) {
+                 const auto o = svc.execute(makeCommand("GetBehaviorTree", {{"name", *name}}));
+                 return o.ok ? std::optional(std::pair{std::string("application/json"), o.result["tree"].dump(2)})
+                             : std::nullopt;
+             }
+             if (const auto name = after("crowdsim://agent-type/")) {
+                 const auto o = svc.execute(makeCommand("ListAgentTypes"));
+                 for (const Json& t : o.result.value("agentTypes", Json::array())) {
+                     if (t.value("name", std::string()) == *name) {
+                         return std::pair{std::string("application/json"), t.dump(2)};
+                     }
+                 }
+                 return std::nullopt;
+             }
+             if (const auto name = after("crowdsim://script/")) {
+                 const auto o = svc.execute(makeCommand("GetScript", {{"name", *name}}));
+                 return o.ok
+                            ? std::optional(std::pair{std::string("text/x-lua"), o.result["source"].get<std::string>()})
+                            : std::nullopt;
+             }
+             if (const auto file = after("crowdsim://docs/")) {
+                 const auto path = svc.docsDir / *file;
+                 if (file->find("..") != std::string::npos || !std::filesystem::exists(path)) {
+                     return std::nullopt;
+                 }
+                 return std::pair{std::string("text/markdown"), readFile(path)};
+             }
+             return std::nullopt;
+         }});
+}
+
+}  // namespace crowdsim::mcp

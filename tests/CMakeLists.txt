@@ -13,6 +13,7 @@ add_executable(crowdsim_tests
   animation/test_animation.cpp
   script/test_scripting.cpp
   assets/test_bt_graph.cpp
+  mcp/test_mcp.cpp
   physics/test_physics.cpp
   commands/test_commands.cpp
   app/test_command_line.cpp
@@ -61,3 +62,11 @@ add_test(NAME scenario_plaza_all_leave
   COMMAND crowdsim_headless --scenario plaza --agents 2000 --steps 15000 --log-level warn)
 set_tests_properties(scenario_plaza_all_leave PROPERTIES
   PASS_REGULAR_EXPRESSION "\"alive\":0,.*\"spawned\":2000")
+
+# M8: an MCP client builds a scene, defines two agent types with trees, runs 60 s and reads metrics.
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME mcp_stdio_workflow
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/mcp_workflow_test.py $<TARGET_FILE:crowdsim_headless>)
+  set_tests_properties(mcp_stdio_workflow PROPERTIES PASS_REGULAR_EXPRESSION "\"ok\": true" TIMEOUT 120)
+endif()

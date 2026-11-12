@@ -75,6 +75,7 @@ add_subdirectory(assets)
 add_subdirectory(commands)
 add_subdirectory(animation)
 add_subdirectory(script)
+add_subdirectory(mcp)
 
 if(CROWDSIM_BUILD_GUI)
   add_subdirectory(platform)
