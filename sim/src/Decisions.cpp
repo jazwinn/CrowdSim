@@ -237,6 +237,106 @@ void Simulation::tickBehaviors() {
             st.lastStatus = tickNode(tree, 0, i, thread);
         }
     });
+    runCustomNodes();
+}
+
+void Simulation::runCustomNodes() {
+    std::vector<CustomRequest> requests;
+    for (std::vector<CustomRequest>& perThread : customRequests_) {
+        requests.insert(requests.end(), perThread.begin(), perThread.end());
+        perThread.clear();
+    }
+    if (requests.empty() || customRunner_ == nullptr) {
+        return;
+    }
+    // Deterministic order regardless of which thread ticked which agent.
+    std::sort(requests.begin(), requests.end(), [](const CustomRequest& a, const CustomRequest& b) {
+        return std::tie(a.tree, a.node, a.agent) < std::tie(b.tree, b.node, b.agent);
+    });
+    std::vector<std::uint32_t> agents(requests.size());
+    std::vector<CustomResult> results(requests.size(), CustomResult::Running);
+    std::vector<CustomNodeBatch> batches;
+    for (std::size_t k = 0; k < requests.size();) {
+        std::size_t end = k;
+        while (end < requests.size() && requests[end].tree == requests[k].tree &&
+               requests[end].node == requests[k].node) {
+            agents[end] = requests[end].agent;
+            ++end;
+        }
+        const CompiledTree& tree = trees_[requests[k].tree];
+        CustomNodeBatch batch;
+        batch.customIndex = tree.nodes[requests[k].node].customIndex;
+        batch.tree = &tree;
+        batch.node = requests[k].node;
+        batch.agents = std::span<const std::uint32_t>(agents.data() + k, end - k);
+        batch.results = std::span<CustomResult>(results.data() + k, end - k);
+        batches.push_back(batch);
+        k = end;
+    }
+    customRunner_->runCustomNodes(*this, batches);
+    for (std::size_t k = 0; k < requests.size(); ++k) {
+        const CompiledTree& tree = trees_[requests[k].tree];
+        const BtNode& n = tree.nodes[requests[k].node];
+        std::uint8_t& m = agents_.bt[requests[k].agent].memory[n.memSlot];
+        m = results[k] == CustomResult::Success ? 3 : (results[k] == CustomResult::Failure ? 4 : 2);
+    }
+}
+
+std::uint16_t Simulation::defineCustomNode(const CustomNodeSpec& spec) {
+    for (std::size_t k = 0; k < customNodes_.size(); ++k) {
+        if (customNodes_[k].name == spec.name) {
+            customNodes_[k] = spec;
+            return static_cast<std::uint16_t>(k);
+        }
+    }
+    customNodes_.push_back(spec);
+    return static_cast<std::uint16_t>(customNodes_.size() - 1);
+}
+
+void Simulation::scriptMoveTo(std::uint32_t index, glm::vec3 target) {
+    if (index < agents_.size()) {
+        setPointTarget(index, target);
+    }
+}
+
+void Simulation::scriptMoveToGoal(std::uint32_t index) {
+    if (index < agents_.size()) {
+        agents_.moveMode[index] = MoveMode::Goal;
+    }
+}
+
+void Simulation::scriptStop(std::uint32_t index) {
+    if (index < agents_.size()) {
+        agents_.moveMode[index] = MoveMode::Stop;
+    }
+}
+
+void Simulation::scriptSetSpeed(std::uint32_t index, float multiplier) {
+    if (index < agents_.size()) {
+        agents_.speedMultiplier[index] = std::clamp(multiplier, 0.0f, 3.0f);
+    }
+}
+
+void Simulation::scriptSetState(std::uint32_t index, std::string_view state) {
+    if (index < agents_.size()) {
+        agents_.stateId[index] = internName(stateNames_, state);
+    }
+}
+
+float Simulation::scriptRandom(std::uint32_t index) {
+    return index < agents_.size() ? agents_.rng[index].nextFloat() : 0.0f;
+}
+
+std::uint32_t Simulation::countAgentsNear(glm::vec3 p, float radius) const {
+    std::uint32_t count = 0;
+    const float r2 = radius * radius;
+    for (std::uint32_t i = 0; i < agents_.size(); ++i) {
+        const glm::vec2 d = agents_.position[i] - glm::vec2(p.x, p.z);
+        if (glm::dot(d, d) <= r2 && std::abs(agents_.height[i] - p.y) < 1.0f) {
+            ++count;
+        }
+    }
+    return count;
 }
 
 void Simulation::resetSubtree(const CompiledTree& tree, std::uint16_t node, BtState& state) const {
@@ -645,8 +745,23 @@ BtStatus Simulation::tickNode(const CompiledTree& tree, std::uint16_t index, std
         }
         case BtNodeType::RandomChance:
             return agents_.rng[i].nextFloat() < n.number[0] ? BtStatus::Success : BtStatus::Failure;
-        case BtNodeType::Custom:
-            return BtStatus::Failure;  // script nodes arrive with Lua (M6)
+        case BtNodeType::Custom: {
+            // Script node: request a scripted tick (run serially after this phase) and
+            // report its result on the next decision tick. Memory: 0 idle, 1 requested,
+            // 2 running, 3 succeeded, 4 failed.
+            std::uint8_t& m = st.memory[n.memSlot];
+            if (m == 3 || m == 4) {
+                const bool ok = m == 3;
+                m = 0;
+                return ok ? BtStatus::Success : BtStatus::Failure;
+            }
+            if (customRunner_ == nullptr || n.customIndex >= customNodes_.size()) {
+                return BtStatus::Failure;
+            }
+            m = 1;
+            customRequests_[thread].push_back({i, agents_.tree[i], index});
+            return running();
+        }
     }
     return BtStatus::Failure;
 }
@@ -663,6 +778,8 @@ void Simulation::resolveDecisions() {
                 registry_.get<Goal>(goals_[agents_.goalIndex[i]]).arrivals += 1;
             }
             ++arrivedTotal_;
+            events_.push_back(
+                {SimEventType::AgentArrived, agents_.id[i], static_cast<std::int32_t>(agents_.goalIndex[i])});
         }
     }
 
@@ -719,6 +836,7 @@ void Simulation::processDespawns() {
     for (std::uint32_t i = agents_.size(); i-- > 0;) {
         if (agents_.despawnRequested[i] != 0) {
             ++despawnedTotal_;
+            events_.push_back({SimEventType::AgentDespawned, agents_.id[i], -1});
             removeAgentAt(i);
         }
     }

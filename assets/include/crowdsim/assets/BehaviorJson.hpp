@@ -37,14 +37,14 @@ using Json = nlohmann::json;
 
 /// Whole *.bt.json document -> compiled tree (validates format, version, name and nodes).
 [[nodiscard]] sim::CompiledTree compileBehaviorJson(const Json& doc,
-                                                    const std::map<std::string, int>& customNodes = {});
+                                                    std::span<const sim::CustomNodeSpec> customNodes = {});
 /// Compiled tree -> *.bt.json document (decompiled; editor layout not included).
 [[nodiscard]] Json behaviorToJson(const sim::CompiledTree& tree);
 
 [[nodiscard]] sim::AgentType agentTypeFromJson(const Json& doc);
 [[nodiscard]] Json toJson(const sim::AgentType& type);
 
-/// Built-in node types with parameter schemas (bt_node_types).
-[[nodiscard]] Json btNodeTypesJson();
+/// Built-in node types (and script-defined ones) with parameter schemas (bt_node_types).
+[[nodiscard]] Json btNodeTypesJson(std::span<const sim::CustomNodeSpec> customNodes = {});
 
 }  // namespace crowdsim::assets

@@ -321,7 +321,7 @@ void registerBuiltinCommands(CommandRegistry& r) {
            "from the root.",
            obj({{"tree", any("crowdsim.bt document: {name, root: {type, id, params, children}}")}}, {"tree"}),
            [](const Json& p, CommandContext& ctx) {
-               sim::CompiledTree tree = assets::compileBehaviorJson(p.at("tree"));
+               sim::CompiledTree tree = assets::compileBehaviorJson(p.at("tree"), ctx.sim.customNodeSpecs());
                CommandOutput out;
                if (const sim::CompiledTree* old = ctx.sim.findBehaviorTree(tree.name)) {
                    out.undo = makeCommand("SetBehaviorTree", Json{{"tree", assets::behaviorToJson(*old)}});
@@ -337,10 +337,10 @@ void registerBuiltinCommands(CommandRegistry& r) {
 
     r.add({"ValidateBehaviorTree", "Check a behaviour tree document without applying it.",
            obj({{"tree", any("crowdsim.bt document")}}, {"tree"}),
-           [](const Json& p, CommandContext&) {
+           [](const Json& p, CommandContext& ctx) {
                CommandOutput out;
                try {
-                   const sim::CompiledTree tree = assets::compileBehaviorJson(p.at("tree"));
+                   const sim::CompiledTree tree = assets::compileBehaviorJson(p.at("tree"), ctx.sim.customNodeSpecs());
                    out.result = Json{{"valid", true},
                                      {"name", tree.name},
                                      {"nodes", tree.nodes.size()},
@@ -354,9 +354,9 @@ void registerBuiltinCommands(CommandRegistry& r) {
            false});
 
     r.add({"ListBehaviorNodeTypes", "List behaviour tree node types with their parameter schemas.", obj({}),
-           [](const Json&, CommandContext&) {
+           [](const Json&, CommandContext& ctx) {
                CommandOutput out;
-               out.result = Json{{"nodeTypes", assets::btNodeTypesJson()}};
+               out.result = Json{{"nodeTypes", assets::btNodeTypesJson(ctx.sim.customNodeSpecs())}};
                return out;
            },
            false});

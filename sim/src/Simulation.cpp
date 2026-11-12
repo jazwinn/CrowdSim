@@ -59,6 +59,7 @@ float distanceToSegment2d(glm::vec2 p, glm::vec2 a, glm::vec2 b) noexcept {
 Simulation::Simulation(SimServices services, const SimConfig& config)
     : services_(services), config_(config), stepSeconds_(1.0 / config.stepHz), rng_(config.seed) {
     config_.locomotion.maxNeighbors = std::min(config_.locomotion.maxNeighbors, orca::kMaxNeighbors);
+    customRequests_.resize(std::max<std::uint32_t>(1, services_.jobs.threadCount()));
     // Built-in fallback behaviour: walk to the assigned goal, then leave.
     BtNodeDesc commuter{"Sequence", "root", {}, {}};
     commuter.children.push_back(BtNodeDesc{"MoveToGoal", "walk", {}, {}});
@@ -364,6 +365,7 @@ void Simulation::addAgent(const AgentInit& init) {
     }
     idToIndex_[init.id] = agents_.size();
     agents_.add(init);
+    events_.push_back({SimEventType::AgentSpawned, init.id, -1});
 }
 
 void Simulation::removeAgentAt(std::uint32_t index) {
@@ -423,6 +425,7 @@ bool Simulation::updateNavigation() {
 
 void Simulation::step() {
     CS_PROFILE_ZONE();
+    events_.clear();
     updateNavigation();
     const auto dt = static_cast<float>(stepSeconds_);
 
@@ -449,6 +452,19 @@ void Simulation::step() {
     integrate(dt);
     processDespawns();
     ++stepIndex_;
+    for (StepObserver* observer : stepObservers_) {
+        observer->afterStep(*this);
+    }
+}
+
+void Simulation::addStepObserver(StepObserver* observer) {
+    if (std::find(stepObservers_.begin(), stepObservers_.end(), observer) == stepObservers_.end()) {
+        stepObservers_.push_back(observer);
+    }
+}
+
+void Simulation::removeStepObserver(StepObserver* observer) {
+    stepObservers_.erase(std::remove(stepObservers_.begin(), stepObservers_.end(), observer), stepObservers_.end());
 }
 
 void Simulation::spawnAgents(float dt) {

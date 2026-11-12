@@ -119,7 +119,7 @@ Json btNodeToJson(const sim::BtNodeDesc& node) {
     return j;
 }
 
-sim::CompiledTree compileBehaviorJson(const Json& doc, const std::map<std::string, int>& customNodes) {
+sim::CompiledTree compileBehaviorJson(const Json& doc, std::span<const sim::CustomNodeSpec> customNodes) {
     if (!doc.is_object()) {
         throw std::invalid_argument("behaviour tree must be a JSON object");
     }
@@ -181,7 +181,7 @@ Json toJson(const sim::AgentType& type) {
     return j;
 }
 
-Json btNodeTypesJson() {
+Json btNodeTypesJson(std::span<const sim::CustomNodeSpec> customNodes) {
     Json list = Json::array();
     for (const sim::BtNodeTypeInfo& info : sim::btNodeTypes()) {
         if (info.type == sim::BtNodeType::Custom) {
@@ -204,6 +204,27 @@ Json btNodeTypesJson() {
                             {"maxChildren", info.maxChildren},
                             {"params", params},
                             {"description", info.description}});
+    }
+    for (const sim::CustomNodeSpec& spec : customNodes) {
+        Json params = Json::array();
+        for (const sim::CustomParamSpec& p : spec.params) {
+            Json param{{"name", p.name}, {"type", kindName(p.kind)}, {"description", p.description}};
+            if (p.kind == sim::BtParamKind::Number) {
+                param["default"] = p.defaultNumber;
+            } else if (p.kind == sim::BtParamKind::Text) {
+                param["default"] = p.defaultText;
+            } else {
+                param["default"] = Json::array({p.defaultVec.x, p.defaultVec.y, p.defaultVec.z});
+            }
+            params.push_back(param);
+        }
+        list.push_back(Json{{"type", spec.name},
+                            {"category", categoryName(spec.category)},
+                            {"minChildren", 0},
+                            {"maxChildren", 0},
+                            {"params", params},
+                            {"description", spec.description},
+                            {"script", true}});
     }
     return list;
 }

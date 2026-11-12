@@ -255,7 +255,7 @@ std::vector<float> parseWeights(const std::string& text) {
 
 class Compiler {
 public:
-    Compiler(CompiledTree& tree, const std::map<std::string, int>& custom) : t_(tree), custom_(custom) {}
+    Compiler(CompiledTree& tree, std::span<const CustomNodeSpec> custom) : t_(tree), custom_(custom) {}
 
     std::uint16_t compile(const BtNodeDesc& d, const std::string& path) {
         if (t_.nodes.size() >= kBtMaxNodes) {
@@ -264,12 +264,15 @@ public:
         const BtNodeTypeInfo* info = findBtNodeType(d.type);
         int customIndex = -1;
         if (info == nullptr || info->type == BtNodeType::Custom) {
-            const auto it = custom_.find(d.type);
-            if (it == custom_.end()) {
+            for (std::size_t c = 0; c < custom_.size() && customIndex < 0; ++c) {
+                if (custom_[c].name == d.type) {
+                    customIndex = static_cast<int>(c);
+                }
+            }
+            if (customIndex < 0) {
                 throw std::invalid_argument(std::format("{}: unknown node type '{}'", path, d.type));
             }
             info = &btNodeTypeInfo(BtNodeType::Custom);
-            customIndex = it->second;
         }
         const auto index = static_cast<std::uint16_t>(t_.nodes.size());
         t_.nodes.emplace_back();
@@ -339,9 +342,40 @@ public:
                     break;
             }
         }
-        // Custom nodes keep all their params as text/number pairs for the script to read.
+        // Script nodes: leaves whose parameters are checked against the registered spec
+        // and stored (with defaults filled in) for the script to read.
         if (customIndex >= 0) {
-            node.text = intern(d.type);
+            const CustomNodeSpec& spec = custom_[static_cast<std::size_t>(customIndex)];
+            if (!d.children.empty()) {
+                throw std::invalid_argument(std::format("{}: script node {} takes no children", path, spec.name));
+            }
+            std::map<std::string, BtParamValue> values;
+            for (const auto& [key, value] : d.params) {
+                const auto it = std::find_if(spec.params.begin(), spec.params.end(),
+                                             [&](const CustomParamSpec& p) { return p.name == key; });
+                if (it == spec.params.end()) {
+                    throw std::invalid_argument(std::format("{}: {} has no parameter '{}'", path, spec.name, key));
+                }
+                if (value.kind != it->kind) {
+                    throw std::invalid_argument(std::format("{}: '{}' has the wrong type", path, key));
+                }
+            }
+            for (const CustomParamSpec& p : spec.params) {
+                const auto it = d.params.find(p.name);
+                if (it != d.params.end()) {
+                    values.emplace(p.name, it->second);
+                } else {
+                    BtParamValue v;
+                    v.kind = p.kind;
+                    v.number = p.defaultNumber;
+                    v.text = p.defaultText;
+                    v.vec = p.defaultVec;
+                    values.emplace(p.name, std::move(v));
+                }
+            }
+            node.text = intern(spec.name);
+            node.customParams = static_cast<std::uint16_t>(t_.customParams.size());
+            t_.customParams.push_back(std::move(values));
         }
 
         // Value checks.
@@ -393,13 +427,13 @@ public:
             case BtNodeType::RandomSelector:
             case BtNodeType::WeightedRandom:
             case BtNodeType::Repeat:
+            case BtNodeType::Custom:
                 node.memSlot = allocate(t_.memSlots, kBtMaxMemory, path, "memory");
                 break;
             case BtNodeType::Wait:
             case BtNodeType::Cooldown:
             case BtNodeType::Timeout:
             case BtNodeType::Queue:
-            case BtNodeType::Custom:
                 node.timerSlot = allocate(t_.timerSlots, kBtMaxTimers, path, "timer");
                 break;
             default:
@@ -437,7 +471,7 @@ private:
     }
 
     CompiledTree& t_;
-    const std::map<std::string, int>& custom_;
+    std::span<const CustomNodeSpec> custom_;
 };
 
 }  // namespace
@@ -471,6 +505,9 @@ BtNodeDesc decompileNode(const CompiledTree& tree, std::uint16_t index) {
     BtNodeDesc d;
     d.type = tree.nodeTypes[index];
     d.id = tree.nodeIds[index];
+    if (n.type == BtNodeType::Custom && n.customParams < tree.customParams.size()) {
+        d.params = tree.customParams[n.customParams];
+    }
     if (n.type != BtNodeType::Custom) {
         const BtNodeTypeInfo& info = btNodeTypeInfo(n.type);
         int numberIndex = 0;
@@ -509,7 +546,7 @@ BtNodeDesc decompileBehaviorTree(const CompiledTree& tree) {
 }
 
 CompiledTree compileBehaviorTree(const BtNodeDesc& root, const std::string& name,
-                                 const std::map<std::string, int>& customNodes) {
+                                 std::span<const CustomNodeSpec> customNodes) {
     CompiledTree tree;
     tree.name = name;
     Compiler compiler(tree, customNodes);

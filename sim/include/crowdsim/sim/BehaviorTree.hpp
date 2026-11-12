@@ -92,6 +92,25 @@ struct BtParamValue {
     BtParamKind kind = BtParamKind::Number;
 };
 
+/// Parameter of a script-defined node type.
+struct CustomParamSpec {
+    std::string name;
+    BtParamKind kind = BtParamKind::Number;
+    float defaultNumber = 0.0f;
+    std::string defaultText;
+    glm::vec3 defaultVec{0.0f};
+    std::string description;
+};
+
+/// A script-defined (Lua) leaf node type. Its tick runs in the scripting layer,
+/// batched per node instance after the parallel decision tick (see ScriptHooks.hpp).
+struct CustomNodeSpec {
+    std::string name;
+    BtCategory category = BtCategory::Action;  ///< Action or Condition
+    std::vector<CustomParamSpec> params;
+    std::string description;
+};
+
 struct BtNodeDesc {
     std::string type;
     std::string id;  ///< stable node id (editor / debugger); generated if empty
@@ -117,8 +136,9 @@ struct BtNode {
     float number[2] = {0.0f, 0.0f};
     glm::vec3 vec{0.0f};
     bool hasVec = false;
-    std::uint16_t weights = 0;      ///< WeightedRandom: offset into floatPool
-    std::uint16_t customIndex = 0;  ///< Custom: script node index
+    std::uint16_t weights = 0;       ///< WeightedRandom: offset into floatPool
+    std::uint16_t customIndex = 0;   ///< Custom: index of its CustomNodeSpec
+    std::uint16_t customParams = 0;  ///< Custom: index into CompiledTree::customParams
 };
 
 struct CompiledTree {
@@ -128,8 +148,9 @@ struct CompiledTree {
     std::vector<std::uint16_t> childList;
     std::vector<std::string> strings{""};
     std::vector<float> floatPool;
-    std::vector<std::string> nodeIds;    ///< per node, for the debugger / node editor
-    std::vector<std::string> nodeTypes;  ///< per node type name
+    std::vector<std::string> nodeIds;                               ///< per node, for the debugger / node editor
+    std::vector<std::string> nodeTypes;                             ///< per node type name
+    std::vector<std::map<std::string, BtParamValue>> customParams;  ///< resolved params of Custom nodes
     std::uint8_t memSlots = 0;
     std::uint8_t timerSlots = 0;
 
@@ -140,9 +161,9 @@ struct CompiledTree {
 
 /// Validate and compile. Throws std::invalid_argument with the offending node
 /// path on unknown types, wrong child counts, bad parameters or size limits.
-/// `resolveCustom` maps a script node type name to its index (or -1); may be empty.
+/// `customNodes` are the script-defined node types (a node's customIndex is its position).
 [[nodiscard]] CompiledTree compileBehaviorTree(const BtNodeDesc& root, const std::string& name,
-                                               const std::map<std::string, int>& customNodes = {});
+                                               std::span<const CustomNodeSpec> customNodes = {});
 
 /// Reconstruct a description from a compiled tree (node ids, types, parameters
 /// and structure; editor layout is not part of the compiled form).

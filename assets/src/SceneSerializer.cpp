@@ -2,8 +2,8 @@
 
 #include <fstream>
 #include <set>
-#include <string>
 #include <stdexcept>
+#include <string>
 
 #include "crowdsim/assets/AssetLibrary.hpp"
 #include "crowdsim/assets/BehaviorJson.hpp"
@@ -92,7 +92,7 @@ std::string loadScene(const nlohmann::json& input, sim::Simulation& sim, AssetLi
     }
     // Definitions first (spawners reference agent types, types reference trees).
     for (const Json& tree : scene.value("behaviours", Json::array())) {
-        sim.setBehaviorTree(compileBehaviorJson(tree));
+        sim.setBehaviorTree(compileBehaviorJson(tree, sim.customNodeSpecs()));
     }
     for (const Json& type : scene.value("agentTypes", Json::array())) {
         sim.defineAgentType(agentTypeFromJson(type));

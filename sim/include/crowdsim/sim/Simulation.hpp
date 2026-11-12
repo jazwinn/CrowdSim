@@ -26,6 +26,7 @@
 #include "crowdsim/sim/Environment.hpp"
 #include "crowdsim/sim/FlowField.hpp"
 #include "crowdsim/sim/NavMesh.hpp"
+#include "crowdsim/sim/ScriptHooks.hpp"
 #include "crowdsim/sim/SpatialHash.hpp"
 
 namespace spdlog {
@@ -170,6 +171,30 @@ public:
     [[nodiscard]] const AgentType* findAgentType(std::string_view name) const;
     [[nodiscard]] const std::vector<AgentType>& agentTypes() const noexcept { return agentTypes_; }
     [[nodiscard]] const std::vector<std::string>& stateNames() const noexcept { return stateNames_; }
+
+    // --- Scripting hooks (see ScriptHooks.hpp) ------------------------------------------
+    /// Add or replace (by name) a script-defined BT node type; returns its index.
+    /// Trees must be (re)compiled with customNodeSpecs() to use it.
+    std::uint16_t defineCustomNode(const CustomNodeSpec& spec);
+    [[nodiscard]] const std::vector<CustomNodeSpec>& customNodeSpecs() const noexcept { return customNodes_; }
+    /// Non-owning; null disables script nodes (they then fail).
+    void setCustomNodeRunner(CustomNodeRunner* runner) noexcept { customRunner_ = runner; }
+    void addStepObserver(StepObserver* observer);
+    void removeStepObserver(StepObserver* observer);
+    /// Events recorded during the last step (spawns, arrivals, despawns).
+    [[nodiscard]] const std::vector<SimEvent>& stepEvents() const noexcept { return events_; }
+
+    // Script control API: valid only from serial callbacks (CustomNodeRunner,
+    // StepObserver). `index` is an agent pool index.
+    void scriptMoveTo(std::uint32_t index, glm::vec3 target);
+    void scriptMoveToGoal(std::uint32_t index);
+    void scriptStop(std::uint32_t index);
+    void scriptSetSpeed(std::uint32_t index, float multiplier);
+    void scriptSetState(std::uint32_t index, std::string_view state);
+    /// Next value of the agent's own random stream in [0, 1) (deterministic).
+    float scriptRandom(std::uint32_t index);
+    /// Agents within `radius` of `p` (ground plane, same floor), up to `limit`.
+    [[nodiscard]] std::uint32_t countAgentsNear(glm::vec3 p, float radius) const;
     /// Decision state of one agent by id (nullopt if gone).
     [[nodiscard]] std::optional<AgentDebugInfo> agentDebug(std::uint32_t agentId) const;
     /// Agent index for an id, or kNoAgent.
@@ -217,6 +242,7 @@ public:
     [[nodiscard]] const entt::registry& registry() const noexcept { return registry_; }
 
 private:
+    void runCustomNodes();
     void spawnAgents(float dt);
     void computePreferredVelocities();
     void computeAvoidance(float dt);
@@ -288,6 +314,16 @@ private:
     std::vector<TreeLookup> treeLookups_;
     std::vector<AgentType> agentTypes_;
     std::vector<std::string> stateNames_{"walking"};
+    std::vector<CustomNodeSpec> customNodes_;
+    CustomNodeRunner* customRunner_ = nullptr;
+    struct CustomRequest {
+        std::uint32_t agent;
+        std::uint16_t tree;
+        std::uint16_t node;
+    };
+    std::vector<std::vector<CustomRequest>> customRequests_;  ///< per worker thread
+    std::vector<StepObserver*> stepObservers_;
+    std::vector<SimEvent> events_;
     std::vector<std::string> tagNames_{""};
     std::vector<TaggedVolume> taggedVolumes_;
 };
