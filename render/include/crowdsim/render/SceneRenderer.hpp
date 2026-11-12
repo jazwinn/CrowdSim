@@ -10,6 +10,7 @@
 #include <memory>
 #include <vector>
 
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include "crowdsim/render/Camera.hpp"
@@ -71,6 +72,19 @@ struct Overlays {
     bool velocities = false;  ///< per-agent velocity lines
 };
 
+/// A coloured grid on the floor (metrics heatmaps). Plain data: the caller fills
+/// it and bumps `version`; cells at or below 2 % of `maxValue` stay clear.
+struct HeatmapOverlay {
+    int width = 0;  ///< 0 = nothing to draw
+    int height = 0;
+    float cell = 1.0f;
+    glm::vec2 origin{0.0f};  ///< (x, z) corner of cell (0, 0)
+    float elevation = 0.0f;
+    std::vector<float> values;  ///< width * height, row-major by z
+    float maxValue = 1.0f;
+    std::uint64_t version = 0;
+};
+
 class SceneRenderer {
 public:
     SceneRenderer();
@@ -93,6 +107,7 @@ public:
 
     Overlays overlays;
     RenderSettings settings;
+    HeatmapOverlay heatmap;
     /// Extra lines for this frame; the caller refills it every frame.
     std::vector<DebugLine> extraLines;
 

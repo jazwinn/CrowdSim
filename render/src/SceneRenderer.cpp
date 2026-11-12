@@ -220,6 +220,10 @@ struct SceneRenderer::Resources {
     StaticBuffer links;
     std::vector<StaticBuffer> flow;
 
+    // Metrics heatmap (rebuilt when its version changes).
+    StaticBuffer heatmap;
+    std::uint64_t heatmapVersion = ~0ull;
+
     // Animated crowd and shadows.
     CrowdRenderer crowd;
     bgfx::ProgramHandle crowdProgram = BGFX_INVALID_HANDLE;
@@ -344,6 +348,7 @@ SceneRenderer::~SceneRenderer() {
     bgfx::destroy(r.cameraPos);
     bgfx::destroy(r.color);
     r.destroyStatic();
+    r.heatmap.reset();
     bgfx::destroy(r.meshProgram);
     bgfx::destroy(r.lineProgram);
     r.crowd.setCharacter(nullptr);
@@ -546,6 +551,45 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
             bgfx::submit(kViewScene, r.flatProgram);
             ++stats.drawCalls;
         }
+    }
+
+    // Metrics heatmap: translucent cells just above the floor.
+    if (heatmap.version != r.heatmapVersion) {
+        r.heatmapVersion = heatmap.version;
+        r.heatmap.reset();
+        std::vector<LineVertex> tris;
+        const float maxValue = std::max(heatmap.maxValue, 1e-6f);
+        for (int z = 0; z < heatmap.height; ++z) {
+            for (int x = 0; x < heatmap.width; ++x) {
+                const std::size_t i = static_cast<std::size_t>(z * heatmap.width + x);
+                const float t = i < heatmap.values.size() ? std::clamp(heatmap.values[i] / maxValue, 0.0f, 1.0f) : 0.0f;
+                if (t <= 0.02f) {
+                    continue;
+                }
+                // Blue -> cyan -> green -> yellow -> red.
+                const float rC = std::clamp(t * 4.0f - 2.0f, 0.0f, 1.0f);
+                const float gC =
+                    t < 0.75f ? std::clamp(t * 4.0f - 0.5f, 0.0f, 1.0f) : std::clamp((1.0f - t) * 4.0f, 0.0f, 1.0f);
+                const float bC = std::clamp(1.5f - t * 3.0f, 0.0f, 1.0f);
+                const auto c = [](float v) { return static_cast<std::uint32_t>(std::lround(v * 255.0f)); };
+                const std::uint32_t abgr = (c(0.30f + 0.45f * t) << 24) | (c(bC) << 16) | (c(gC) << 8) | c(rC);
+                const float x0 = heatmap.origin.x + static_cast<float>(x) * heatmap.cell;
+                const float z0 = heatmap.origin.y + static_cast<float>(z) * heatmap.cell;
+                const float x1 = x0 + heatmap.cell;
+                const float z1 = z0 + heatmap.cell;
+                const float y = heatmap.elevation + 0.04f;
+                tris.insert(tris.end(),
+                            {LineVertex{x0, y, z0, abgr}, LineVertex{x1, y, z1, abgr}, LineVertex{x1, y, z0, abgr},
+                             LineVertex{x0, y, z0, abgr}, LineVertex{x0, y, z1, abgr}, LineVertex{x1, y, z1, abgr}});
+            }
+        }
+        r.heatmap = makeBuffer(tris, r.lineLayout);
+    }
+    if (bgfx::isValid(r.heatmap.vb)) {
+        bgfx::setVertexBuffer(0, r.heatmap.vb);
+        bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_DEPTH_TEST_LEQUAL | BGFX_STATE_BLEND_ALPHA | BGFX_STATE_MSAA);
+        bgfx::submit(kViewScene, r.lineProgram);
+        ++stats.drawCalls;
     }
 
     // Agents: animated characters near / mid, capsules far (or everywhere without a character).
