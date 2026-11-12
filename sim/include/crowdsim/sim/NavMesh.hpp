@@ -102,6 +102,10 @@ public:
     [[nodiscard]] float extraCost(std::uint32_t dense) const noexcept { return extraCost_[dense]; }
     /// Polygons from which `dense` can be entered directly (reverse adjacency).
     [[nodiscard]] std::span<const std::uint32_t> predecessors(std::uint32_t dense) const noexcept;
+    /// Connected-component label of a polygon (the smallest dense index in it).
+    [[nodiscard]] std::uint32_t component(std::uint32_t dense) const noexcept { return component_[dense]; }
+    /// True if `a` and `b` are valid refs on the same connected piece of navmesh.
+    [[nodiscard]] bool connected(PolyRef a, PolyRef b) const noexcept;
 
     // --- Queries -------------------------------------------------------------------
     /// Per-thread query object; `threadIndex` < the job system's thread count.
@@ -187,6 +191,7 @@ private:
     std::vector<float> extraCost_;
     std::vector<std::uint32_t> predStart_;  ///< CSR reverse adjacency
     std::vector<std::uint32_t> predList_;
+    std::vector<std::uint32_t> component_;
 
     std::vector<WallSegment> walls_;
     glm::vec3 wallOrigin_{0.0f};

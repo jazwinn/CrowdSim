@@ -13,6 +13,7 @@
 #include <spdlog/logger.h>
 #include <glm/geometric.hpp>
 
+#include "Funnel.hpp"
 #include "crowdsim/core/Hash.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Profile.hpp"
@@ -29,7 +30,6 @@ constexpr std::uint32_t kCorridorLength = 8;    ///< polygons of look-ahead for 
 constexpr float kWallQueryMargin = 1.0f;        ///< m beyond the agent radius
 constexpr float kOffMeshTriggerRadius = 0.6f;   ///< m from a link start to begin traversing
 constexpr float kGoalVerticalTolerance = 1.5f;  ///< m
-constexpr float kPortalShrink = 0.2f;           ///< m pulled in from each portal end
 
 float wrapAngle(float a) noexcept {
     constexpr float kPi = std::numbers::pi_v<float>;
@@ -46,66 +46,6 @@ float headingOf(glm::vec2 dir) noexcept {
     return std::atan2(dir.x, dir.y);
 }
 
-struct Corner {
-    glm::vec3 point;
-    std::uint32_t portalIndex;  ///< portal the corner lies on; == count when it is `end`
-};
-
-/// First corner of the string-pulled path through `count` portals towards `end`
-/// (simple stupid funnel, same orientation conventions as Detour).
-Corner firstCorner(glm::vec3 start, const glm::vec3* lefts, const glm::vec3* rights, std::uint32_t count,
-                   glm::vec3 end) noexcept {
-    const float apex[3] = {start.x, start.y, start.z};
-    float portalLeft[3] = {start.x, start.y, start.z};
-    float portalRight[3] = {start.x, start.y, start.z};
-    std::uint32_t leftIndex = 0;
-    std::uint32_t rightIndex = 0;
-    for (std::uint32_t i = 0; i <= count; ++i) {
-        const glm::vec3 l = i < count ? lefts[i] : end;
-        const glm::vec3 r = i < count ? rights[i] : end;
-        const float left[3] = {l.x, l.y, l.z};
-        const float right[3] = {r.x, r.y, r.z};
-
-        if (dtTriArea2D(apex, portalRight, right) <= 0.0f) {
-            if (dtVequal(apex, portalRight) || dtTriArea2D(apex, portalLeft, right) > 0.0f) {
-                dtVcopy(portalRight, right);
-                rightIndex = i;
-            } else {
-                return {{portalLeft[0], portalLeft[1], portalLeft[2]}, leftIndex};
-            }
-        }
-        if (dtTriArea2D(apex, portalLeft, left) >= 0.0f) {
-            if (dtVequal(apex, portalLeft) || dtTriArea2D(apex, portalRight, left) < 0.0f) {
-                dtVcopy(portalLeft, left);
-                leftIndex = i;
-            } else {
-                return {{portalRight[0], portalRight[1], portalRight[2]}, rightIndex};
-            }
-        }
-    }
-    return {end, count};
-}
-
-/// Steering target along the corridor: the first corner, or the one after it if
-/// the agent is already close to the first (otherwise agents stall at corners,
-/// which sit exactly on the navmesh boundary).
-glm::vec3 steeringTarget(glm::vec3 start, const glm::vec3* lefts, const glm::vec3* rights, std::uint32_t count,
-                         glm::vec3 end) noexcept {
-    constexpr float kCornerSkipDistance = 0.1f;  // only once the corner is reached
-    Corner c = firstCorner(start, lefts, rights, count, end);
-    for (int k = 0; k < 2 && c.portalIndex < count; ++k) {
-        const glm::vec2 d(c.point.x - start.x, c.point.z - start.z);
-        if (glm::dot(d, d) > kCornerSkipDistance * kCornerSkipDistance) {
-            break;
-        }
-        const std::uint32_t next = c.portalIndex + 1;
-        Corner after = firstCorner(c.point, lefts + next, rights + next, count - next, end);
-        after.portalIndex += next;
-        c = after;
-    }
-    return c.point;
-}
-
 float distanceToSegment2d(glm::vec2 p, glm::vec2 a, glm::vec2 b) noexcept {
     const glm::vec2 ab = b - a;
     const float lenSq = glm::dot(ab, ab);
@@ -119,6 +59,15 @@ float distanceToSegment2d(glm::vec2 p, glm::vec2 a, glm::vec2 b) noexcept {
 Simulation::Simulation(SimServices services, const SimConfig& config)
     : services_(services), config_(config), stepSeconds_(1.0 / config.stepHz), rng_(config.seed) {
     config_.locomotion.maxNeighbors = std::min(config_.locomotion.maxNeighbors, orca::kMaxNeighbors);
+    // Built-in fallback behaviour: walk to the assigned goal, then leave.
+    BtNodeDesc commuter{"Sequence", "root", {}, {}};
+    commuter.children.push_back(BtNodeDesc{"MoveToGoal", "walk", {}, {}});
+    commuter.children.push_back(BtNodeDesc{"Despawn", "leave", {}, {}});
+    setBehaviorTree(compileBehaviorTree(commuter, "commuter"));
+    AgentType fallback;
+    fallback.name = "default";
+    fallback.behaviour = "commuter";
+    defineAgentType(fallback);
     services_.log.debug("Simulation created (seed={}, {} Hz)", config_.seed, config_.stepHz);
 }
 
@@ -293,7 +242,7 @@ void Simulation::removeAgentsOfGoal(std::uint32_t goalIndex) {
     }
     for (std::uint32_t i = agents_.size(); i-- > 0;) {
         if (agents_.goalIndex[i] == goalIndex) {
-            agents_.swapRemove(i);
+            removeAgentAt(i);
         }
     }
     for (std::uint16_t& g : agents_.goalIndex) {
@@ -396,13 +345,38 @@ void Simulation::reset() {
         s.spawned = 0;
     }
     for (entt::entity e : goals_) {
-        registry_.get<Goal>(e).arrivals = 0;
+        Goal& g = registry_.get<Goal>(e);
+        g.arrivals = 0;
+        g.nextTicket = 0;
     }
     rng_.reseed(config_.seed);
     stepIndex_ = 0;
     nextAgentId_ = 0;
     spawnedTotal_ = 0;
     arrivedTotal_ = 0;
+    despawnedTotal_ = 0;
+    idToIndex_.clear();
+}
+
+void Simulation::addAgent(const AgentInit& init) {
+    if (idToIndex_.size() <= init.id) {
+        idToIndex_.resize(init.id + 1, kNoAgent);
+    }
+    idToIndex_[init.id] = agents_.size();
+    agents_.add(init);
+}
+
+void Simulation::removeAgentAt(std::uint32_t index) {
+    const std::uint32_t last = agents_.size() - 1;
+    idToIndex_[agents_.id[index]] = kNoAgent;
+    if (index != last) {
+        idToIndex_[agents_.id[last]] = index;
+    }
+    agents_.swapRemove(index);
+}
+
+std::uint32_t Simulation::agentIndexOf(std::uint32_t agentId) const noexcept {
+    return agentId < idToIndex_.size() ? idToIndex_[agentId] : kNoAgent;
 }
 
 bool Simulation::updateNavigation() {
@@ -418,12 +392,14 @@ bool Simulation::updateNavigation() {
             links.push_back(registry_.get<OffMeshLink>(e));
         }
         navMesh_.build(staticMesh_, links, config_.navigation, services_.jobs, services_.log);
-        // Agents' polygon refs are invalid after a rebuild; re-acquire them.
+        // Agents' polygon refs and path corridors are invalid after a rebuild; re-acquire them.
         for (std::uint32_t i = 0; i < agents_.size(); ++i) {
             const glm::vec3 p(agents_.position[i].x, agents_.height[i], agents_.position[i].y);
             const auto nearest = navMesh_.findNearest(p, {1.0f, 2.0f, 1.0f});
             agents_.navPoly[i] = nearest ? nearest->ref : 0;
+            agents_.corridorStatus[i] = 0;
         }
+        rebuildTaggedVolumes();
         navDirty_ = false;
         flowDirty_ = true;
         changed = true;
@@ -434,6 +410,7 @@ bool Simulation::updateNavigation() {
         for (entt::entity e : goals_) {
             flowFields_.push_back(buildFlowField(navMesh_, registry_.get<Goal>(e).area));
         }
+        rebuildTreeLookups();  // goal names may have changed
         flowDirty_ = false;
         changed = true;
     }
@@ -450,8 +427,10 @@ void Simulation::step() {
     const auto dt = static_cast<float>(stepSeconds_);
 
     goalAreas_.clear();
+    goalsCache_.clear();
     for (entt::entity e : goals_) {
         goalAreas_.push_back(registry_.get<Goal>(e).area);
+        goalsCache_.push_back(registry_.get<Goal>(e));
     }
 
     const float cellSize = config_.locomotion.neighborDistance;
@@ -463,10 +442,12 @@ void Simulation::step() {
         hash_.build(agents_.position, cellSize, services_.jobs);
     }
 
+    tickBehaviors();     // decision layer: low rate, staggered, parallel
+    resolveDecisions();  // serial: queues, arrivals (deterministic shared state)
     computePreferredVelocities();
     computeAvoidance(dt);
     integrate(dt);
-    removeArrivedAgents();
+    processDespawns();
     ++stepIndex_;
 }
 
@@ -477,6 +458,39 @@ void Simulation::spawnAgents(float dt) {
     const bool useNav = navMesh_.valid();
     const float levelSep = config_.locomotion.levelSeparation;
 
+    // Rejection-sample a free spot on the navmesh near `center` within `half`.
+    auto findSpot = [&](glm::vec2 center, glm::vec2 half, float elevation, float radius, glm::vec2& pos, float& height,
+                        PolyRef& poly) {
+        for (std::uint32_t attempt = 0; attempt < kSpawnAttempts; ++attempt) {
+            pos = center + glm::vec2(rng_.range(-1.0f, 1.0f) * half.x, rng_.range(-1.0f, 1.0f) * half.y);
+            height = elevation;
+            poly = 0;
+            if (useNav) {
+                const auto nearest = navMesh_.findNearest({pos.x, height, pos.y}, {0.25f, 1.5f, 0.25f});
+                if (!nearest) {
+                    continue;
+                }
+                pos = {nearest->point.x, nearest->point.z};
+                height = nearest->point.y;
+                poly = nearest->ref;
+            }
+            bool blocked = false;
+            auto overlaps = [&](std::uint32_t j) {
+                const float minDist = radius + agents_.radius[j];
+                const glm::vec2 d = agents_.position[j] - pos;
+                return glm::dot(d, d) < minDist * minDist && std::abs(agents_.height[j] - height) < levelSep;
+            };
+            hash_.query(pos, 2.0f * radius, [&](std::uint32_t j) { blocked = blocked || overlaps(j); });
+            for (std::uint32_t j = firstNew; j < agents_.size() && !blocked; ++j) {
+                blocked = overlaps(j);
+            }
+            if (!blocked) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     for (entt::entity e : spawners_) {
         Spawner& s = registry_.get<Spawner>(e);
         const std::uint32_t goalIndex = goalIndexOf(s.goal);
@@ -485,74 +499,97 @@ void Simulation::spawnAgents(float dt) {
         }
         s.accumulator += s.rate * dt;
         while (s.accumulator >= 1.0f && (s.total == 0 || s.spawned < s.total)) {
-            const AgentParams& p = s.agent;
-            const float radius = rng_.range(p.radiusMin, p.radiusMax);
-
-            // Rejection-sample a free spot on the navmesh; give up for this step if crowded.
-            bool placed = false;
-            glm::vec2 pos{};
-            float height = s.area.elevation;
-            PolyRef poly = 0;
-            for (std::uint32_t attempt = 0; attempt < kSpawnAttempts && !placed; ++attempt) {
-                pos = s.area.center + glm::vec2(rng_.range(-1.0f, 1.0f) * s.area.halfExtents.x,
-                                                rng_.range(-1.0f, 1.0f) * s.area.halfExtents.y);
-                height = s.area.elevation;
-                if (useNav) {
-                    const auto nearest = navMesh_.findNearest({pos.x, height, pos.y}, {0.25f, 1.5f, 0.25f});
-                    if (!nearest) {
-                        continue;
+            // Pick the agent type from the spawner's weighted mix (or its inline parameters).
+            std::uint16_t typeIndex = 0;
+            if (!s.agentMix.empty()) {
+                float totalWeight = 0.0f;
+                for (const AgentMixEntry& m : s.agentMix) {
+                    totalWeight += std::max(0.0f, m.weight);
+                }
+                float pick = rng_.nextFloat() * totalWeight;
+                const AgentMixEntry* chosen = &s.agentMix.back();
+                for (const AgentMixEntry& m : s.agentMix) {
+                    pick -= std::max(0.0f, m.weight);
+                    if (pick < 0.0f) {
+                        chosen = &m;
+                        break;
                     }
-                    pos = {nearest->point.x, nearest->point.z};
-                    height = nearest->point.y;
-                    poly = nearest->ref;
                 }
-                bool blocked = false;
-                auto overlaps = [&](std::uint32_t j) {
-                    const float minDist = radius + agents_.radius[j];
-                    const glm::vec2 d = agents_.position[j] - pos;
-                    return glm::dot(d, d) < minDist * minDist && std::abs(agents_.height[j] - height) < levelSep;
-                };
-                hash_.query(pos, 2.0f * radius, [&](std::uint32_t j) { blocked = blocked || overlaps(j); });
-                for (std::uint32_t j = firstNew; j < agents_.size() && !blocked; ++j) {
-                    blocked = overlaps(j);
+                for (std::uint16_t t = 0; t < agentTypes_.size(); ++t) {
+                    if (agentTypes_[t].name == chosen->type) {
+                        typeIndex = t;
+                    }
                 }
-                placed = !blocked;
             }
-            if (!placed) {
-                break;  // keep the accumulator; retry next step
+            const AgentType& type = agentTypes_[typeIndex];
+            const AgentParams& p = s.agentMix.empty() ? s.agent : type.params;
+            const std::uint16_t treeIndex = resolveTree(type.behaviour);
+
+            const std::uint32_t groupSize = s.groupSizeMax > s.groupSizeMin
+                                                ? s.groupSizeMin + rng_.below(s.groupSizeMax - s.groupSizeMin + 1)
+                                                : std::max<std::uint32_t>(1, s.groupSizeMin);
+            if (s.total != 0 && s.spawned + groupSize > s.total && s.spawned < s.total) {
+                // Last partial group: spawn what is left.
+            }
+
+            const float leaderRadius = rng_.range(p.radiusMin, p.radiusMax);
+            glm::vec2 leaderPos{};
+            float leaderHeight = 0.0f;
+            PolyRef leaderPoly = 0;
+            if (!findSpot(s.area.center, s.area.halfExtents, s.area.elevation, leaderRadius, leaderPos, leaderHeight,
+                          leaderPoly)) {
+                break;  // crowded: keep the accumulator, retry next step
             }
 
             const Area& goalArea = goalAreas_[goalIndex];
-            const glm::vec2 lane = goalArea.clamp(pos, 0.5f);
-            glm::vec3 target(lane.x, goalArea.elevation, lane.y);
-            if (useNav) {
-                if (const auto nearest = navMesh_.findNearest(target, {1.0f, 2.0f, 1.0f})) {
-                    target = nearest->point;
+            const std::uint32_t groupId = nextAgentId_;
+            for (std::uint32_t member = 0; member < groupSize && (s.total == 0 || s.spawned < s.total); ++member) {
+                float radius = leaderRadius;
+                glm::vec2 pos = leaderPos;
+                float height = leaderHeight;
+                PolyRef poly = leaderPoly;
+                if (member > 0) {
+                    radius = rng_.range(p.radiusMin, p.radiusMax);
+                    if (!findSpot(leaderPos, glm::vec2(1.5f), leaderHeight, radius, pos, height, poly)) {
+                        break;  // no room for the rest of the group
+                    }
                 }
+                const glm::vec2 lane = goalArea.clamp(pos, 0.5f);
+                glm::vec3 target(lane.x, goalArea.elevation, lane.y);
+                if (useNav) {
+                    if (const auto nearest = navMesh_.findNearest(target, {1.0f, 2.0f, 1.0f})) {
+                        target = nearest->point;
+                    }
+                }
+                const float prefSpeed = rng_.range(p.preferredSpeedMin, p.preferredSpeedMax);
+                const glm::vec3 jitter(rng_.range(-1.0f, 1.0f), rng_.range(-1.0f, 1.0f), rng_.range(-1.0f, 1.0f));
+
+                AgentInit init;
+                init.id = nextAgentId_++;
+                init.position = pos;
+                init.height = height;
+                init.navPoly = poly;
+                init.heading = headingOf(glm::vec2(target.x, target.z) - pos);
+                init.radius = radius;
+                init.preferredSpeed = prefSpeed;
+                init.maxSpeed = prefSpeed * p.maxSpeedFactor;
+                init.maxAcceleration = p.maxAcceleration;
+                init.personalSpace = s.agentMix.empty() ? config_.locomotion.personalSpace : type.personalSpace;
+                init.color = glm::clamp(p.color + jitter * p.colorJitter, glm::vec3(0.0f), glm::vec3(1.0f));
+                init.goalTarget = target;
+                init.goalIndex = static_cast<std::uint16_t>(goalIndex);
+                init.agentType = typeIndex;
+                init.tree = treeIndex;
+                init.spawnTime = now;
+                init.rngSeed = core::mixSeed(config_.seed ^ (static_cast<std::uint64_t>(init.id) << 20));
+                init.groupId = groupSize > 1 ? groupId : kNoAgent;
+                addAgent(init);
+                agents_.bt.back().reset(trees_[treeIndex].generation);
+
+                ++s.spawned;
+                ++spawnedTotal_;
             }
-            const float prefSpeed = rng_.range(p.preferredSpeedMin, p.preferredSpeedMax);
-            const glm::vec3 jitter(rng_.range(-1.0f, 1.0f), rng_.range(-1.0f, 1.0f), rng_.range(-1.0f, 1.0f));
-
-            AgentInit init;
-            init.id = nextAgentId_++;
-            init.position = pos;
-            init.height = height;
-            init.navPoly = poly;
-            init.heading = headingOf(glm::vec2(target.x, target.z) - pos);
-            init.radius = radius;
-            init.preferredSpeed = prefSpeed;
-            init.maxSpeed = prefSpeed * p.maxSpeedFactor;
-            init.maxAcceleration = p.maxAcceleration;
-            init.color = glm::clamp(p.color + jitter * p.colorJitter, glm::vec3(0.0f), glm::vec3(1.0f));
-            init.goalTarget = target;
-            init.goalIndex = static_cast<std::uint16_t>(goalIndex);
-            init.agentType = p.agentType;
-            init.spawnTime = now;
-            agents_.add(init);
-
             s.accumulator -= 1.0f;
-            ++s.spawned;
-            ++spawnedTotal_;
         }
         if (s.total != 0 && s.spawned >= s.total) {
             s.accumulator = 0.0f;
@@ -563,48 +600,77 @@ void Simulation::spawnAgents(float dt) {
 void Simulation::computePreferredVelocities() {
     CS_PROFILE_ZONE();
     const bool useNav = navMesh_.valid();
-    services_.jobs.parallelFor(agents_.size(), kParallelChunk, [&](core::IndexRange r, std::uint32_t) {
+    services_.jobs.parallelFor(agents_.size(), kParallelChunk, [&](core::IndexRange r, std::uint32_t thread) {
         std::array<glm::vec3, kCorridorLength> lefts{};
         std::array<glm::vec3, kCorridorLength> rights{};
         for (std::uint32_t i = r.begin; i < r.end; ++i) {
             const glm::vec2 pos = agents_.position[i];
             const glm::vec3 pos3(pos.x, agents_.height[i], pos.y);
-            const glm::vec3 target = agents_.goalTarget[i];
-            glm::vec3 steerTo = target;
+            glm::vec3 steerTo = pos3;
+            bool moving = true;
 
-            if (useNav && agents_.linkActive[i] == 0) {
-                const FlowField& ff = flowFields_[agents_.goalIndex[i]];
-                const std::uint32_t dense = navMesh_.denseIndex(agents_.navPoly[i]);
-                if (dense != kNoPoly && ff.next[dense] != kNoPoly) {
-                    // Collect a short corridor of portals along the flow field and string-pull it.
-                    std::uint32_t count = 0;
-                    std::uint32_t u = dense;
-                    bool reachedGoal = false;
-                    while (count < kCorridorLength && ff.next[u] != kNoPoly) {
-                        // Shrink portals so string-pulled corners sit inside walkable
-                        // space instead of exactly on navmesh boundary vertices.
-                        const glm::vec3 l = ff.portalLeft[u];
-                        const glm::vec3 rr = ff.portalRight[u];
-                        const float width = glm::length(glm::vec2(rr.x - l.x, rr.z - l.z));
-                        const float shrink = width > 1e-3f ? std::min(kPortalShrink, 0.25f * width) / width : 0.0f;
-                        lefts[count] = l + (rr - l) * shrink;
-                        rights[count] = rr + (l - rr) * shrink;
-                        ++count;
-                        u = ff.next[u];
-                        if (ff.source[u] != 0) {
-                            reachedGoal = true;
-                            break;
+            switch (agents_.moveMode[i]) {
+                case MoveMode::Stop:
+                    moving = false;
+                    break;
+                case MoveMode::Point:
+                    steerTo = useNav ? corridorSteeringTarget(i, thread) : agents_.moveTarget[i];
+                    break;
+                case MoveMode::Goal: {
+                    const glm::vec3 target = agents_.goalTarget[i];
+                    steerTo = target;
+                    if (useNav && agents_.linkActive[i] == 0 && agents_.goalIndex[i] < flowFields_.size()) {
+                        const FlowField& ff = flowFields_[agents_.goalIndex[i]];
+                        const std::uint32_t dense = navMesh_.denseIndex(agents_.navPoly[i]);
+                        if (dense != kNoPoly && ff.next[dense] != kNoPoly) {
+                            // Collect a short corridor of portals along the flow field and string-pull it.
+                            std::uint32_t count = 0;
+                            std::uint32_t u = dense;
+                            bool reachedGoal = false;
+                            while (count < kCorridorLength && ff.next[u] != kNoPoly) {
+                                lefts[count] = ff.portalLeft[u];
+                                rights[count] = ff.portalRight[u];
+                                funnel::shrinkPortal(lefts[count], rights[count]);
+                                ++count;
+                                u = ff.next[u];
+                                if (ff.source[u] != 0) {
+                                    reachedGoal = true;
+                                    break;
+                                }
+                            }
+                            const glm::vec3 end = reachedGoal ? target : 0.5f * (lefts[count - 1] + rights[count - 1]);
+                            steerTo = funnel::steeringTarget(pos3, lefts.data(), rights.data(), count, end);
                         }
                     }
-                    const glm::vec3 end = reachedGoal ? target : 0.5f * (lefts[count - 1] + rights[count - 1]);
-                    steerTo = steeringTarget(pos3, lefts.data(), rights.data(), count, end);
+                    break;
                 }
             }
 
-            const glm::vec2 toTarget(steerTo.x - pos.x, steerTo.z - pos.y);
-            const float dist = std::sqrt(glm::dot(toTarget, toTarget));
-            agents_.preferredVelocity[i] =
-                dist > 1e-4f ? toTarget * (agents_.preferredSpeed[i] / dist) : glm::vec2(0.0f);
+            glm::vec2 pref(0.0f);
+            if (moving) {
+                const glm::vec2 toTarget(steerTo.x - pos.x, steerTo.z - pos.y);
+                const float dist = std::sqrt(glm::dot(toTarget, toTarget));
+                const float speed = agents_.preferredSpeed[i] * agents_.speedMultiplier[i];
+                // Slow down over the last half metre to a point target instead of overshooting.
+                const float arrive = agents_.moveMode[i] == MoveMode::Point ? std::min(1.0f, dist / 0.5f) : 1.0f;
+                pref = dist > 1e-4f ? toTarget * (speed * arrive / dist) : glm::vec2(0.0f);
+            }
+            // Keep out of tagged areas the behaviour asked to avoid.
+            if (agents_.avoidTag[i] != 0) {
+                for (const TaggedVolume& v : taggedVolumes_) {
+                    if (v.tag != agents_.avoidTag[i] || pos3.y < v.min.y - 1.0f || pos3.y > v.max.y + 2.0f) {
+                        continue;
+                    }
+                    const glm::vec2 closest(std::clamp(pos.x, v.min.x, v.max.x), std::clamp(pos.y, v.min.z, v.max.z));
+                    const glm::vec2 away = pos - closest;
+                    const float d = std::sqrt(glm::dot(away, away));
+                    constexpr float kRange = 2.5f;
+                    if (d < kRange && d > 1e-4f) {
+                        pref += away / d * (agents_.preferredSpeed[i] * (1.0f - d / kRange));
+                    }
+                }
+            }
+            agents_.preferredVelocity[i] = pref;
         }
     });
 }
@@ -652,12 +718,12 @@ void Simulation::computeAvoidance(float dt) {
                     --slot;
                 }
                 distSq[slot] = d2;
-                neighbors[slot] =
-                    orca::Neighbor{agents_.position[j], agents_.velocity[j], agents_.radius[j] + lp.personalSpace, j};
+                neighbors[slot] = orca::Neighbor{agents_.position[j], agents_.velocity[j],
+                                                 agents_.radius[j] + agents_.personalSpace[j], j};
             });
 
             // Nearby navmesh boundary edges on this level, nearest first.
-            const float radius = agents_.radius[i] + lp.personalSpace;
+            const float radius = agents_.radius[i] + agents_.personalSpace[i];
             std::uint32_t numWalls = 0;
             if (useNav) {
                 const float reach = radius + kWallQueryMargin;
@@ -770,13 +836,24 @@ void Simulation::integrate(float dt) {
 
                 // Start traversing an off-mesh link when the flow field leads onto one.
                 if (useNav && detour != nullptr) {
-                    const std::uint32_t dense = navMesh_.denseIndex(agents_.navPoly[i]);
-                    const FlowField& ff = flowFields_[agents_.goalIndex[i]];
-                    if (dense != kNoPoly && ff.next[dense] != kNoPoly && navMesh_.isOffMeshConnection(ff.next[dense])) {
+                    // Next polygon on the way: from the flow field (Goal) or the path corridor (Point).
+                    PolyRef nextPoly = 0;
+                    if (agents_.moveMode[i] == MoveMode::Goal && agents_.goalIndex[i] < flowFields_.size()) {
+                        const std::uint32_t dense = navMesh_.denseIndex(agents_.navPoly[i]);
+                        const FlowField& ff = flowFields_[agents_.goalIndex[i]];
+                        if (dense != kNoPoly && ff.next[dense] != kNoPoly) {
+                            nextPoly = navMesh_.refAt(ff.next[dense]);
+                        }
+                    } else if (agents_.moveMode[i] == MoveMode::Point && agents_.corridorLength[i] > 1 &&
+                               agents_.corridor[i][0] == agents_.navPoly[i]) {
+                        nextPoly = agents_.corridor[i][1];
+                    }
+                    const std::uint32_t nextDense = navMesh_.denseIndex(nextPoly);
+                    if (nextDense != kNoPoly && navMesh_.isOffMeshConnection(nextDense)) {
                         float linkA[3];
                         float linkB[3];
-                        if (dtStatusSucceed(detour->getOffMeshConnectionPolyEndPoints(
-                                agents_.navPoly[i], navMesh_.refAt(ff.next[dense]), linkA, linkB))) {
+                        if (dtStatusSucceed(detour->getOffMeshConnectionPolyEndPoints(agents_.navPoly[i], nextPoly,
+                                                                                      linkA, linkB))) {
                             const glm::vec2 toStart(linkA[0] - end2.x, linkA[2] - end2.y);
                             if (glm::dot(toStart, toStart) < kOffMeshTriggerRadius * kOffMeshTriggerRadius) {
                                 const glm::vec3 b(linkB[0], linkB[1], linkB[2]);
@@ -800,27 +877,8 @@ void Simulation::integrate(float dt) {
                 const float diff = wrapAngle(headingOf(v) - agents_.heading[i]);
                 agents_.heading[i] = wrapAngle(agents_.heading[i] + std::clamp(diff, -maxTurn, maxTurn));
             }
-
-            const glm::vec3 p3(agents_.position[i].x, agents_.height[i], agents_.position[i].y);
-            agents_.arrived[i] =
-                agents_.linkActive[i] == 0 && goalAreas_[agents_.goalIndex[i]].contains3d(p3, kGoalVerticalTolerance)
-                    ? 1
-                    : 0;
         }
     });
-}
-
-void Simulation::removeArrivedAgents() {
-    CS_PROFILE_ZONE();
-    // Descending order: the element swapped into slot i always comes from a higher,
-    // already-checked index, so every arrived agent is removed exactly once.
-    for (std::uint32_t i = agents_.size(); i-- > 0;) {
-        if (agents_.arrived[i] != 0) {
-            registry_.get<Goal>(goals_[agents_.goalIndex[i]]).arrivals += 1;
-            ++arrivedTotal_;
-            agents_.swapRemove(i);
-        }
-    }
 }
 
 SimStats Simulation::stats() const noexcept {
@@ -828,6 +886,7 @@ SimStats Simulation::stats() const noexcept {
     s.alive = agents_.size();
     s.spawned = spawnedTotal_;
     s.arrived = arrivedTotal_;
+    s.despawned = despawnedTotal_;
     double speedSum = 0.0;
     for (const glm::vec2& v : agents_.velocity) {
         speedSum += std::sqrt(static_cast<double>(glm::dot(v, v)));
@@ -849,6 +908,8 @@ std::uint64_t Simulation::stateHash() const noexcept {
     hash.addBytes(std::as_bytes(std::span(agents_.velocity)));
     hash.addBytes(std::as_bytes(std::span(agents_.heading)));
     hash.addBytes(std::as_bytes(std::span(agents_.navPoly)));
+    hash.addBytes(std::as_bytes(std::span(agents_.stateId)));
+    hash.addBytes(std::as_bytes(std::span(agents_.moveMode)));
     return hash.value();
 }
 
@@ -904,7 +965,7 @@ void Simulation::writeSnapshot(snapshot::RenderSnapshot& out) const {
             a.velocity = v;
             a.speed = std::sqrt(glm::dot(v, v));
             a.agentType = agents_.agentType[i];
-            a.state = agents_.linkActive[i] != 0 ? 1 : 0;
+            a.state = agents_.stateId[i];
             a.agentId = agents_.id[i];
         }
     });

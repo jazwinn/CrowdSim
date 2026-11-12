@@ -2,18 +2,32 @@
 
 /// @file AgentPool.hpp
 /// Structure-of-arrays storage for agents. Every hot loop (neighbour search,
-/// ORCA, integration, snapshot) walks these contiguous columns by index, which
-/// keeps them cache-friendly, trivially parallel and SIMD-ready. Removal is
-/// swap-and-pop, which is deterministic given a deterministic removal order.
-/// See ADR 0004.
+/// ORCA, integration, snapshot, behaviour ticks) walks these contiguous columns
+/// by index, which keeps them cache-friendly, trivially parallel and SIMD-ready.
+/// Removal is swap-and-pop, which is deterministic given a deterministic
+/// removal order. See ADR 0004 (storage) and ADR 0007 (decision layer).
 
+#include <array>
 #include <cstdint>
 #include <vector>
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
+#include "crowdsim/core/Random.hpp"
+#include "crowdsim/sim/BehaviorTree.hpp"
+
 namespace crowdsim::sim {
+
+/// How the locomotion layer should move an agent (written by the decision layer).
+enum class MoveMode : std::uint8_t {
+    Stop,   ///< stand still (avoidance still applies)
+    Goal,   ///< follow the flow field of `goalIndex`
+    Point,  ///< follow a navmesh path corridor to `moveTarget`
+};
+
+inline constexpr std::uint32_t kCorridorCapacity = 16;
+inline constexpr std::uint32_t kNoAgent = 0xFFFFFFFFu;
 
 /// Everything needed to create one agent.
 struct AgentInit {
@@ -24,18 +38,22 @@ struct AgentInit {
     float preferredSpeed = 1.3f;
     float maxSpeed = 1.8f;
     float maxAcceleration = 3.0f;
+    float personalSpace = 0.06f;
     glm::vec3 color{1.0f};
     float height = 0.0f;         ///< world Y (floor height under the agent)
     std::uint32_t navPoly = 0;   ///< Detour polygon ref, 0 = not on the navmesh
     glm::vec3 goalTarget{0.0f};  ///< point inside the goal area (on the navmesh)
     std::uint16_t goalIndex = 0;
-    std::uint16_t agentType = 0;
+    std::uint16_t agentType = 0;  ///< index into the simulation's agent types
+    std::uint16_t tree = 0;       ///< index into the simulation's behaviour trees
     float spawnTime = 0.0f;
+    std::uint64_t rngSeed = 0;
+    std::uint32_t groupId = kNoAgent;  ///< id of the group's leader (== id for the leader)
 };
 
 class AgentPool {
 public:
-    // Columns (all the same length). Positions are on the ground plane: x = world X, y = world Z.
+    // --- Identity / locomotion state. Positions are on the ground plane: x = X, y = Z. ---
     std::vector<std::uint32_t> id;
     std::vector<glm::vec2> position;
     std::vector<glm::vec2> prevPosition;
@@ -48,6 +66,7 @@ public:
     std::vector<float> preferredSpeed;
     std::vector<float> maxSpeed;
     std::vector<float> maxAcceleration;
+    std::vector<float> personalSpace;
     std::vector<glm::vec3> color;
     std::vector<float> height;
     std::vector<float> prevHeight;
@@ -56,13 +75,38 @@ public:
     std::vector<std::uint16_t> goalIndex;
     std::vector<std::uint16_t> agentType;
     std::vector<float> spawnTime;
-    std::vector<std::uint8_t> arrived;
     // Off-mesh link traversal (ladders, escalators): active while linkActive != 0.
     std::vector<std::uint8_t> linkActive;
     std::vector<float> linkProgress;
     std::vector<glm::vec3> linkStart;
     std::vector<glm::vec3> linkEnd;
     std::vector<std::uint32_t> linkEndPoly;
+
+    // --- Decision layer ---
+    std::vector<std::uint16_t> tree;
+    std::vector<BtState> bt;
+    std::vector<core::Pcg32> rng;
+    std::vector<MoveMode> moveMode;
+    std::vector<glm::vec3> moveTarget;
+    std::vector<float> speedMultiplier;
+    std::vector<std::uint16_t> stateId;
+    std::vector<std::uint16_t> avoidTag;  ///< tag id to steer around, 0 = none
+    // Path corridor for MoveMode::Point (cached Detour path, replanned when needed).
+    std::vector<std::array<std::uint32_t, kCorridorCapacity>> corridor;
+    std::vector<std::uint8_t> corridorLength;
+    std::vector<std::uint8_t> corridorStatus;  ///< 0 = needs plan, 1 = valid, 2 = unreachable
+    std::vector<glm::vec3> corridorTarget;
+    // Groups
+    std::vector<std::uint32_t> groupId;
+    // Queueing at goals (resolved in the serial decision phase)
+    std::vector<std::int16_t> queueGoal;   ///< goal index, -1 = not queueing
+    std::vector<std::uint8_t> queueStage;  ///< 0 none, 1 waiting, 2 admitted, 3 being served, 4 done
+    std::vector<std::uint32_t> queueTicket;
+    std::vector<glm::vec3> queueSlot;  ///< where to wait while in line
+    // Requests for the serial phase
+    std::vector<std::uint8_t> arrivalPending;  ///< reached its goal this tick (count it)
+    std::vector<std::uint8_t> arrivedOnce;     ///< already counted for the current goal
+    std::vector<std::uint8_t> despawnRequested;
 
     [[nodiscard]] std::uint32_t size() const noexcept { return static_cast<std::uint32_t>(id.size()); }
     [[nodiscard]] bool empty() const noexcept { return id.empty(); }
@@ -88,6 +132,7 @@ public:
         preferredSpeed.push_back(a.preferredSpeed);
         maxSpeed.push_back(a.maxSpeed);
         maxAcceleration.push_back(a.maxAcceleration);
+        personalSpace.push_back(a.personalSpace);
         color.push_back(a.color);
         height.push_back(a.height);
         prevHeight.push_back(a.height);
@@ -96,12 +141,32 @@ public:
         goalIndex.push_back(a.goalIndex);
         agentType.push_back(a.agentType);
         spawnTime.push_back(a.spawnTime);
-        arrived.push_back(0);
         linkActive.push_back(0);
         linkProgress.push_back(0.0f);
         linkStart.push_back(glm::vec3(0.0f));
         linkEnd.push_back(glm::vec3(0.0f));
         linkEndPoly.push_back(0);
+
+        tree.push_back(a.tree);
+        bt.push_back(BtState{});
+        rng.push_back(core::Pcg32(a.rngSeed, a.id));
+        moveMode.push_back(MoveMode::Goal);
+        moveTarget.push_back(a.goalTarget);
+        speedMultiplier.push_back(1.0f);
+        stateId.push_back(0);
+        avoidTag.push_back(0);
+        corridor.push_back({});
+        corridorLength.push_back(0);
+        corridorStatus.push_back(0);
+        corridorTarget.push_back(glm::vec3(0.0f));
+        groupId.push_back(a.groupId);
+        queueGoal.push_back(-1);
+        queueStage.push_back(0);
+        queueTicket.push_back(0xFFFFFFFFu);
+        queueSlot.push_back(glm::vec3(0.0f));
+        arrivalPending.push_back(0);
+        arrivedOnce.push_back(0);
+        despawnRequested.push_back(0);
     }
 
     /// Remove agent `i` by moving the last agent into its slot.
@@ -127,6 +192,7 @@ private:
         f(preferredSpeed);
         f(maxSpeed);
         f(maxAcceleration);
+        f(personalSpace);
         f(color);
         f(height);
         f(prevHeight);
@@ -135,12 +201,31 @@ private:
         f(goalIndex);
         f(agentType);
         f(spawnTime);
-        f(arrived);
         f(linkActive);
         f(linkProgress);
         f(linkStart);
         f(linkEnd);
         f(linkEndPoly);
+        f(tree);
+        f(bt);
+        f(rng);
+        f(moveMode);
+        f(moveTarget);
+        f(speedMultiplier);
+        f(stateId);
+        f(avoidTag);
+        f(corridor);
+        f(corridorLength);
+        f(corridorStatus);
+        f(corridorTarget);
+        f(groupId);
+        f(queueGoal);
+        f(queueStage);
+        f(queueTicket);
+        f(queueSlot);
+        f(arrivalPending);
+        f(arrivedOnce);
+        f(despawnRequested);
     }
 };
 

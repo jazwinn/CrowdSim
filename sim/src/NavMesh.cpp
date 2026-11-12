@@ -240,6 +240,7 @@ void NavMesh::clear() {
     extraCost_.clear();
     predStart_.clear();
     predList_.clear();
+    component_.clear();
     walls_.clear();
     wallGridW_ = 0;
     wallGridH_ = 0;
@@ -429,6 +430,33 @@ void NavMesh::buildIndex() {
         predStart_[d + 1] = predStart_[d] + static_cast<std::uint32_t>(preds[d].size());
         predList_.insert(predList_.end(), preds[d].begin(), preds[d].end());
     }
+
+    // Connected components (links treated as undirected). Hollow closed obstacles
+    // leave walkable islands inside them; targets there must be rejected.
+    std::vector<std::uint32_t> parent(polyCount_);
+    for (std::uint32_t d = 0; d < polyCount_; ++d) {
+        parent[d] = d;
+    }
+    auto find = [&](std::uint32_t x) {
+        while (parent[x] != x) {
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
+        return x;
+    };
+    for (std::uint32_t d = 0; d < polyCount_; ++d) {
+        for (std::uint32_t k = predStart_[d]; k < predStart_[d + 1]; ++k) {
+            const std::uint32_t a = find(d);
+            const std::uint32_t b = find(predList_[k]);
+            if (a != b) {
+                parent[std::max(a, b)] = std::min(a, b);
+            }
+        }
+    }
+    component_.resize(polyCount_);
+    for (std::uint32_t d = 0; d < polyCount_; ++d) {
+        component_[d] = find(d);
+    }
 }
 
 void NavMesh::buildWalls() {
@@ -513,6 +541,12 @@ std::uint32_t NavMesh::denseIndex(PolyRef ref) const noexcept {
         return kNoPoly;
     }
     return tileOffset_[it] + ip;
+}
+
+bool NavMesh::connected(PolyRef a, PolyRef b) const noexcept {
+    const std::uint32_t da = denseIndex(a);
+    const std::uint32_t db = denseIndex(b);
+    return da < polyCount_ && db < polyCount_ && component_[da] == component_[db];
 }
 
 std::span<const std::uint32_t> NavMesh::predecessors(std::uint32_t dense) const noexcept {

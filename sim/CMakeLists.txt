@@ -9,6 +9,8 @@ crowdsim_add_library(sim
     src/NavMesh.cpp
     src/FlowField.cpp
     src/Scenarios.cpp
+    src/BehaviorTree.cpp
+    src/Decisions.cpp
   DEPS
     CrowdSim::core
     CrowdSim::geometry

@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <vector>
 
 #include <glm/common.hpp>
 #include <glm/vec2.hpp>
@@ -63,8 +64,31 @@ struct SceneIdComponent {
 struct Goal {
     std::string name;
     Area area;
+    // Queueing (used by the Queue behaviour node)
+    std::uint32_t capacity = 0;             ///< agents served at once; 0 = unlimited
+    float serviceTime = 0.0f;               ///< seconds each agent is served
+    glm::vec2 queueDirection{0.0f, -1.0f};  ///< direction the waiting line extends from the area
+    float queueSpacing = 0.8f;              ///< metres between agents in line
     // Runtime state (reset with the simulation)
     std::uint32_t arrivals = 0;
+    std::uint32_t nextTicket = 0;
+};
+
+/// A named agent type (from *.agent.json or Lua): appearance, physical
+/// parameters and the behaviour tree that drives it.
+struct AgentType {
+    std::string name;
+    std::string behaviour = "commuter";  ///< behaviour tree name
+    AgentParams params;
+    float personalSpace = 0.06f;  ///< m added to the radius during avoidance
+    float height = 1.75f;         ///< m (rendering)
+    std::vector<std::string> tags;
+};
+
+/// One entry of a spawner's agent mix.
+struct AgentMixEntry {
+    std::string type;
+    float weight = 1.0f;
 };
 
 struct Spawner {
@@ -74,8 +98,11 @@ struct Spawner {
     std::uint32_t total = 0;  ///< 0 = unlimited
     float startTime = 0.0f;   ///< seconds of sim time
     float stopTime = std::numeric_limits<float>::infinity();
-    SceneId goal = kNoSceneId;  ///< goal the spawned agents walk to
-    AgentParams agent;
+    SceneId goal = kNoSceneId;            ///< goal the spawned agents walk to
+    AgentParams agent;                    ///< used when agentMix is empty (type "default")
+    std::vector<AgentMixEntry> agentMix;  ///< weighted agent types to spawn
+    std::uint32_t groupSizeMin = 1;       ///< agents spawned together as a group
+    std::uint32_t groupSizeMax = 1;
     // Runtime state (reset with the simulation)
     float accumulator = 0.0f;
     std::uint32_t spawned = 0;

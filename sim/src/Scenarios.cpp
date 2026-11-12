@@ -1,7 +1,9 @@
 #include "crowdsim/sim/Scenarios.hpp"
 
 #include <algorithm>
+#include <map>
 #include <string>
+#include <vector>
 
 #include "crowdsim/sim/Simulation.hpp"
 
@@ -33,6 +35,88 @@ void addBox(Simulation& sim, std::string name, glm::vec3 position, glm::vec3 siz
 
 void addGround(Simulation& sim, float halfX, float halfZ) {
     addBox(sim, "Ground", {0.0f, -0.2f, 0.0f}, {2.0f * halfX, 0.2f, 2.0f * halfZ}, kSurfaceWalkable, kFloorColor);
+}
+
+// --- Tiny behaviour-tree builder ---------------------------------------------------------
+BtParamValue num(float v) {
+    BtParamValue p;
+    p.kind = BtParamKind::Number;
+    p.number = v;
+    return p;
+}
+BtParamValue text(std::string v) {
+    BtParamValue p;
+    p.kind = BtParamKind::Text;
+    p.text = std::move(v);
+    return p;
+}
+BtNodeDesc node(std::string type, std::string id, std::map<std::string, BtParamValue> params = {},
+                std::vector<BtNodeDesc> children = {}) {
+    return BtNodeDesc{std::move(type), std::move(id), std::move(params), std::move(children)};
+}
+
+AgentType makeType(const char* name, const char* tree, glm::vec3 color, float speedMin, float speedMax,
+                   float personalSpace) {
+    AgentType t;
+    t.name = name;
+    t.behaviour = tree;
+    t.params.color = color;
+    t.params.colorJitter = 0.1f;
+    t.params.preferredSpeedMin = speedMin;
+    t.params.preferredSpeedMax = speedMax;
+    t.personalSpace = personalSpace;
+    return t;
+}
+
+void buildPlaza(Simulation& sim, std::uint32_t agents) {
+    defineStandardAgentTypes(sim);
+    addGround(sim, 60.0f, 60.0f);
+    addBox(sim, "Fountain", {0.0f, 0.0f, 0.0f}, {8.0f, 1.0f, 8.0f}, kSurfaceObstacle, kWallColor);
+    for (auto [x, z] : {std::pair{-9.0f, 0.0f}, std::pair{9.0f, 0.0f}, std::pair{0.0f, -9.0f}, std::pair{0.0f, 9.0f}}) {
+        const bool alongX = z != 0.0f;
+        addBox(sim, "Bench", {x, 0.0f, z}, {alongX ? 3.0f : 0.8f, 0.5f, alongX ? 0.8f : 3.0f}, kSurfaceObstacle,
+               kFurnitureColor);
+    }
+    // Four kiosks with a service window each; lines extend away from the building.
+    struct Kiosk {
+        const char* name;
+        float x;
+        float z;
+        float dir;
+    };
+    const Kiosk kiosks[] = {{"Kiosk A", -25.0f, 25.0f, -1.0f},
+                            {"Kiosk B", 25.0f, 25.0f, -1.0f},
+                            {"Kiosk C", -25.0f, -25.0f, 1.0f},
+                            {"Kiosk D", 25.0f, -25.0f, 1.0f}};
+    for (const Kiosk& k : kiosks) {
+        addBox(sim, std::string(k.name) + " building", {k.x, 0.0f, k.z - k.dir * 1.0f}, {4.0f, 3.0f, 2.0f},
+               kSurfaceObstacle, kPillarColor);
+        Goal g{.name = k.name, .area = {{k.x, k.z + k.dir * 1.5f}, {1.5f, 0.8f}}};
+        g.capacity = 4;
+        g.serviceTime = 3.0f;
+        g.queueDirection = {0.0f, k.dir};
+        sim.addGoal(g);
+    }
+    const SceneId east = sim.addGoal(Goal{.name = "East exit", .area = {{57.0f, 0.0f}, {2.0f, 25.0f}}});
+    const SceneId west = sim.addGoal(Goal{.name = "West exit", .area = {{-57.0f, 0.0f}, {2.0f, 25.0f}}});
+
+    Spawner south;
+    south.name = "South gate";
+    south.area = {{0.0f, -55.0f}, {20.0f, 3.0f}};
+    south.rate = std::max(1.0f, static_cast<float>(agents) / 120.0f);
+    south.total = agents / 2;
+    south.goal = east;
+    south.agentMix = {{"commuter", 0.55f}, {"wanderer", 0.25f}, {"queuer", 0.06f}, {"follower", 0.14f}};
+    south.groupSizeMin = 1;
+    south.groupSizeMax = 3;
+    sim.addSpawner(south);
+
+    Spawner north = south;
+    north.name = "North gate";
+    north.area = {{0.0f, 55.0f}, {20.0f, 3.0f}};
+    north.total = agents - agents / 2;
+    north.goal = west;
+    sim.addSpawner(north);
 }
 
 void buildBuilding(Simulation& sim, std::uint32_t agents) {
@@ -105,8 +189,8 @@ void buildBuilding(Simulation& sim, std::uint32_t agents) {
 }  // namespace
 
 std::optional<ScenarioKind> parseScenario(std::string_view name) {
-    for (ScenarioKind k :
-         {ScenarioKind::Stream, ScenarioKind::Counterflow, ScenarioKind::Benchmark, ScenarioKind::Building}) {
+    for (ScenarioKind k : {ScenarioKind::Stream, ScenarioKind::Counterflow, ScenarioKind::Benchmark,
+                           ScenarioKind::Building, ScenarioKind::Plaza}) {
         if (scenarioName(k) == name) {
             return k;
         }
@@ -124,6 +208,8 @@ std::string_view scenarioName(ScenarioKind kind) {
             return "benchmark";
         case ScenarioKind::Building:
             return "building";
+        case ScenarioKind::Plaza:
+            return "plaza";
     }
     return "unknown";
 }
@@ -179,7 +265,76 @@ void buildScenario(Simulation& sim, ScenarioKind kind, std::uint32_t agents) {
         case ScenarioKind::Building:
             buildBuilding(sim, agents);
             break;
+        case ScenarioKind::Plaza:
+            buildPlaza(sim, agents);
+            break;
     }
+}
+
+void defineStandardAgentTypes(Simulation& sim) {
+    // Content files (loaded first) win: only define what is missing.
+    auto defineTree = [&sim](CompiledTree tree) {
+        if (sim.findBehaviorTree(tree.name) == nullptr) {
+            sim.setBehaviorTree(std::move(tree));
+        }
+    };
+    auto defineType = [&sim](const AgentType& type) {
+        if (sim.findAgentType(type.name) == nullptr) {
+            sim.defineAgentType(type);
+        }
+    };
+    defineTree(compileBehaviorTree(node("Sequence", "root", {},
+                                        {node("SetState", "label", {{"name", text("walking")}}),
+                                         node("MoveToGoal", "walk"), node("Despawn", "leave")}),
+                                   "commuter"));
+    defineTree(
+        compileBehaviorTree(node("Sequence", "root", {},
+                                 {node("SetState", "label", {{"name", text("wandering")}}),
+                                  node("SetSpeed", "stroll", {{"multiplier", num(0.75f)}}),
+                                  node("Repeat", "loop", {{"count", num(3.0f)}},
+                                       {node("Sequence", "visit", {},
+                                             {node("Wander", "wander", {{"radius", num(14.0f)}}),
+                                              node("Wait", "look", {{"seconds", num(2.0f)}, {"jitter", num(3.0f)}})})}),
+                                  node("SetState", "label2", {{"name", text("leaving")}}),
+                                  node("SetSpeed", "normal", {{"multiplier", num(1.0f)}}), node("MoveToGoal", "exit"),
+                                  node("Despawn", "leave")}),
+                            "wanderer"));
+    defineTree(compileBehaviorTree(node("Sequence", "root", {},
+                                        {node("SetState", "label", {{"name", text("queueing")}}),
+                                         node("WeightedRandom", "pick", {{"weights", text("1,1,1,1")}},
+                                              {node("Queue", "kioskA", {{"goal", text("Kiosk A")}}),
+                                               node("Queue", "kioskB", {{"goal", text("Kiosk B")}}),
+                                               node("Queue", "kioskC", {{"goal", text("Kiosk C")}}),
+                                               node("Queue", "kioskD", {{"goal", text("Kiosk D")}})}),
+                                         node("SetState", "label2", {{"name", text("leaving")}}),
+                                         node("MoveToGoal", "exit"), node("Despawn", "leave")}),
+                                   "queuer"));
+    defineTree(compileBehaviorTree(node("Selector", "root", {},
+                                        {node("Sequence", "inGroup", {},
+                                              {node("SetState", "label", {{"name", text("following")}}),
+                                               node("FollowGroup", "follow", {{"distance", num(1.2f)}})}),
+                                         node("Sequence", "lead", {},
+                                              {node("SetState", "label2", {{"name", text("leading")}}),
+                                               node("SetSpeed", "pace", {{"multiplier", num(0.85f)}}),
+                                               node("MoveToGoal", "walk"), node("Despawn", "leave")})}),
+                                   "follower"));
+    defineTree(
+        compileBehaviorTree(node("Selector", "root", {},
+                                 {node("Sequence", "escape", {},
+                                       {node("SetState", "label", {{"name", text("fleeing")}}),
+                                        node("SetSpeed", "run", {{"multiplier", num(1.4f)}}),
+                                        node("FleeFrom", "flee", {{"tag", text("danger")}, {"radius", num(12.0f)}})}),
+                                  node("Sequence", "evacuate", {},
+                                       {node("SetState", "label2", {{"name", text("evacuating")}}),
+                                        node("AvoidArea", "avoid", {{"tag", text("danger")}}),
+                                        node("MoveToGoal", "exit"), node("Despawn", "leave")})}),
+                            "evacuee"));
+
+    defineType(makeType("commuter", "commuter", {0.85f, 0.55f, 0.25f}, 1.15f, 1.55f, 0.06f));
+    defineType(makeType("wanderer", "wanderer", {0.29f, 0.64f, 0.87f}, 0.9f, 1.3f, 0.1f));
+    defineType(makeType("queuer", "queuer", {0.36f, 0.75f, 0.42f}, 1.0f, 1.4f, 0.08f));
+    defineType(makeType("follower", "follower", {0.63f, 0.42f, 0.84f}, 1.0f, 1.35f, 0.04f));
+    defineType(makeType("evacuee", "evacuee", {0.88f, 0.31f, 0.24f}, 1.6f, 2.1f, 0.02f));
 }
 
 }  // namespace crowdsim::sim

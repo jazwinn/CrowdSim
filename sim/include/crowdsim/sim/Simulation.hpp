@@ -10,7 +10,9 @@
 #include <algorithm>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -20,6 +22,7 @@
 #include "crowdsim/geometry/Primitives.hpp"
 #include "crowdsim/geometry/TriangleMesh.hpp"
 #include "crowdsim/sim/AgentPool.hpp"
+#include "crowdsim/sim/BehaviorTree.hpp"
 #include "crowdsim/sim/Environment.hpp"
 #include "crowdsim/sim/FlowField.hpp"
 #include "crowdsim/sim/NavMesh.hpp"
@@ -54,6 +57,7 @@ struct LocomotionParams {
 struct SimConfig {
     std::uint64_t seed = 1;
     double stepHz = 30.0;
+    double decisionHz = 10.0;  ///< behaviour-tree tick rate per agent (staggered across agents)
     LocomotionParams locomotion;
     NavBuildSettings navigation;
 };
@@ -67,8 +71,35 @@ struct SimServices {
 struct SimStats {
     std::uint32_t alive = 0;
     std::uint64_t spawned = 0;
-    std::uint64_t arrived = 0;
+    std::uint64_t arrived = 0;  ///< goal arrivals (MoveToGoal / Queue completions)
+    std::uint64_t despawned = 0;
     float averageSpeed = 0.0f;
+};
+
+/// Read-only view of one agent's decision state, for the BT debugger.
+struct AgentDebugInfo {
+    std::uint32_t id = 0;
+    std::uint32_t index = 0;
+    std::string typeName;
+    std::string treeName;
+    std::string stateName;
+    std::string goalName;
+    const CompiledTree* tree = nullptr;
+    BtState bt;
+    MoveMode moveMode = MoveMode::Stop;
+    glm::vec3 moveTarget{0.0f};
+    glm::vec3 position{0.0f};
+    float speed = 0.0f;
+    float speedMultiplier = 1.0f;
+    std::uint8_t queueStage = 0;
+    std::uint32_t groupId = kNoAgent;
+};
+
+/// An object footprint carrying free-form tags (danger, area:<name>, ...).
+struct TaggedVolume {
+    std::uint16_t tag = 0;
+    glm::vec3 min{0.0f};
+    glm::vec3 max{0.0f};
 };
 
 /// A piece of static environment geometry (ECS component). Either a parametric
@@ -79,6 +110,7 @@ struct StaticObject {
     geometry::PrimitiveDesc primitive;
     std::string meshAsset;                               ///< asset path for Mesh objects
     std::shared_ptr<const geometry::TriangleMesh> mesh;  ///< local-space geometry for Mesh objects
+    std::vector<std::string> tags;  ///< free-form tags beyond walkable/obstacle (danger, area:<name>, ...)
 };
 
 class Simulation {
@@ -127,6 +159,22 @@ public:
     void setLocomotionParams(const LocomotionParams& params);
     void setSeed(std::uint64_t seed) noexcept { config_.seed = seed; }
 
+    // --- Behaviours and agent types ---------------------------------------------------
+    /// Add or replace a compiled tree (matched by name). Replacing bumps its
+    /// generation so running agents restart it from the root (hot reload).
+    std::uint16_t setBehaviorTree(CompiledTree tree);
+    [[nodiscard]] const CompiledTree* findBehaviorTree(std::string_view name) const;
+    [[nodiscard]] const std::vector<CompiledTree>& behaviorTrees() const noexcept { return trees_; }
+    /// Add or replace an agent type (matched by name).
+    std::uint16_t defineAgentType(const AgentType& type);
+    [[nodiscard]] const AgentType* findAgentType(std::string_view name) const;
+    [[nodiscard]] const std::vector<AgentType>& agentTypes() const noexcept { return agentTypes_; }
+    [[nodiscard]] const std::vector<std::string>& stateNames() const noexcept { return stateNames_; }
+    /// Decision state of one agent by id (nullopt if gone).
+    [[nodiscard]] std::optional<AgentDebugInfo> agentDebug(std::uint32_t agentId) const;
+    /// Agent index for an id, or kNoAgent.
+    [[nodiscard]] std::uint32_t agentIndexOf(std::uint32_t agentId) const noexcept;
+
     /// World-space triangles of one static object.
     [[nodiscard]] geometry::TriangleMesh objectMesh(SceneId id) const;
 
@@ -173,7 +221,20 @@ private:
     void computePreferredVelocities();
     void computeAvoidance(float dt);
     void integrate(float dt);
-    void removeArrivedAgents();
+    void addAgent(const AgentInit& init);
+    void removeAgentAt(std::uint32_t index);
+    void tickBehaviors();
+    void resolveDecisions();
+    void processDespawns();
+    BtStatus tickNode(const CompiledTree& tree, std::uint16_t node, std::uint32_t agent, std::uint32_t thread);
+    void resetSubtree(const CompiledTree& tree, std::uint16_t node, BtState& state) const;
+    void setPointTarget(std::uint32_t agent, glm::vec3 target);
+    bool planCorridor(std::uint32_t agent, std::uint32_t thread);
+    glm::vec3 corridorSteeringTarget(std::uint32_t agent, std::uint32_t thread);
+    [[nodiscard]] std::uint16_t internName(std::vector<std::string>& table, std::string_view name);
+    void rebuildTreeLookups();
+    void rebuildTaggedVolumes();
+    [[nodiscard]] std::uint16_t resolveTree(const std::string& name) const;
     [[nodiscard]] std::shared_ptr<const snapshot::StaticScene> buildStaticScene() const;
     SceneId claimId(SceneId requested);
     entt::entity createEntity(SceneId id);
@@ -198,6 +259,7 @@ private:
     std::vector<entt::entity> goals_;     ///< creation order = goal index
     std::vector<entt::entity> spawners_;  ///< creation order = processing order
     std::vector<Area> goalAreas_;         ///< per-step copy for the hot loops
+    std::vector<Goal> goalsCache_;        ///< per-step copy of goal settings for the decision layer
 
     // Navigation (derived from the scene; rebuilt when dirty)
     geometry::TriangleMesh staticMesh_;
@@ -213,6 +275,21 @@ private:
     std::uint32_t nextAgentId_ = 0;
     std::uint64_t spawnedTotal_ = 0;
     std::uint64_t arrivedTotal_ = 0;
+    std::uint64_t despawnedTotal_ = 0;
+    std::vector<std::uint32_t> idToIndex_;  ///< agent id -> pool index (kNoAgent when gone)
+
+    // Decision layer
+    std::vector<CompiledTree> trees_;
+    struct TreeLookup {
+        std::vector<std::uint16_t> stateOf;  ///< string index -> state id
+        std::vector<std::uint16_t> tagOf;    ///< string index -> tag id
+        std::vector<std::int32_t> goalOf;    ///< string index -> goal index (-1 = assigned goal)
+    };
+    std::vector<TreeLookup> treeLookups_;
+    std::vector<AgentType> agentTypes_;
+    std::vector<std::string> stateNames_{"walking"};
+    std::vector<std::string> tagNames_{""};
+    std::vector<TaggedVolume> taggedVolumes_;
 };
 
 }  // namespace crowdsim::sim

@@ -17,7 +17,13 @@ enum class ScenarioKind {
     Counterflow,  ///< two opposing streams that pass through each other
     Benchmark,    ///< dense counterflow that spawns `agents` almost at once
     Building,     ///< two-floor building: stairs, ramp, ladder link, walls, pillars
+    Plaza,        ///< open plaza: commuters, wanderers, queuers at kiosks, groups
 };
+
+/// Define the standard behaviour trees and agent types (commuter, wanderer,
+/// queuer, follower, evacuee) in `sim`. The content/ files mirror these and
+/// replace them when loaded (hot reload).
+void defineStandardAgentTypes(Simulation& sim);
 
 [[nodiscard]] std::optional<ScenarioKind> parseScenario(std::string_view name);
 [[nodiscard]] std::string_view scenarioName(ScenarioKind kind);
