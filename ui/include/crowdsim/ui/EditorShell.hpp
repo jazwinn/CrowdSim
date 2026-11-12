@@ -126,6 +126,8 @@ private:
 
 public:
     [[nodiscard]] SceneEditor& sceneEditor() noexcept { return sceneEditor_; }
+    /// Append a result / error to the Script console transcript.
+    void consoleOutput(const std::string& text, bool error = false);
 
 private:
     SceneEditor sceneEditor_;
@@ -134,6 +136,13 @@ private:
     bool layoutBuilt_ = false;
     bool showDemo_ = false;
     bool autoScrollLog_ = true;
+    char consoleInput_[8192] = "print(agents.count(), sim.time())";
+    struct ConsoleLine {
+        std::string text;
+        bool error = false;
+    };
+    std::vector<ConsoleLine> consoleLines_;
+    bool consoleScroll_ = false;
     OverlayToggles overlays_;
     bool viewportDragging_ = false;
     int pendingScenario_ = -1;

@@ -20,6 +20,7 @@ constexpr const char* kLogWindow = "Log";
 constexpr const char* kHierarchyWindow = "Scene";
 constexpr const char* kInspectorWindow = "Inspector";
 constexpr const char* kHistoryWindow = "History";
+constexpr const char* kScriptWindow = "Script";
 
 }  // namespace
 
@@ -44,6 +45,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kInspectorWindow, rightBottom);
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
     ImGui::DockBuilderDockWindow(kHistoryWindow, bottom);
+    ImGui::DockBuilderDockWindow(kScriptWindow, bottom);
     // The central node stays empty: it is the 3D viewport.
     ImGui::DockBuilderFinish(dockspaceId);
 }
@@ -321,6 +323,7 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::End();
 
     ImGui::Begin(kLogWindow);
+    const ImGuiID logDock = ImGui::GetWindowDockID();
     ImGui::Checkbox("Auto-scroll", &autoScrollLog_);
     ImGui::Separator();
     ImGui::BeginChild("LogLines", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
@@ -338,10 +341,67 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::EndChild();
     ImGui::End();
 
+    // Script console: evaluates Lua through the EvalLua command (logged and replayable).
+    // Layouts saved before the console existed get it docked next to the log.
+    if (logDock != 0) {
+        ImGui::SetNextWindowDockID(logDock, ImGuiCond_FirstUseEver);
+    }
+    ImGui::Begin(kScriptWindow);
+    const float inputHeight = ImGui::GetTextLineHeight() * 5.0f;
+    ImGui::BeginChild("Transcript", ImVec2(0, -inputHeight - ImGui::GetFrameHeightWithSpacing() * 1.5f),
+                      ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar);
+    for (const ConsoleLine& line : consoleLines_) {
+        if (line.error) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.45f, 0.4f, 1.0f));
+        }
+        ImGui::TextUnformatted(line.text.c_str());
+        if (line.error) {
+            ImGui::PopStyleColor();
+        }
+    }
+    if (consoleScroll_) {
+        ImGui::SetScrollHereY(1.0f);
+        consoleScroll_ = false;
+    }
+    ImGui::EndChild();
+    ImGui::InputTextMultiline("##lua", consoleInput_, sizeof(consoleInput_), ImVec2(-1.0f, inputHeight),
+                              ImGuiInputTextFlags_AllowTabInput);
+    const bool ctrlEnter = ImGui::IsItemFocused() && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Enter);
+    if (ImGui::Button("Run (Ctrl+Enter)") || ctrlEnter) {
+        const std::string source(consoleInput_);
+        consoleLines_.push_back({"> " + source, false});
+        consoleScroll_ = true;
+        req.commands.push_back(commands::makeCommand("EvalLua", {{"source", source}}));
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) {
+        consoleLines_.clear();
+    }
+    ImGui::End();
+
     if (showDemo_) {
         ImGui::ShowDemoWindow(&showDemo_);
     }
     return req;
+}
+
+void EditorShell::consoleOutput(const std::string& text, bool error) {
+    std::size_t start = 0;
+    while (start <= text.size()) {
+        const std::size_t end = text.find('\n', start);
+        const std::string line = text.substr(start, end == std::string::npos ? std::string::npos : end - start);
+        if (!line.empty() || end != std::string::npos) {
+            consoleLines_.push_back({line, error});
+        }
+        if (end == std::string::npos) {
+            break;
+        }
+        start = end + 1;
+    }
+    while (consoleLines_.size() > 2000) {
+        consoleLines_.erase(consoleLines_.begin());
+    }
+    consoleScroll_ = true;
 }
 
 }  // namespace crowdsim::ui

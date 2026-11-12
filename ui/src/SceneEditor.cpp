@@ -102,6 +102,15 @@ void SceneEditor::addMenu(const SceneEditorInput& in, std::vector<Json>& command
             "CreateOffMeshLink",
             {{"link", {{"start", v3(at)}, {"end", v3(at + glm::vec3(0, 4, 2))}, {"bidirectional", false}}}}));
     }
+    if (!in.entityTypes.empty()) {
+        ImGui::Separator();
+        ImGui::TextDisabled("Scripted (Lua)");
+        for (const std::string& type : in.entityTypes) {
+            if (ImGui::MenuItem(type.c_str())) {
+                commands.push_back(makeCommand("SpawnEntity", {{"type", type}, {"position", v3(at)}}));
+            }
+        }
+    }
     ImGui::Separator();
     ImGui::SetNextItemWidth(200.0f);
     ImGui::InputText("##gltf", importPath_, sizeof(importPath_));

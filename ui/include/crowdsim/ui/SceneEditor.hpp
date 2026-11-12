@@ -35,6 +35,7 @@ struct SceneEditorInput {
     bool hasCursorWorld = false;
     float cursorWorld[3] = {0.0f, 0.0f, 0.0f};
     float cameraTarget[3] = {0.0f, 0.0f, 0.0f};  ///< fallback placement point
+    std::span<const std::string> entityTypes;    ///< Lua-registered entity types (Add menu)
 };
 
 class SceneEditor {
