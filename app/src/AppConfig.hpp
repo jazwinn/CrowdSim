@@ -32,6 +32,7 @@ struct AppConfig {
     float simSpeed = 1.0f;                          ///< gui: initial simulation speed multiplier
     std::uint32_t selectId = 0;                     ///< gui: entity to select at startup (screenshots)
     std::uint32_t selectAgentId = 0xFFFFFFFFu;      ///< gui: agent to inspect at startup (screenshots)
+    std::string editBehaviour;                      ///< gui: behaviour tree to open in the node editor
     std::string overlays;  ///< gui: comma-separated overlays to enable (navmesh,flow,velocities,...)
     /// gui: initial camera (target x, target z, distance, yaw deg, pitch deg); empty = default
     std::optional<std::array<float, 5>> camera;

@@ -48,6 +48,7 @@ find_path(CGLTF_INCLUDE_DIR cgltf.h REQUIRED)
 include(Ozz)  # ozz-animation (FetchContent, pinned)
 if(CROWDSIM_BUILD_GUI)
   find_package(imguizmo CONFIG REQUIRED)
+  find_package(unofficial-imgui-node-editor CONFIG REQUIRED)
 endif()
 
 if(CROWDSIM_ENABLE_TRACY)

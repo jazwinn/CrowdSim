@@ -297,6 +297,10 @@ int runGui(EngineContext& engine) {
     }
     ui::EditorShell shell(initialOverlays);
     shell.sceneEditor().select(config.selectId);
+    if (!config.editBehaviour.empty()) {
+        engine.dispatcher().submit(commands::makeCommand("GetBehaviorTree", {{"name", config.editBehaviour}}));
+        shell.focusBehaviourEditor();
+    }
     if (config.selectAgentId != ui::SceneEditor::kNoAgentSelected) {
         shell.sceneEditor().selectAgent(config.selectAgentId);
         shell.sceneEditor().followAgent = true;
@@ -533,6 +537,14 @@ int runGui(EngineContext& engine) {
             engine.dispatcher().submit(std::move(cmd));
         }
         for (const commands::CommandOutcome& o : engine.dispatcher().flush(engine.commandContext())) {
+            if (o.command == "GetBehaviorTree" && o.ok) {
+                shell.behaviourEditor().open(o.result["tree"]);
+            } else if (o.command == "SaveBehaviorTree") {
+                shell.behaviourEditor().setStatus(
+                    o.ok ? "Saved " + o.result.value("path", std::string()) : "Save failed: " + o.error, !o.ok);
+            } else if (o.command == "SetBehaviorTree" && !o.ok) {
+                shell.behaviourEditor().setStatus("Apply failed: " + o.error, true);
+            }
             if (o.command == "EvalLua") {
                 if (o.ok) {
                     shell.consoleOutput(o.result.value("output", std::string()));

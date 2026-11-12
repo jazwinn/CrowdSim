@@ -13,6 +13,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "crowdsim/ui/BtEditor.hpp"
 #include "crowdsim/ui/SceneEditor.hpp"
 
 namespace crowdsim::ui {
@@ -126,11 +127,15 @@ private:
 
 public:
     [[nodiscard]] SceneEditor& sceneEditor() noexcept { return sceneEditor_; }
+    [[nodiscard]] BtEditor& behaviourEditor() noexcept { return btEditor_; }
+    /// Bring the Behaviour (node editor) panel to the front next frame.
+    void focusBehaviourEditor() noexcept { focusBehaviour_ = true; }
     /// Append a result / error to the Script console transcript.
     void consoleOutput(const std::string& text, bool error = false);
 
 private:
     SceneEditor sceneEditor_;
+    BtEditor btEditor_;
     char saveAsName_[128] = "my_scene";
 
     bool layoutBuilt_ = false;
@@ -143,6 +148,7 @@ private:
     };
     std::vector<ConsoleLine> consoleLines_;
     bool consoleScroll_ = false;
+    bool focusBehaviour_ = false;
     OverlayToggles overlays_;
     bool viewportDragging_ = false;
     int pendingScenario_ = -1;

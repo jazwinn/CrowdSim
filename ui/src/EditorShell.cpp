@@ -21,6 +21,7 @@ constexpr const char* kHierarchyWindow = "Scene";
 constexpr const char* kInspectorWindow = "Inspector";
 constexpr const char* kHistoryWindow = "History";
 constexpr const char* kScriptWindow = "Script";
+constexpr const char* kBehaviourWindow = "Behaviour";
 
 }  // namespace
 
@@ -46,6 +47,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
     ImGui::DockBuilderDockWindow(kHistoryWindow, bottom);
     ImGui::DockBuilderDockWindow(kScriptWindow, bottom);
+    ImGui::DockBuilderDockWindow(kBehaviourWindow, bottom);
     // The central node stays empty: it is the 3D viewport.
     ImGui::DockBuilderFinish(dockspaceId);
 }
@@ -376,6 +378,26 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::SameLine();
     if (ImGui::Button("Clear")) {
         consoleLines_.clear();
+    }
+    ImGui::End();
+
+    // Behaviour tree node editor.
+    if (logDock != 0) {
+        ImGui::SetNextWindowDockID(logDock, ImGuiCond_FirstUseEver);
+    }
+    if (focusBehaviour_) {
+        // Opened on request (e.g. --edit-bt): float it large over the viewport.
+        const ImGuiViewport* vp = ImGui::GetMainViewport();
+        ImGui::SetNextWindowDockID(0, ImGuiCond_Always);
+        ImGui::SetNextWindowPos(ImVec2(vp->WorkPos.x + vp->WorkSize.x * 0.19f, vp->WorkPos.y + 30.0f),
+                                ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(vp->WorkSize.x * 0.60f, vp->WorkSize.y * 0.70f), ImGuiCond_Always);
+        ImGui::SetNextWindowFocus();
+        focusBehaviour_ = false;
+    }
+    ImGui::Begin(kBehaviourWindow);
+    if (data.editor != nullptr) {
+        btEditor_.draw(data.editor->sim, sceneEditor_.selectedAgent(), req.commands);
     }
     ImGui::End();
 

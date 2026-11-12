@@ -3,12 +3,14 @@
 crowdsim_add_library(ui
   SOURCES
     src/AgentDebugger.cpp
+    src/BtEditor.cpp
     src/EditorShell.cpp
     src/SceneEditor.cpp
   DEPS
     CrowdSim::core
     imgui::imgui
     imguizmo::imguizmo
+    unofficial::imgui-node-editor::imgui-node-editor
     CrowdSim::sim
     CrowdSim::assets
     CrowdSim::commands
