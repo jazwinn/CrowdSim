@@ -1,0 +1,18 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "evacuee",
+  "root": {"type": "Selector", "id": "root", "children": [
+    {"type": "Sequence", "id": "escape", "children": [
+      {"type": "SetState", "id": "label", "params": {"name": "fleeing"}},
+      {"type": "SetSpeed", "id": "run", "params": {"multiplier": 1.4}},
+      {"type": "FleeFrom", "id": "flee", "params": {"tag": "danger", "radius": 12}}
+    ]},
+    {"type": "Sequence", "id": "evacuate", "children": [
+      {"type": "SetState", "id": "label2", "params": {"name": "evacuating"}},
+      {"type": "AvoidArea", "id": "avoid", "params": {"tag": "danger"}},
+      {"type": "MoveToGoal", "id": "exit"},
+      {"type": "Despawn", "id": "leave"}
+    ]}
+  ]}
+}

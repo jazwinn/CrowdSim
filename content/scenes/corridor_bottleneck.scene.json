@@ -13,8 +13,15 @@
           14.0
         ]
       },
+      "capacity": 0,
       "id": 6,
-      "name": "Exit"
+      "name": "Exit",
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "serviceTime": 0.0
     }
   ],
   "links": [],
@@ -148,6 +155,7 @@
           0.3
         ]
       },
+      "agentMix": [],
       "area": {
         "center": [
           -34.0,
@@ -160,6 +168,10 @@
         ]
       },
       "goal": 6,
+      "groupSize": [
+        1,
+        1
+      ],
       "id": 7,
       "name": "Entrance",
       "rate": 40.0,

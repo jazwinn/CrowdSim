@@ -1,0 +1,15 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "evacuee",
+  "behaviour": "evacuee",
+  "radius": [0.24, 0.3],
+  "preferredSpeed": [1.6, 2.1],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.02,
+  "height": 1.75,
+  "color": "#e0503c",
+  "colorJitter": 0.1,
+  "tags": []
+}

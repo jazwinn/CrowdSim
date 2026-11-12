@@ -1,0 +1,10 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "commuter",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "id": "label", "params": {"name": "walking"}},
+    {"type": "MoveToGoal", "id": "walk"},
+    {"type": "Despawn", "id": "leave"}
+  ]}
+}

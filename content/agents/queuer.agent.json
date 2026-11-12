@@ -1,0 +1,15 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "queuer",
+  "behaviour": "queuer",
+  "radius": [0.24, 0.3],
+  "preferredSpeed": [1.0, 1.4],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.08,
+  "height": 1.75,
+  "color": "#5cbf6a",
+  "colorJitter": 0.1,
+  "tags": []
+}

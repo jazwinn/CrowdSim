@@ -1,0 +1,15 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "follower",
+  "behaviour": "follower",
+  "radius": [0.24, 0.3],
+  "preferredSpeed": [1.0, 1.35],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.04,
+  "height": 1.75,
+  "color": "#a06cd5",
+  "colorJitter": 0.1,
+  "tags": ["group"]
+}

@@ -1,0 +1,19 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "wanderer",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "id": "label", "params": {"name": "wandering"}},
+    {"type": "SetSpeed", "id": "stroll", "params": {"multiplier": 0.75}},
+    {"type": "Repeat", "id": "loop", "params": {"count": 3}, "children": [
+      {"type": "Sequence", "id": "visit", "children": [
+        {"type": "Wander", "id": "wander", "params": {"radius": 14}},
+        {"type": "Wait", "id": "look", "params": {"seconds": 2, "jitter": 3}}
+      ]}
+    ]},
+    {"type": "SetState", "id": "label2", "params": {"name": "leaving"}},
+    {"type": "SetSpeed", "id": "normal", "params": {"multiplier": 1}},
+    {"type": "MoveToGoal", "id": "exit"},
+    {"type": "Despawn", "id": "leave"}
+  ]}
+}

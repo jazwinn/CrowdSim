@@ -1,0 +1,17 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "follower",
+  "root": {"type": "Selector", "id": "root", "children": [
+    {"type": "Sequence", "id": "inGroup", "children": [
+      {"type": "SetState", "id": "label", "params": {"name": "following"}},
+      {"type": "FollowGroup", "id": "follow", "params": {"distance": 1.2}}
+    ]},
+    {"type": "Sequence", "id": "lead", "children": [
+      {"type": "SetState", "id": "label2", "params": {"name": "leading"}},
+      {"type": "SetSpeed", "id": "pace", "params": {"multiplier": 0.85}},
+      {"type": "MoveToGoal", "id": "walk"},
+      {"type": "Despawn", "id": "leave"}
+    ]}
+  ]}
+}

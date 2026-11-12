@@ -1,0 +1,17 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "queuer",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "id": "label", "params": {"name": "queueing"}},
+    {"type": "WeightedRandom", "id": "pick", "params": {"weights": "1,1,1,1"}, "children": [
+      {"type": "Queue", "id": "kioskA", "params": {"goal": "Kiosk A"}},
+      {"type": "Queue", "id": "kioskB", "params": {"goal": "Kiosk B"}},
+      {"type": "Queue", "id": "kioskC", "params": {"goal": "Kiosk C"}},
+      {"type": "Queue", "id": "kioskD", "params": {"goal": "Kiosk D"}}
+    ]},
+    {"type": "SetState", "id": "label2", "params": {"name": "leaving"}},
+    {"type": "MoveToGoal", "id": "exit"},
+    {"type": "Despawn", "id": "leave"}
+  ]}
+}

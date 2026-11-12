@@ -1,0 +1,15 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "commuter",
+  "behaviour": "commuter",
+  "radius": [0.24, 0.3],
+  "preferredSpeed": [1.15, 1.55],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.06,
+  "height": 1.75,
+  "color": "#d98c40",
+  "colorJitter": 0.1,
+  "tags": []
+}
