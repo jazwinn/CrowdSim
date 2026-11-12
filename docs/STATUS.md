@@ -12,11 +12,65 @@ Last updated: 2026-11-12
 | M5 — Animated characters | done (Windows) |
 | M6 — Lua scripting | done (Windows) |
 | M7 — Node graph editor | done (Windows) |
-| M8 — MCP server | **done** (Windows) |
-| M9 — Metrics & analysis | next |
+| M8 — MCP server | done (Windows) |
+| M9 — Metrics & analysis | **done** (Windows) |
+| M10 — Scale-up prep | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M9 — Metrics & analysis
+
+### What works
+
+- **Metrics module** (`metrics/`): a read-only step observer, so results are identical with or
+  without it. It collects:
+  - **gates** (line segments counting directional crossings, flow per second and per metre of
+    width over the last 10 s);
+  - a **time series** every 0.5 s (alive, arrivals, mean / p50 / p90 speed, peak and p90 density
+    over 1 m cells, stuck agents, gate totals);
+  - the **time-to-goal** distribution;
+  - **stuck detection** (trying to move but slower than 0.15 m/s for 10 s, queueing excluded);
+  - time-averaged **density and speed heatmaps** over the scene bounds;
+  - **trajectory recording** (id, type, time, position, velocity, state) with **CSV export**, and
+    a CSV export of the time series. ADR 0012.
+- **Commands**: `AddGate`, `RemoveGate`, `ListGates`, `GetMetrics`, `GetHeatmap`,
+  `StartRecording`, `StopRecording`, `ExportRecording`, `ExportMetrics`, `ResetMetrics` (gates and
+  recording are logged, so replays reproduce them).
+- **Editor**: a **Metrics** panel with live ImPlot plots (crowd and arrivals, speed and density,
+  gate crossings, time-to-goal histogram), a gate table and editor, and record / export / reset
+  buttons. A **heatmap overlay** (Overlays → Heatmap: density or speed, `--overlays heatmap`)
+  draws translucent cells on the floor, and gates show as amber lines with a direction tick.
+- **MCP**: `metrics_get` (now with speed / density / gates / time to goal / stuck),
+  `heatmap_get`, `gate_add`, `recording_start`, `recording_stop`, `recording_export`,
+  `metrics_export`.
+- `content/scenarios/bottleneck_study.lua` sets up the corridor bottleneck with a doorway gate
+  and recording.
+
+### Done-criterion evidence
+
+- doctest `M9: a bottleneck run exports trajectories and a density heatmap through MCP`. On the
+  corridor bottleneck, MCP tools add a doorway gate, record and run 60 s. Results: specific flow
+  through the 5 m doorway ≈ 1.6–1.8 agents/m/s, a density heatmap whose queue in front of the
+  doorway is above 1 agent/m² and more than twice the far side, and over 50k trajectory rows
+  exported to CSV, with the header checked and the row count matching.
+- Headless run of the same flow: 327 doorway crossings (8.1 /s, 1.62 /m/s), time to goal
+  mean 50.5 s / p90 55.1 s, 7 congested agents flagged as stuck, 367,651 trajectory rows.
+- In the editor: `screenshots/m9_bottleneck.png` (not committed) shows the density overlay over
+  the jam, the doorway gate and the Metrics panel with live gate flow.
+
+### Tests
+
+New doctest cases: directional gate counting (and flipped endpoints), time-to-goal count equal to
+arrivals, density and speed heatmaps, gate removal, metrics restart on reset; stuck detection
+for agents with an unreachable goal; the M9 criterion over MCP. 69 doctest cases and 9 CTest
+entries pass.
+
+### Known issues
+
+- Heatmaps are 2D over the scene bounds; multi-floor scenes overlay their floors.
+- Gates are kept by the metrics module (and the command log), not saved in scene files.
+- Parquet export is not implemented (CSV only).
 
 ## M8 — MCP server
 

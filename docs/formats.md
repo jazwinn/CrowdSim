@@ -174,6 +174,11 @@ every command with its JSON Schema.
 | `EvalLua` | yes | Evaluate Lua; returns printed output and the result. |
 | `SpawnEntity` | yes | Place an instance of a Lua-registered entity type. |
 | `ListScripts` / `GetScript` / `ScriptErrors` / `ListEntityTypes` | no | Scripting queries. |
+| `AddGate` / `RemoveGate` | yes | Counting gate `{name, a:[x,z], b:[x,z], elevation}`: directional crossings and flow. |
+| `ListGates` / `GetMetrics` / `GetHeatmap` | no | Gate counts; metrics summary; density or speed heatmap (downsampled). |
+| `StartRecording` / `StopRecording` | yes | Trajectory recording at `hz` samples/s. |
+| `ExportRecording` / `ExportMetrics` | no | CSV of trajectories / of the metrics time series (`recordings/` by default). |
+| `ResetMetrics` | yes | Clear accumulated metrics (gates kept). |
 | `RebuildNavmesh` | yes | Rebuild navmesh + flow fields now; returns polygon/tile/wall counts. |
 | `SetNavigationSettings` | yes | Change navmesh build settings. |
 | `SetSimParams` | yes | Locomotion parameters and/or seed. |

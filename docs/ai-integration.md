@@ -53,7 +53,7 @@ stderr, so stdout carries only protocol messages in stdio mode.
 | Behaviour | `bt_list`, `bt_get`, `bt_set`, `bt_validate`, `bt_node_types` |
 | Scripting | `script_list`, `script_get`, `script_write`, `script_reload`, `script_eval` |
 | Simulation | `sim_play`, `sim_pause`, `sim_step`, `sim_run_for`, `sim_reset`, `sim_set_params` |
-| Analysis | `metrics_get` (more in M9: heatmaps, recordings) |
+| Analysis | `metrics_get`, `heatmap_get`, `gate_add`, `recording_start`, `recording_stop`, `recording_export`, `metrics_export` |
 | Logs | `log_tail`, `errors_get` |
 | Vision (editor only) | `screenshot` (PNG; optional camera `{target:[x,z], distance, yaw, pitch}`) |
 
@@ -90,7 +90,10 @@ This is what `tools/mcp_workflow_test.py` does (it runs in CTest as `mcp_stdio_w
    agentMix: [{type: "rusher", weight: 1}, {type: "dawdler", weight: 1}]}}`
 7. `sim_run_for {seconds: 60}` → `{steps: 1800, wallMs: ~400, metrics: {spawned: 300, arrived: …,
    goals: [{name: "Exit", arrivals: …}], aliveByType: {…}, aliveByState: {…}}}`
-8. Iterate: widen the doorway (`object_update`), `sim_reset`, run again and compare arrivals; or
+8. Measure: `gate_add` across the doorway before running, then read its flow (agents/s and per metre)
+   in `metrics_get`; `heatmap_get {kind: "density"}` shows where the queue forms;
+   `recording_start` + `recording_export` gives per-agent trajectories as CSV.
+9. Iterate: widen the doorway (`object_update`), `sim_reset`, run again and compare arrivals; or
    save the scene (`scene_save`) and the trees (they are in the scene file).
 
 Custom behaviour beyond the built-in nodes: `script_write` a Lua file that registers a node with
