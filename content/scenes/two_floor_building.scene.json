@@ -1,0 +1,610 @@
+{
+  "format": "crowdsim.scene",
+  "goals": [
+    {
+      "area": {
+        "center": [
+          0.0,
+          17.0
+        ],
+        "elevation": 4.0,
+        "halfExtents": [
+          26.0,
+          2.0
+        ]
+      },
+      "id": 28,
+      "name": "Upper exit"
+    }
+  ],
+  "links": [
+    {
+      "bidirectional": false,
+      "end": [
+        -27.0,
+        4.0,
+        1.5
+      ],
+      "extraCost": 25.0,
+      "id": 27,
+      "radius": 0.6,
+      "start": [
+        -27.0,
+        0.0,
+        -1.5
+      ]
+    }
+  ],
+  "name": "building",
+  "navigation": {
+    "agentHeight": 1.9,
+    "agentMaxClimb": 0.45,
+    "agentMaxSlope": 45.0,
+    "agentRadius": 0.3,
+    "cellHeight": 0.1,
+    "cellSize": 0.2,
+    "tileSize": 64
+  },
+  "nextId": 30,
+  "objects": [
+    {
+      "color": "#5c626a",
+      "id": 1,
+      "name": "Ground floor",
+      "position": [
+        0.0,
+        -0.2,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        60.0,
+        0.2,
+        40.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#5c626a",
+      "id": 2,
+      "name": "Upper floor",
+      "position": [
+        0.0,
+        3.8,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        60.0,
+        0.2,
+        20.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 3,
+      "name": "Wall N",
+      "position": [
+        0.0,
+        0.0,
+        20.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        60.6,
+        8.0,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 4,
+      "name": "Wall S",
+      "position": [
+        0.0,
+        0.0,
+        -20.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        60.6,
+        8.0,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 5,
+      "name": "Wall W",
+      "position": [
+        -30.15,
+        0.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        8.0,
+        40.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 6,
+      "name": "Wall E",
+      "position": [
+        30.15,
+        0.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        8.0,
+        40.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#968a7d",
+      "id": 7,
+      "name": "Stairs",
+      "position": [
+        0.0,
+        0.0,
+        -4.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.0,
+        4.0,
+        8.0
+      ],
+      "steps": 20,
+      "tags": [
+        "walkable"
+      ],
+      "type": "stairs"
+    },
+    {
+      "color": "#968a7d",
+      "id": 8,
+      "name": "Ramp",
+      "position": [
+        25.0,
+        0.0,
+        -8.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        4.0,
+        16.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "type": "ramp"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 9,
+      "name": "Railing",
+      "position": [
+        -28.85,
+        4.0,
+        0.1
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.7,
+        1.1,
+        0.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 10,
+      "name": "Railing",
+      "position": [
+        -15.0,
+        4.0,
+        0.1
+      ],
+      "rotationY": 0.0,
+      "size": [
+        22.0,
+        1.1,
+        0.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 11,
+      "name": "Railing",
+      "position": [
+        13.0,
+        4.0,
+        0.1
+      ],
+      "rotationY": 0.0,
+      "size": [
+        18.0,
+        1.1,
+        0.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 12,
+      "name": "Railing",
+      "position": [
+        28.85,
+        4.0,
+        0.1
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.7,
+        1.1,
+        0.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 13,
+      "name": "Partition",
+      "position": [
+        -25.75,
+        4.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.0,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 14,
+      "name": "Partition",
+      "position": [
+        -10.0,
+        4.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        17.0,
+        3.0,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 15,
+      "name": "Partition",
+      "position": [
+        10.0,
+        4.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        17.0,
+        3.0,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#a8b0b8",
+      "id": 16,
+      "name": "Partition",
+      "position": [
+        25.75,
+        4.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.0,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 17,
+      "name": "Pillar",
+      "position": [
+        -20.0,
+        0.0,
+        5.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 18,
+      "name": "Pillar",
+      "position": [
+        -20.0,
+        0.0,
+        15.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 19,
+      "name": "Pillar",
+      "position": [
+        -10.0,
+        0.0,
+        5.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 20,
+      "name": "Pillar",
+      "position": [
+        -10.0,
+        0.0,
+        15.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 21,
+      "name": "Pillar",
+      "position": [
+        10.0,
+        0.0,
+        5.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 22,
+      "name": "Pillar",
+      "position": [
+        10.0,
+        0.0,
+        15.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 23,
+      "name": "Pillar",
+      "position": [
+        20.0,
+        0.0,
+        5.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#aaa29a",
+      "id": 24,
+      "name": "Pillar",
+      "position": [
+        20.0,
+        0.0,
+        15.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.6,
+        3.8,
+        0.6
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#8a6a4a",
+      "id": 25,
+      "name": "Bench",
+      "position": [
+        -12.0,
+        0.0,
+        -10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        3.0,
+        0.5,
+        0.8
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    },
+    {
+      "color": "#8a6a4a",
+      "id": 26,
+      "name": "Bench",
+      "position": [
+        12.0,
+        0.0,
+        -10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        3.0,
+        0.5,
+        0.8
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "type": "box"
+    }
+  ],
+  "spawners": [
+    {
+      "agent": {
+        "agentType": 0,
+        "color": "#d98c40",
+        "colorJitter": 0.12,
+        "maxAcceleration": 3.0,
+        "maxSpeedFactor": 1.35,
+        "preferredSpeed": [
+          1.15,
+          1.55
+        ],
+        "radius": [
+          0.24,
+          0.3
+        ]
+      },
+      "area": {
+        "center": [
+          0.0,
+          -16.0
+        ],
+        "elevation": 0.0,
+        "halfExtents": [
+          20.0,
+          3.0
+        ]
+      },
+      "goal": 28,
+      "id": 29,
+      "name": "Ground entrance",
+      "rate": 33.3333,
+      "startTime": 0.0,
+      "stopTime": null,
+      "total": 2000
+    }
+  ],
+  "version": 1
+}

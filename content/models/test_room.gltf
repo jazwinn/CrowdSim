@@ -1,0 +1,193 @@
+{
+ "asset": {
+  "version": "2.0",
+  "generator": "crowdsim tools/make_test_gltf.py"
+ },
+ "scene": 0,
+ "scenes": [
+  {
+   "nodes": [
+    0,
+    1,
+    2
+   ]
+  }
+ ],
+ "nodes": [
+  {
+   "name": "Floor",
+   "mesh": 0,
+   "translation": [
+    0,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Pillar",
+   "mesh": 1,
+   "translation": [
+    5,
+    0,
+    0
+   ]
+  },
+  {
+   "name": "Bench",
+   "mesh": 2,
+   "translation": [
+    -5,
+    0,
+    3
+   ],
+   "extras": {
+    "crowdsim": {
+     "tags": [
+      "obstacle"
+     ]
+    }
+   }
+  }
+ ],
+ "meshes": [
+  {
+   "name": "Floor",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 0
+     },
+     "indices": 1
+    }
+   ]
+  },
+  {
+   "name": "Pillar",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 2
+     },
+     "indices": 3
+    }
+   ]
+  },
+  {
+   "name": "Bench",
+   "primitives": [
+    {
+     "attributes": {
+      "POSITION": 4
+     },
+     "indices": 5
+    }
+   ]
+  }
+ ],
+ "accessors": [
+  {
+   "bufferView": 0,
+   "componentType": 5126,
+   "count": 4,
+   "type": "VEC3",
+   "min": [
+    -10,
+    0.0,
+    -6
+   ],
+   "max": [
+    10,
+    0.0,
+    6
+   ]
+  },
+  {
+   "bufferView": 1,
+   "componentType": 5123,
+   "count": 6,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 2,
+   "componentType": 5126,
+   "count": 8,
+   "type": "VEC3",
+   "min": [
+    -0.4,
+    0,
+    -0.4
+   ],
+   "max": [
+    0.4,
+    3,
+    0.4
+   ]
+  },
+  {
+   "bufferView": 3,
+   "componentType": 5123,
+   "count": 36,
+   "type": "SCALAR"
+  },
+  {
+   "bufferView": 4,
+   "componentType": 5126,
+   "count": 8,
+   "type": "VEC3",
+   "min": [
+    -2,
+    0,
+    -0.4
+   ],
+   "max": [
+    2,
+    0.5,
+    0.4
+   ]
+  },
+  {
+   "bufferView": 5,
+   "componentType": 5123,
+   "count": 36,
+   "type": "SCALAR"
+  }
+ ],
+ "bufferViews": [
+  {
+   "buffer": 0,
+   "byteOffset": 0,
+   "byteLength": 48
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 48,
+   "byteLength": 12
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 60,
+   "byteLength": 96
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 156,
+   "byteLength": 72
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 228,
+   "byteLength": 96
+  },
+  {
+   "buffer": 0,
+   "byteOffset": 324,
+   "byteLength": 72
+  }
+ ],
+ "buffers": [
+  {
+   "byteLength": 396,
+   "uri": "data:application/octet-stream;base64,AAAgwQAAAAAAAMDAAAAgQQAAAAAAAMDAAAAgQQAAAAAAAMBAAAAgwQAAAAAAAMBAAAACAAEAAAADAAIAzczMvgAAAADNzMy+zczMPgAAAADNzMy+zczMPgAAQEDNzMy+zczMvgAAQEDNzMy+zczMvgAAAADNzMw+zczMPgAAAADNzMw+zczMPgAAQEDNzMw+zczMvgAAQEDNzMw+AAACAAEAAAADAAIABAAFAAYABAAGAAcAAAABAAUAAAAFAAQAAwAGAAIAAwAHAAYAAAAEAAcAAAAHAAMAAQACAAYAAQAGAAUAAAAAwAAAAADNzMy+AAAAQAAAAADNzMy+AAAAQAAAAD/NzMy+AAAAwAAAAD/NzMy+AAAAwAAAAADNzMw+AAAAQAAAAADNzMw+AAAAQAAAAD/NzMw+AAAAwAAAAD/NzMw+AAACAAEAAAADAAIABAAFAAYABAAGAAcAAAABAAUAAAAFAAQAAwAGAAIAAwAHAAYAAAAEAAcAAAAHAAMAAQACAAYAAQAGAAUA"
+  }
+ ]
+}

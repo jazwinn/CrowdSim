@@ -1,0 +1,14 @@
+[
+  {"cmd": "CreateScene", "params": {"name": "corridor_bottleneck"}},
+  {"cmd": "PlaceObject", "params": {"object": {"name": "Floor", "type": "box", "position": [0, -0.2, 0], "size": [80, 0.2, 30], "tags": ["walkable"], "color": "#5c626a"}}},
+  {"cmd": "PlaceObject", "params": {"object": {"name": "Wall north", "type": "box", "position": [0, 0, 15.15], "size": [80, 3, 0.3], "tags": ["obstacle"]}}},
+  {"cmd": "PlaceObject", "params": {"object": {"name": "Wall south", "type": "box", "position": [0, 0, -15.15], "size": [80, 3, 0.3], "tags": ["obstacle"]}}},
+  {"cmd": "PlaceObject", "params": {"object": {"name": "Bottleneck upper", "type": "box", "position": [0, 0, 8.75], "size": [0.6, 3, 12.5], "tags": ["obstacle"]}}},
+  {"cmd": "PlaceObject", "params": {"object": {"name": "Bottleneck lower", "type": "box", "position": [0, 0, -8.75], "size": [0.6, 3, 12.5], "tags": ["obstacle"]}}},
+  {"cmd": "CreateGoal", "params": {"goal": {"name": "Exit", "area": {"center": [36, 0], "halfExtents": [3, 14]}}}},
+  {"cmd": "CreateSpawner", "params": {"spawner": {"name": "Entrance", "area": {"center": [-34, 0], "halfExtents": [4, 13]}, "rate": 40, "total": 1500, "goal": "Exit"}}},
+  {"cmd": "RebuildNavmesh", "params": {}},
+  {"cmd": "RunFor", "params": {"seconds": 60}},
+  {"cmd": "SaveScene", "params": {"path": "scenes/corridor_bottleneck.scene.json"}},
+  {"cmd": "RunFor", "params": {"seconds": 60}}
+]

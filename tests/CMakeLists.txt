@@ -10,6 +10,7 @@ add_executable(crowdsim_tests
   sim/test_orca.cpp
   sim/test_navigation.cpp
   physics/test_physics.cpp
+  commands/test_commands.cpp
   app/test_command_line.cpp
 )
 target_link_libraries(crowdsim_tests PRIVATE crowdsim_app_common doctest::doctest)
@@ -43,3 +44,10 @@ add_test(NAME scenario_building_all_arrive
   COMMAND crowdsim_headless --scenario building --agents 1000 --steps 9000 --log-level warn)
 set_tests_properties(scenario_building_all_arrive PROPERTIES
   PASS_REGULAR_EXPRESSION "\"alive\":0,.*\"spawned\":1000,\"arrived\":1000")
+
+# M3: a scene built by commands replays to the identical state in a fresh process.
+add_test(NAME commands_replay_identical
+  COMMAND ${CMAKE_COMMAND} -DEXE=$<TARGET_FILE:crowdsim_headless>
+          -DCOMMANDS=${CMAKE_SOURCE_DIR}/content/commands/build_corridor.commands.json
+          -DWORKDIR=${CMAKE_CURRENT_BINARY_DIR}
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/replay.cmake)

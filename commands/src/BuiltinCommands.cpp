@@ -1,0 +1,402 @@
+#include <cmath>
+#include <format>
+#include <stdexcept>
+
+#include <spdlog/logger.h>
+
+#include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/JsonTypes.hpp"
+#include "crowdsim/assets/SceneSerializer.hpp"
+#include "crowdsim/commands/Command.hpp"
+#include "crowdsim/sim/Scenarios.hpp"
+#include "crowdsim/sim/Simulation.hpp"
+
+namespace crowdsim::commands {
+
+namespace {
+
+using assets::EntityKind;
+
+// --- Small schema helpers (JSON Schema subset used for MCP tool descriptions) ---------
+Json obj(Json properties, std::vector<std::string> required = {}) {
+    Json s{{"type", "object"}, {"properties", std::move(properties)}};
+    if (!required.empty()) {
+        s["required"] = required;
+    }
+    return s;
+}
+Json num(const char* d) {
+    return Json{{"type", "number"}, {"description", d}};
+}
+Json integer(const char* d) {
+    return Json{{"type", "integer"}, {"description", d}};
+}
+Json str(const char* d) {
+    return Json{{"type", "string"}, {"description", d}};
+}
+Json any(const char* d) {
+    return Json{{"type", "object"}, {"description", d}};
+}
+Json vec3(const char* d) {
+    return Json{
+        {"type", "array"}, {"items", {{"type", "number"}}}, {"minItems", 3}, {"maxItems", 3}, {"description", d}};
+}
+
+sim::SceneId requireId(const Json& params) {
+    if (!params.contains("id") || !params["id"].is_number_integer()) {
+        throw std::invalid_argument("missing integer \"id\"");
+    }
+    return params["id"].get<sim::SceneId>();
+}
+
+Json restoreSceneCommand(CommandContext& ctx) {
+    return makeCommand("RestoreScene",
+                       Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName)}, {"name", ctx.sceneName}});
+}
+
+/// Add an entity of `kind` from params[key] (entity JSON) and return output with undo.
+CommandOutput addEntity(const Json& params, CommandContext& ctx, const char* key, const char* kind,
+                        const char* commandName) {
+    if (!params.contains(key) || !params[key].is_object()) {
+        throw std::invalid_argument(std::format("missing object \"{}\"", key));
+    }
+    Json entity = params[key];
+    entity["kind"] = kind;
+    const sim::SceneId id = assets::addEntityFromJson(ctx.sim, entity, &ctx.assets);
+    entity["id"] = id;
+    entity.erase("kind");
+
+    CommandOutput out;
+    out.result = Json{{"id", id}};
+    out.undo = makeCommand("DeleteEntity", Json{{"id", id}});
+    out.logAs = makeCommand(commandName, Json{{key, entity}});  // with the assigned id
+    out.label = std::format("Create {} '{}'", kind, entity.value("name", std::string(kind)));
+    return out;
+}
+
+CommandOutput updateEntity(sim::SceneId id, const Json& patch, CommandContext& ctx) {
+    Json before = assets::entityToJson(ctx.sim, id);
+    if (before.is_null()) {
+        throw std::invalid_argument(std::format("no scene entity with id {}", id));
+    }
+    assets::patchEntity(ctx.sim, id, patch, &ctx.assets);
+    before.erase("id");
+    before.erase("kind");
+    CommandOutput out;
+    out.result = Json{{"id", id}};
+    out.undo = makeCommand("UpdateEntity", Json{{"id", id}, {"patch", before}});
+    out.label = std::format("Edit '{}'", before.value("name", std::to_string(id)));
+    return out;
+}
+
+Json locomotionToJson(const sim::LocomotionParams& p) {
+    return Json{{"neighborDistance", assets::roundFloat(p.neighborDistance)},
+                {"maxNeighbors", p.maxNeighbors},
+                {"timeHorizon", assets::roundFloat(p.timeHorizon)},
+                {"obstacleTimeHorizon", assets::roundFloat(p.obstacleTimeHorizon)},
+                {"personalSpace", assets::roundFloat(p.personalSpace)},
+                {"maxTurnRate", assets::roundFloat(p.maxTurnRate)},
+                {"levelSeparation", assets::roundFloat(p.levelSeparation)}};
+}
+
+sim::LocomotionParams locomotionFromJson(const Json& j, sim::LocomotionParams p) {
+    p.neighborDistance = j.value("neighborDistance", p.neighborDistance);
+    p.maxNeighbors = j.value("maxNeighbors", p.maxNeighbors);
+    p.timeHorizon = j.value("timeHorizon", p.timeHorizon);
+    p.obstacleTimeHorizon = j.value("obstacleTimeHorizon", p.obstacleTimeHorizon);
+    p.personalSpace = j.value("personalSpace", p.personalSpace);
+    p.maxTurnRate = j.value("maxTurnRate", p.maxTurnRate);
+    p.levelSeparation = j.value("levelSeparation", p.levelSeparation);
+    if (p.neighborDistance <= 0.1f || p.timeHorizon <= 0.0f || p.obstacleTimeHorizon <= 0.0f) {
+        throw std::invalid_argument("locomotion distances and horizons must be positive");
+    }
+    return p;
+}
+
+}  // namespace
+
+void registerBuiltinCommands(CommandRegistry& r) {
+    // ----------------------------------------------------------------------- scenes
+    r.add({"CreateScene", "Clear everything and start an empty scene.", obj({{"name", str("scene name")}}),
+           [](const Json& p, CommandContext& ctx) {
+               CommandOutput out;
+               out.undo = restoreSceneCommand(ctx);
+               ctx.sim.clearScene();
+               ctx.sceneName = p.value("name", std::string("untitled"));
+               out.label = "New scene";
+               return out;
+           }});
+
+    r.add({"RestoreScene", "Replace the scene with an inline scene document (scene.json content).",
+           obj({{"scene", any("crowdsim.scene document")}, {"name", str("scene name")}}, {"scene"}),
+           [](const Json& p, CommandContext& ctx) {
+               CommandOutput out;
+               out.undo = restoreSceneCommand(ctx);
+               const std::string name = assets::loadScene(p.at("scene"), ctx.sim, ctx.assets);
+               ctx.sceneName = p.value("name", name);
+               out.label = "Restore scene";
+               return out;
+           }});
+
+    r.add({"LoadScene", "Load a *.scene.json file (path relative to the content root).",
+           obj({{"path", str("scene file")}}, {"path"}), [](const Json& p, CommandContext& ctx) {
+               CommandOutput out;
+               out.undo = restoreSceneCommand(ctx);
+               const std::string path = p.at("path").get<std::string>();
+               ctx.sceneName = assets::loadSceneFile(ctx.assets.resolve(path), ctx.sim, ctx.assets);
+               // Log the content, not the path, so logs replay even if the file changes.
+               out.logAs = makeCommand(
+                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName)}, {"name", ctx.sceneName}});
+               out.result = Json{{"name", ctx.sceneName}};
+               out.label = "Load " + path;
+               return out;
+           }});
+
+    r.add({"SaveScene", "Save the scene to a *.scene.json file (path relative to the content root).",
+           obj({{"path", str("scene file")}, {"name", str("scene name to store")}}, {"path"}),
+           [](const Json& p, CommandContext& ctx) {
+               CommandOutput out;
+               if (p.contains("name")) {
+                   ctx.sceneName = p["name"].get<std::string>();
+               }
+               if (!ctx.replaying) {
+                   const auto file = ctx.assets.resolve(p.at("path").get<std::string>());
+                   assets::saveSceneFile(ctx.sim, ctx.sceneName, file);
+                   out.result = Json{{"path", ctx.assets.relativize(file)}};
+                   ctx.log.info("Saved scene '{}' to {}", ctx.sceneName, file.string());
+               }
+               return out;
+           },
+           /*logged=*/false});
+
+    r.add({"LoadBuiltinScenario",
+           "Replace the scene with a built-in scenario (stream, counterflow, benchmark, building).",
+           obj({{"name", str("scenario name")}, {"agents", integer("total agents")}}, {"name"}),
+           [](const Json& p, CommandContext& ctx) {
+               const std::string name = p.at("name").get<std::string>();
+               const auto kind = sim::parseScenario(name);
+               if (!kind) {
+                   throw std::invalid_argument("unknown scenario '" + name + "'");
+               }
+               CommandOutput out;
+               out.undo = restoreSceneCommand(ctx);
+               sim::buildScenario(ctx.sim, *kind, p.value<std::uint32_t>("agents", 2000));
+               ctx.sceneName = name;
+               out.logAs = makeCommand(
+                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName)}, {"name", ctx.sceneName}});
+               out.label = "Scenario " + name;
+               return out;
+           }});
+
+    // ----------------------------------------------------------------------- entities
+    const Json objectProps =
+        obj({{"name", str("display name")},
+             {"type", str("box | ramp | stairs | plane | mesh")},
+             {"position", vec3("centre of the footprint at its lowest point")},
+             {"rotationY", num("degrees about +Y")},
+             {"size", vec3("width, height, depth (m)")},
+             {"steps", integer("stairs only")},
+             {"color", str("#rrggbb")},
+             {"tags", Json{{"type", "array"}, {"items", {{"type", "string"}}}, {"description", "walkable | obstacle"}}},
+             {"asset", str("glTF path (type mesh)")},
+             {"scale", num("uniform scale (type mesh)")}});
+    r.add({"PlaceObject", "Add a static object (primitive or imported mesh). Returns its id.",
+           obj({{"object", objectProps}}, {"object"}),
+           [](const Json& p, CommandContext& ctx) { return addEntity(p, ctx, "object", "object", "PlaceObject"); }});
+
+    r.add({"ImportGltf", "Import a glTF file as a static mesh object. Node names/extras set walkable/obstacle tags.",
+           obj({{"path", str("glTF file relative to the content root")},
+                {"name", str("object name")},
+                {"position", vec3("placement")},
+                {"rotationY", num("degrees")},
+                {"scale", num("uniform scale")}},
+               {"path"}),
+           [](const Json& p, CommandContext& ctx) {
+               const std::string path = p.at("path").get<std::string>();
+               const assets::ImportedMesh& mesh = ctx.assets.loadMesh(path);
+               Json object{{"name", p.value("name", path)},
+                           {"type", "mesh"},
+                           {"asset", ctx.assets.relativize(ctx.assets.resolve(path))},
+                           {"position", p.value("position", Json::array({0, 0, 0}))},
+                           {"rotationY", p.value("rotationY", 0.0)},
+                           {"scale", p.value("scale", 1.0)},
+                           {"tags", Json::array()}};
+               CommandOutput out = addEntity(Json{{"object", object}}, ctx, "object", "object", "PlaceObject");
+               out.result["triangles"] = mesh.mesh->triangleCount();
+               out.result["walkableTriangles"] = mesh.walkableTriangles;
+               out.result["obstacleTriangles"] = mesh.obstacleTriangles;
+               out.result["nodeTags"] = mesh.nodeTags;
+               out.label = "Import " + path;
+               return out;
+           }});
+
+    r.add(
+        {"CreateSpawner", "Add a spawner. Returns its id.",
+         obj({{"spawner",
+               any("{name, area:{center:[x,z], halfExtents:[x,z], elevation}, rate, total, startTime, "
+                   "stopTime, goal:<goal id or name>, agent:{radius:[min,max], preferredSpeed:[min,max], ...}}")}},
+             {"spawner"}),
+         [](const Json& p, CommandContext& ctx) { return addEntity(p, ctx, "spawner", "spawner", "CreateSpawner"); }});
+
+    r.add({"CreateGoal", "Add a goal area. Returns its id.",
+           obj({{"goal", any("{name, area:{center:[x,z], halfExtents:[x,z], elevation}}")}}, {"goal"}),
+           [](const Json& p, CommandContext& ctx) { return addEntity(p, ctx, "goal", "goal", "CreateGoal"); }});
+
+    r.add({"CreateOffMeshLink", "Add an off-mesh link (ladder, escalator). Returns its id.",
+           obj({{"link", any("{start:[x,y,z], end:[x,y,z], radius, bidirectional, extraCost}")}}, {"link"}),
+           [](const Json& p, CommandContext& ctx) { return addEntity(p, ctx, "link", "link", "CreateOffMeshLink"); }});
+
+    r.add({"AddEntity", "Add any entity from its full JSON form {kind, id, ...} (used by undo).",
+           obj({{"entity", any("entity JSON with kind")}}, {"entity"}), [](const Json& p, CommandContext& ctx) {
+               const Json& e = p.at("entity");
+               const sim::SceneId id = assets::addEntityFromJson(ctx.sim, e, &ctx.assets);
+               CommandOutput out;
+               out.result = Json{{"id", id}};
+               out.undo = makeCommand("DeleteEntity", Json{{"id", id}});
+               Json logged = e;
+               logged["id"] = id;
+               out.logAs = makeCommand("AddEntity", Json{{"entity", logged}});
+               out.label = std::format("Add '{}'", e.value("name", std::to_string(id)));
+               return out;
+           }});
+
+    r.add({"UpdateEntity", "Merge-patch any scene entity's fields (e.g. {\"id\": 5, \"patch\": {\"rate\": 30}}).",
+           obj({{"id", integer("entity id")}, {"patch", any("fields to change")}}, {"id", "patch"}),
+           [](const Json& p, CommandContext& ctx) { return updateEntity(requireId(p), p.at("patch"), ctx); }});
+
+    r.add({"TransformObject", "Move / rotate / resize an object.",
+           obj({{"id", integer("object id")},
+                {"position", vec3("new position")},
+                {"rotationY", num("degrees")},
+                {"size", vec3("new size (primitives)")},
+                {"scale", num("new scale (meshes)")}},
+               {"id"}),
+           [](const Json& p, CommandContext& ctx) {
+               Json patch = Json::object();
+               for (const char* key : {"position", "rotationY", "size", "scale"}) {
+                   if (p.contains(key)) {
+                       patch[key] = p[key];
+                   }
+               }
+               CommandOutput out = updateEntity(requireId(p), patch, ctx);
+               out.label = "Transform " + out.label.substr(5);
+               return out;
+           }});
+
+    r.add({"SetSpawnerConfig", "Change a spawner's settings (merge-patch).",
+           obj({{"id", integer("spawner id")}, {"config", any("spawner fields")}}, {"id", "config"}),
+           [](const Json& p, CommandContext& ctx) {
+               if (assets::entityKindOf(ctx.sim, requireId(p)) != EntityKind::Spawner) {
+                   throw std::invalid_argument("id is not a spawner");
+               }
+               return updateEntity(requireId(p), p.at("config"), ctx);
+           }});
+
+    r.add({"SetGoalConfig", "Change a goal's settings (merge-patch).",
+           obj({{"id", integer("goal id")}, {"config", any("goal fields")}}, {"id", "config"}),
+           [](const Json& p, CommandContext& ctx) {
+               if (assets::entityKindOf(ctx.sim, requireId(p)) != EntityKind::Goal) {
+                   throw std::invalid_argument("id is not a goal");
+               }
+               return updateEntity(requireId(p), p.at("config"), ctx);
+           }});
+
+    r.add({"DeleteEntity", "Delete any scene entity (object, spawner, goal, link) by id.",
+           obj({{"id", integer("entity id")}}, {"id"}), [](const Json& p, CommandContext& ctx) {
+               const sim::SceneId id = requireId(p);
+               Json before = assets::entityToJson(ctx.sim, id);
+               if (before.is_null() || !ctx.sim.removeEntity(id)) {
+                   throw std::invalid_argument(std::format("no scene entity with id {}", id));
+               }
+               CommandOutput out;
+               out.undo = makeCommand("AddEntity", Json{{"entity", before}});
+               out.label = std::format("Delete '{}'", before.value("name", std::to_string(id)));
+               return out;
+           }});
+
+    // ----------------------------------------------------------------------- navigation
+    r.add({"RebuildNavmesh", "Rebuild the navmesh and flow fields now (otherwise done lazily).", obj({}),
+           [](const Json&, CommandContext& ctx) {
+               ctx.sim.updateNavigation();
+               CommandOutput out;
+               out.result = Json{{"polygons", ctx.sim.navMesh().polyCount()},
+                                 {"tiles", ctx.sim.navMesh().tileCount()},
+                                 {"walls", ctx.sim.navMesh().walls().size()}};
+               return out;
+           }});
+
+    r.add({"SetNavigationSettings", "Change navmesh build settings (cellSize, agentRadius, agentMaxClimb, ...).",
+           obj({{"settings", any("navigation settings")}}, {"settings"}), [](const Json& p, CommandContext& ctx) {
+               Json before = assets::toJson(ctx.sim.config().navigation);
+               Json merged = before;
+               merged.merge_patch(p.at("settings"));
+               ctx.sim.setNavigationSettings(assets::navSettingsFromJson(merged));
+               CommandOutput out;
+               out.undo = makeCommand("SetNavigationSettings", Json{{"settings", before}});
+               out.label = "Navigation settings";
+               return out;
+           }});
+
+    // ----------------------------------------------------------------------- simulation
+    r.add({"SetSimParams", "Change locomotion parameters and/or the seed (seed applies at the next reset).",
+           obj({{"seed", integer("world seed")},
+                {"locomotion", any("neighborDistance, maxNeighbors, timeHorizon, ...")}}),
+           [](const Json& p, CommandContext& ctx) {
+               const Json before{{"seed", ctx.sim.config().seed},
+                                 {"locomotion", locomotionToJson(ctx.sim.config().locomotion)}};
+               if (p.contains("locomotion")) {
+                   ctx.sim.setLocomotionParams(locomotionFromJson(p["locomotion"], ctx.sim.config().locomotion));
+               }
+               if (p.contains("seed")) {
+                   ctx.sim.setSeed(p["seed"].get<std::uint64_t>());
+               }
+               CommandOutput out;
+               out.undo = makeCommand("SetSimParams", before);
+               out.label = "Simulation parameters";
+               return out;
+           }});
+
+    r.add({"ResetSimulation", "Remove all agents and return to t = 0 (the scene is kept).", obj({}),
+           [](const Json&, CommandContext& ctx) {
+               ctx.sim.reset();
+               ctx.control.pendingSteps = 0;
+               return CommandOutput{};
+           }});
+
+    r.add({"Play", "Run the simulation in real time (GUI).", obj({}),
+           [](const Json&, CommandContext& ctx) {
+               ctx.control.playing = true;
+               return CommandOutput{};
+           },
+           false});
+    r.add({"Pause", "Pause the simulation.", obj({}),
+           [](const Json&, CommandContext& ctx) {
+               ctx.control.playing = false;
+               return CommandOutput{};
+           },
+           false});
+    r.add({"SetSimSpeed", "Real-time multiplier for playback.", obj({{"speed", num("0..16")}}, {"speed"}),
+           [](const Json& p, CommandContext& ctx) {
+               ctx.control.speed = std::clamp(p.at("speed").get<float>(), 0.0f, 16.0f);
+               return CommandOutput{};
+           },
+           false});
+    r.add({"Step", "Advance a number of fixed steps (default 1).", obj({{"steps", integer("steps")}}),
+           [](const Json& p, CommandContext& ctx) {
+               ctx.control.pendingSteps += p.value<std::uint64_t>("steps", 1);
+               return CommandOutput{};
+           },
+           false});
+    r.add({"RunFor", "Advance by simulated seconds.", obj({{"seconds", num("simulated seconds")}}, {"seconds"}),
+           [](const Json& p, CommandContext& ctx) {
+               const double seconds = p.at("seconds").get<double>();
+               if (seconds < 0.0) {
+                   throw std::invalid_argument("seconds must be >= 0");
+               }
+               ctx.control.pendingSteps += static_cast<std::uint64_t>(std::llround(seconds / ctx.sim.stepSeconds()));
+               return CommandOutput{};
+           },
+           false});
+}
+
+}  // namespace crowdsim::commands

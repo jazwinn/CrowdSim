@@ -80,8 +80,34 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             }
         } else if (arg == "--agents") {
             number(c.agents);
+        } else if (arg == "--content") {
+            if (auto v = value()) {
+                c.contentDir = std::string(*v);
+            }
+        } else if (arg == "--scene") {
+            if (auto v = value()) {
+                c.scenePath = std::string(*v);
+            }
+        } else if (!gui && arg == "--commands") {
+            if (auto v = value()) {
+                c.commandsFile = std::string(*v);
+            }
+        } else if (!gui && arg == "--replay") {
+            if (auto v = value()) {
+                c.replayFile = std::string(*v);
+            }
+        } else if (!gui && arg == "--save-log") {
+            if (auto v = value()) {
+                c.saveLogFile = std::string(*v);
+            }
+        } else if (!gui && arg == "--export-scene") {
+            if (auto v = value()) {
+                c.exportScene = std::string(*v);
+            }
         } else if (gui && arg == "--no-vsync") {
             c.vsync = false;
+        } else if (gui && arg == "--select") {
+            number(c.selectId);
         } else if (gui && arg == "--overlays") {
             if (auto v = value()) {
                 c.overlays = std::string(*v);
@@ -124,6 +150,8 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             if (auto v = value()) {
                 c.log.filePath = std::string(*v);
             }
+        } else if (!gui && arg == "--list-commands") {
+            c.listCommands = true;
         } else if (!gui && arg == "--dump-remaining") {
             c.dumpRemaining = true;
         } else if (!gui && arg == "--steps") {
@@ -164,6 +192,8 @@ std::string usage(std::string_view exeName, bool gui) {
         "  --hz N              simulation rate in Hz (default 30)\n"
         "  --scenario NAME     stream | counterflow | benchmark (default stream)\n"
         "  --agents N          total agents the scenario spawns (default 5000)\n"
+        "  --scene PATH        load a *.scene.json (relative to the content dir) instead of a scenario\n"
+        "  --content DIR       content root (default: the repository's content/)\n"
         "  --threads N         worker threads incl. main (default: all cores)\n"
         "  --log-level L       trace|debug|info|warn|err|critical|off\n"
         "  --log-file PATH     also write the log to PATH\n"
@@ -183,7 +213,13 @@ std::string usage(std::string_view exeName, bool gui) {
     } else {
         text +=
             "\nHeadless options:\n"
-            "  --steps N           number of fixed simulation steps to run (default 300)\n";
+            "  --steps N           number of fixed simulation steps to run (default 300)\n"
+            "  --list-commands     print every command (name, description, params schema) as JSON\n"
+            "  --dump-remaining    print agents still alive at the end (diagnostics)\n"
+            "  --commands FILE     execute a JSON array of commands (prints one result per line)\n"
+            "  --replay FILE       replay a command log and print the final state hash\n"
+            "  --save-log FILE     write the command log at exit\n"
+            "  --export-scene FILE save the scene at exit\n";
     }
     return text;
 }

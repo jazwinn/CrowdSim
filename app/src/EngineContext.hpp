@@ -7,14 +7,26 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
 
 #include "AppConfig.hpp"
+#include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
 namespace crowdsim::app {
+
+/// A raycast hit on a scene entity.
+struct EntityHit {
+    sim::SceneId id = sim::kNoSceneId;
+    glm::vec3 position{0.0f};
+    float distance = 0.0f;
+};
 
 class EngineContext {
 public:
@@ -29,20 +41,43 @@ public:
     [[nodiscard]] core::JobSystem& jobs() noexcept { return jobs_; }
     [[nodiscard]] sim::Simulation& simulation() noexcept { return simulation_; }
     [[nodiscard]] physics::IPhysicsWorld& physics() noexcept { return *physics_; }
+    [[nodiscard]] assets::AssetLibrary& assets() noexcept { return assets_; }
+    [[nodiscard]] commands::CommandDispatcher& dispatcher() noexcept { return dispatcher_; }
+    [[nodiscard]] commands::CommandContext& commandContext() noexcept { return commandContext_; }
+    [[nodiscard]] commands::SimControl& control() noexcept { return control_; }
+    [[nodiscard]] const std::string& sceneName() const noexcept { return sceneName_; }
+
+    /// Execute a command now and log a warning if it fails.
+    commands::CommandOutcome execute(const commands::Json& command);
 
     /// Bring navigation and collision up to date with the simulation's scene.
     /// Call after scene edits (cheap when nothing changed).
     void syncScene();
 
+    /// Closest scene entity under a ray: static objects via physics, goals and
+    /// spawners via their floor rectangles.
+    [[nodiscard]] std::optional<EntityHit> pick(glm::vec3 origin, glm::vec3 direction) const;
+
+    /// Run requested steps (Step / RunFor), at most `maxSteps` now. Returns steps run.
+    std::uint64_t runPendingSteps(std::uint64_t maxSteps);
+
 private:
-    // Declaration order is construction order: logging first, simulation last.
+    // Declaration order is construction order: logging first, commands last.
     AppConfig config_;
     core::LogService logService_;
     core::JobSystem jobs_;
     physics::JoltRuntime joltRuntime_;
     std::unique_ptr<physics::IPhysicsWorld> physics_;
     sim::Simulation simulation_;
+    assets::AssetLibrary assets_;
+    commands::SimControl control_;
+    std::string sceneName_ = "untitled";
+    commands::CommandContext commandContext_;
+    commands::CommandRegistry registry_;
+    commands::CommandDispatcher dispatcher_;
+
     std::uint64_t physicsVersion_ = ~0ull;
+    std::unordered_map<std::uint32_t, sim::SceneId> bodyToEntity_;
 };
 
 }  // namespace crowdsim::app

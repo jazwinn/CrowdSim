@@ -12,3 +12,4 @@ __pycache__/
 /screenshots/
 imgui.ini
 *.log
+/content/logs/

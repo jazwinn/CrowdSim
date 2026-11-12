@@ -13,7 +13,8 @@
     "doctest",
     "benchmark",
     "recastnavigation",
-    "joltphysics"
+    "joltphysics",
+    "cgltf"
   ],
   "default-features": ["gui"],
   "features": {
@@ -29,7 +30,8 @@
           ]
         },
         { "name": "bgfx", "features": ["tools"] },
-        { "name": "imgui", "features": ["docking-experimental", "sdl3-binding"] }
+        { "name": "imgui", "features": ["docking-experimental", "sdl3-binding"] },
+        "imguizmo"
       ]
     },
     "tracy": {
