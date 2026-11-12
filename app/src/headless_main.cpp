@@ -170,6 +170,7 @@ int main(int argc, char** argv) {
         double totalMs = 0.0;
         double maxStepMs = 0.0;
         std::uint32_t peakAgents = 0;
+        sim::StepProfile phases;  // sums
         for (std::uint64_t i = 0; i < config.steps; ++i) {
             const auto t0 = Clock::now();
             sim.step();
@@ -177,6 +178,34 @@ int main(int argc, char** argv) {
             totalMs += ms;
             maxStepMs = std::max(maxStepMs, ms);
             peakAgents = std::max(peakAgents, sim.agents().size());
+            const sim::StepProfile& p = sim.lastStepProfile();
+            phases.navigation += p.navigation;
+            phases.hash += p.hash;
+            phases.spawn += p.spawn;
+            phases.decisions += p.decisions;
+            phases.resolve += p.resolve;
+            phases.preferred += p.preferred;
+            phases.avoidance += p.avoidance;
+            phases.integrate += p.integrate;
+            phases.despawn += p.despawn;
+            phases.observers += p.observers;
+        }
+        if (config.profile && config.steps > 0) {
+            const auto avg = [&](float sum) {
+                return std::round(sum / static_cast<double>(config.steps) * 1000.0) / 1000.0;
+            };
+            printLine(Json{{"profile_ms_per_step",
+                            {{"navigation", avg(phases.navigation)},
+                             {"hash", avg(phases.hash)},
+                             {"spawn", avg(phases.spawn)},
+                             {"decisions", avg(phases.decisions)},
+                             {"resolve", avg(phases.resolve)},
+                             {"preferred", avg(phases.preferred)},
+                             {"avoidance", avg(phases.avoidance)},
+                             {"integrate", avg(phases.integrate)},
+                             {"despawn", avg(phases.despawn)},
+                             {"observers", avg(phases.observers)}}},
+                           {"agents_peak", peakAgents}});
         }
         const sim::SimStats stats = sim.stats();
         if (config.dumpRemaining) {

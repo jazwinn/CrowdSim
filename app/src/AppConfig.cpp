@@ -172,6 +172,8 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             if (auto v = value()) {
                 c.scriptPath = std::string(*v);
             }
+        } else if (!gui && arg == "--profile") {
+            c.profile = true;
         } else if (!gui && arg == "--mcp-stdio") {
             c.mcpStdio = true;
         } else if (arg == "--mcp-http") {
@@ -258,6 +260,7 @@ std::string usage(std::string_view exeName, bool gui) {
             "  --steps N           number of fixed simulation steps to run (default 300)\n"
             "  --list-commands     print every command (name, description, params schema) as JSON\n"
             "  --mcp-stdio         serve MCP on stdin/stdout (for AI clients; logs go to stderr)\n"
+            "  --profile           print the average wall time of each step phase (JSON)\n"
             "  --dump-remaining    print agents still alive at the end (diagnostics)\n"
             "  --commands FILE     execute a JSON array of commands (prints one result per line)\n"
             "  --replay FILE       replay a command log and print the final state hash\n"
