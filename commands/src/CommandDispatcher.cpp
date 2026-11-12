@@ -136,6 +136,11 @@ void CommandDispatcher::clearHistory() {
 
 void CommandDispatcher::restartLog(CommandContext& ctx) {
     log_.clear();
+    if (ctx.logPrelude) {
+        for (Json& cmd : ctx.logPrelude()) {
+            log_.push_back({ctx.sim.stepIndex(), std::move(cmd)});
+        }
+    }
     log_.push_back({ctx.sim.stepIndex(),
                     makeCommand("RestoreScene",
                                 Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName)}, {"name", ctx.sceneName}})});
