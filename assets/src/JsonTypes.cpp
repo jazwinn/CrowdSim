@@ -171,7 +171,11 @@ Json toJson(const sim::StaticObject& o) {
         }
         j["color"] = colorString(p.color);
     }
-    j["tags"] = flagsToTags(p.flags);
+    Json tags = flagsToTags(p.flags);
+    for (const std::string& t : o.tags) {
+        tags.push_back(t);
+    }
+    j["tags"] = tags;
     return j;
 }
 
@@ -209,6 +213,14 @@ sim::StaticObject staticObjectFromJson(const Json& j, AssetLibrary* assets) {
         }
     }
     p.flags = j.contains("tags") ? tagsToFlags(j["tags"]) : geometry::kSurfaceWalkable;
+    if (j.contains("tags")) {
+        for (const auto& t : j["tags"]) {
+            const std::string tag = t.get<std::string>();
+            if (tag != "walkable" && tag != "obstacle") {
+                o.tags.push_back(tag);
+            }
+        }
+    }
     return o;
 }
 
@@ -246,13 +258,27 @@ sim::Area areaFromJson(const Json& j) {
 }
 
 Json toJson(const sim::Goal& g) {
-    return Json{{"name", g.name}, {"area", toJson(g.area)}};
+    return Json{{"name", g.name},
+                {"area", toJson(g.area)},
+                {"capacity", g.capacity},
+                {"serviceTime", roundFloat(g.serviceTime)},
+                {"queueDirection", vec(g.queueDirection)},
+                {"queueSpacing", roundFloat(g.queueSpacing)}};
 }
 
 sim::Goal goalFromJson(const Json& j) {
     sim::Goal g;
     g.name = value<std::string>(j, "name", "Goal");
     g.area = areaFromJson(j.at("area"));
+    g.capacity = value<std::uint32_t>(j, "capacity", 0);
+    g.serviceTime = value<float>(j, "serviceTime", 0.0f);
+    if (j.contains("queueDirection")) {
+        g.queueDirection = vec2From(j["queueDirection"]);
+    }
+    g.queueSpacing = value<float>(j, "queueSpacing", 0.8f);
+    if (g.serviceTime < 0.0f || g.queueSpacing <= 0.1f) {
+        throw std::invalid_argument("goal serviceTime must be >= 0 and queueSpacing > 0.1");
+    }
     return g;
 }
 
@@ -299,7 +325,13 @@ Json toJson(const sim::Spawner& s) {
            {"total", s.total},
            {"startTime", roundFloat(s.startTime)},
            {"goal", s.goal},
-           {"agent", toJson(s.agent)}};
+           {"agent", toJson(s.agent)},
+           {"groupSize", Json::array({s.groupSizeMin, s.groupSizeMax})}};
+    Json mix = Json::array();
+    for (const sim::AgentMixEntry& m : s.agentMix) {
+        mix.push_back(Json{{"type", m.type}, {"weight", roundFloat(m.weight)}});
+    }
+    j["agentMix"] = mix;
     j["stopTime"] = std::isfinite(s.stopTime) ? Json(roundFloat(s.stopTime)) : Json(nullptr);
     return j;
 }
@@ -315,6 +347,23 @@ sim::Spawner spawnerFromJson(const Json& j) {
     s.goal = value<sim::SceneId>(j, "goal", sim::kNoSceneId);
     if (j.contains("agent")) {
         s.agent = agentParamsFromJson(j["agent"]);
+    }
+    if (j.contains("agentMix")) {
+        for (const auto& m : j["agentMix"]) {
+            s.agentMix.push_back({m.at("type").get<std::string>(), value<float>(m, "weight", 1.0f)});
+        }
+    }
+    if (j.contains("groupSize")) {
+        const Json& g = j["groupSize"];
+        if (g.is_number()) {
+            s.groupSizeMin = s.groupSizeMax = g.get<std::uint32_t>();
+        } else {
+            s.groupSizeMin = g.at(0).get<std::uint32_t>();
+            s.groupSizeMax = g.at(1).get<std::uint32_t>();
+        }
+        if (s.groupSizeMin < 1 || s.groupSizeMax < s.groupSizeMin || s.groupSizeMax > 12) {
+            throw std::invalid_argument("groupSize must be [min, max] with 1 <= min <= max <= 12");
+        }
     }
     if (s.rate < 0.0f) {
         throw std::invalid_argument("spawner rate must be >= 0");

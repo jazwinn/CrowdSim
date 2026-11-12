@@ -5,6 +5,7 @@
 #include <spdlog/logger.h>
 
 #include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/JsonTypes.hpp"
 #include "crowdsim/assets/SceneSerializer.hpp"
 #include "crowdsim/commands/Command.hpp"
@@ -311,6 +312,84 @@ void registerBuiltinCommands(CommandRegistry& r) {
                CommandOutput out;
                out.undo = makeCommand("AddEntity", Json{{"entity", before}});
                out.label = std::format("Delete '{}'", before.value("name", std::to_string(id)));
+               return out;
+           }});
+
+    // ----------------------------------------------------------------------- behaviours
+    r.add({"SetBehaviorTree",
+           "Add or replace (hot reload) a behaviour tree from its *.bt.json content; agents using it restart "
+           "from the root.",
+           obj({{"tree", any("crowdsim.bt document: {name, root: {type, id, params, children}}")}}, {"tree"}),
+           [](const Json& p, CommandContext& ctx) {
+               sim::CompiledTree tree = assets::compileBehaviorJson(p.at("tree"));
+               CommandOutput out;
+               if (const sim::CompiledTree* old = ctx.sim.findBehaviorTree(tree.name)) {
+                   out.undo = makeCommand("SetBehaviorTree", Json{{"tree", assets::behaviorToJson(*old)}});
+               }
+               const std::string name = tree.name;
+               const std::size_t nodes = tree.nodes.size();
+               ctx.sim.setBehaviorTree(std::move(tree));
+               out.result =
+                   Json{{"name", name}, {"nodes", nodes}, {"generation", ctx.sim.findBehaviorTree(name)->generation}};
+               out.label = "Behaviour '" + name + "'";
+               return out;
+           }});
+
+    r.add({"ValidateBehaviorTree", "Check a behaviour tree document without applying it.",
+           obj({{"tree", any("crowdsim.bt document")}}, {"tree"}),
+           [](const Json& p, CommandContext&) {
+               CommandOutput out;
+               try {
+                   const sim::CompiledTree tree = assets::compileBehaviorJson(p.at("tree"));
+                   out.result = Json{{"valid", true},
+                                     {"name", tree.name},
+                                     {"nodes", tree.nodes.size()},
+                                     {"memorySlots", tree.memSlots},
+                                     {"timerSlots", tree.timerSlots}};
+               } catch (const std::exception& e) {
+                   out.result = Json{{"valid", false}, {"error", e.what()}};
+               }
+               return out;
+           },
+           false});
+
+    r.add({"ListBehaviorNodeTypes", "List behaviour tree node types with their parameter schemas.", obj({}),
+           [](const Json&, CommandContext&) {
+               CommandOutput out;
+               out.result = Json{{"nodeTypes", assets::btNodeTypesJson()}};
+               return out;
+           },
+           false});
+
+    r.add({"DefineAgentType", "Add or replace an agent type from its *.agent.json content.",
+           obj({{"type", any("crowdsim.agent document: {name, behaviour, radius, preferredSpeed, color, ...}")}},
+               {"type"}),
+           [](const Json& p, CommandContext& ctx) {
+               const sim::AgentType type = assets::agentTypeFromJson(p.at("type"));
+               CommandOutput out;
+               if (const sim::AgentType* old = ctx.sim.findAgentType(type.name)) {
+                   out.undo = makeCommand("DefineAgentType", Json{{"type", assets::toJson(*old)}});
+               }
+               ctx.sim.defineAgentType(type);
+               out.result = Json{{"name", type.name}};
+               out.label = "Agent type '" + type.name + "'";
+               return out;
+           }});
+
+    r.add({"SetAgentTypeBehaviour", "Switch an agent type to another behaviour tree (running agents restart).",
+           obj({{"type", str("agent type name")}, {"behaviour", str("behaviour tree name")}}, {"type", "behaviour"}),
+           [](const Json& p, CommandContext& ctx) {
+               const std::string name = p.at("type").get<std::string>();
+               const sim::AgentType* old = ctx.sim.findAgentType(name);
+               if (old == nullptr) {
+                   throw std::invalid_argument("unknown agent type '" + name + "'");
+               }
+               sim::AgentType t = *old;
+               CommandOutput out;
+               out.undo = makeCommand("SetAgentTypeBehaviour", Json{{"type", name}, {"behaviour", t.behaviour}});
+               t.behaviour = p.at("behaviour").get<std::string>();
+               ctx.sim.defineAgentType(t);
+               out.label = "Behaviour of '" + name + "'";
                return out;
            }});
 

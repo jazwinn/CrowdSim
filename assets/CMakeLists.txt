@@ -6,6 +6,7 @@ crowdsim_add_library(assets
     src/GltfImport.cpp
     src/SceneSerializer.cpp
     src/JsonTypes.cpp
+    src/BehaviorJson.cpp
   DEPS
     CrowdSim::core
     CrowdSim::geometry

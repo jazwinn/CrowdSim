@@ -1,9 +1,12 @@
 #include "crowdsim/assets/SceneSerializer.hpp"
 
 #include <fstream>
+#include <set>
+#include <string>
 #include <stdexcept>
 
 #include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/JsonTypes.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
@@ -25,6 +28,40 @@ nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name) {
         }
         return arr;
     };
+    // Agent types the spawners use, and their behaviour trees, are embedded so a
+    // scene file (and every command log, which starts from one) is self-contained.
+    // The built-in "default" type is never written.
+    std::set<std::string> usedTypes;
+    for (sim::SceneId id : sim.spawnerIds()) {
+        for (const sim::AgentMixEntry& m : sim.findSpawner(id)->agentMix) {
+            if (m.type != "default") {
+                usedTypes.insert(m.type);
+            }
+        }
+    }
+    std::set<std::string> usedTrees;
+    Json types = Json::array();
+    for (const sim::AgentType& t : sim.agentTypes()) {
+        if (usedTypes.contains(t.name)) {
+            Json tj = toJson(t);
+            tj.erase("format");
+            tj.erase("version");
+            types.push_back(tj);
+            usedTrees.insert(t.behaviour);
+        }
+    }
+    Json behaviours = Json::array();
+    for (const sim::CompiledTree& tree : sim.behaviorTrees()) {
+        if (usedTrees.contains(tree.name)) {
+            behaviours.push_back(behaviorToJson(tree));
+        }
+    }
+    if (!behaviours.empty()) {
+        j["behaviours"] = behaviours;
+    }
+    if (!types.empty()) {
+        j["agentTypes"] = types;
+    }
     j["objects"] = list(sim.staticObjectIds());
     j["links"] = list(sim.offMeshLinkIds());
     j["goals"] = list(sim.goalIds());
@@ -52,6 +89,13 @@ std::string loadScene(const nlohmann::json& input, sim::Simulation& sim, AssetLi
     sim.clearScene();
     if (scene.contains("navigation")) {
         sim.setNavigationSettings(navSettingsFromJson(scene["navigation"]));
+    }
+    // Definitions first (spawners reference agent types, types reference trees).
+    for (const Json& tree : scene.value("behaviours", Json::array())) {
+        sim.setBehaviorTree(compileBehaviorJson(tree));
+    }
+    for (const Json& type : scene.value("agentTypes", Json::array())) {
+        sim.defineAgentType(agentTypeFromJson(type));
     }
     auto addAll = [&](const char* key, const char* kind) {
         if (!scene.contains(key)) {
