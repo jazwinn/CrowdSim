@@ -7,11 +7,72 @@ Last updated: 2026-11-12
 | M0 — Skeleton | done (Windows verified; macOS CI passed once) |
 | M1 — Simulation core | done (Windows) |
 | M2 — 3D navigation | done (Windows) |
-| M3 — Command layer & scene format | **done** (Windows) |
-| M4 — Behaviour trees | next |
+| M3 — Command layer & scene format | done (Windows) |
+| M4 — Behaviour trees | **done** (Windows) |
+| M5 — Animation & rendering scale | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M4 — Behaviour trees
+
+### What works
+
+- **Decision layer** (`sim/BehaviorTree`, `sim/Decisions.cpp`): JSON trees compiled to flat
+  arrays, 25 node types (composites, decorators, movement/queue/group/flee actions, conditions),
+  per-agent fixed-size state and RNG, 10 Hz staggered parallel ticks, serial resolution of queue
+  slots, arrivals and despawns. ADR 0007; formats and node reference in `docs/formats.md`.
+- **Locomotion intents**: flow field to a goal, Detour path corridors with funnel steering to a
+  point, stop; speed multipliers, per-type personal space, tag avoidance and fleeing.
+- **Queues**: goals with capacity, service time and a line direction; agents take tickets, line
+  up, get served and leave.
+- **Agent types and groups**: types bind a tree to locomotion parameters; spawners spawn weighted
+  type mixes and groups whose members follow the leader.
+- **Content**: `content/behaviours/{commuter,wanderer,queuer,follower,evacuee}.bt.json` and the
+  matching `content/agents/*.agent.json`, loaded at startup (`--no-content` to skip) and **hot
+  reloaded** while running (mtime polling → `SetBehaviorTree` / `DefineAgentType` commands, so
+  reloads are logged and undoable). Scenes embed the types and trees their spawners use.
+- **Plaza scenario**: fountain, benches, four kiosks with service lines, two gates spawning
+  commuters, wanderers, queuers and groups that cross to the opposite exit.
+- **Debugger**: click an agent in the viewport → the Inspector shows its type, state, movement
+  mode, target, queue stage, group and its behaviour tree with running (green) and last-visited
+  (yellow) nodes, memory slots and timers; a ring and target line mark the agent; *Follow* keeps
+  the camera on it. GUI `--select-agent ID` for screenshots.
+- **Commands**: `SetBehaviorTree`, `ValidateBehaviorTree`, `ListBehaviorNodeTypes`,
+  `DefineAgentType`, `SetAgentTypeBehaviour`.
+- **Navmesh connectivity**: polygons carry connected-component labels; hollow closed obstacles
+  (kiosk buildings) no longer trap agents whose random targets landed inside them.
+
+### Measured (Windows, i7-13700H, Release)
+
+| Measurement | Result | Budget |
+|---|---|---|
+| Sim step, plaza 5k (4.6k alive, every agent on a tree) | 1.54 ms | ≤ 6 ms |
+| Sim step, plaza 20k (9.4k alive) | 2.78 ms | |
+| Sim step, plain 5k benchmark crowd (for comparison) | 0.99 ms | |
+| Headless plaza, 5,000 agents | all leave by t = 800 s, avg 0.33–0.47 ms/step | |
+| GUI, plaza 5k at 12× speed, no vsync, whole run incl. ~4.9k peak | avg 1.50 ms/frame | ≤ 16.6 ms |
+
+### Tests
+
+New doctest cases: compiler rejects malformed trees (unknown type, child counts, parameter kinds,
+missing name/root, size limit); JSON → compile → decompile → JSON round trip; every content file
+loads; Selector / Inverter / RandomChance semantics; Wait then Despawn; **hot reload restarts
+running agents on the new tree**; **plaza: commuters, wanderers, queuers and followers coexist,
+kiosk service never exceeds capacity, and everyone leaves**; plaza determinism across 1 vs 8
+threads; content watcher (new, modified, unchanged and broken files). New CTest
+`scenario_plaza_all_leave` (2,000 agents). All 8 CTest entries and 50 doctest cases pass. Bench:
+`PlazaStep`.
+
+Screenshot: plaza at ~2,500 agents with the behaviour-tree debugger
+(`screenshots/m4_plaza_debugger.png`, not committed).
+
+### Known issues
+
+- No state-colour overlay yet; agent colours come from their type.
+- Queue lines are straight; long lines can run into other geometry.
+- Script node types (`Custom`) arrive with M6 (Lua); until then any unregistered type is rejected.
+- The plaza's first minutes are dense around the gates (spawn rate scales with agent count).
 
 ## M3 — Command layer & scene format
 

@@ -60,6 +60,84 @@ converted (Z flipped). Surface tags come from nodes and are inherited by childre
 
 `tools/make_test_gltf.py` generates `content/models/test_room.gltf`, which exercises all three.
 
+## Behaviour trees — `*.bt.json` (version 1)
+
+Files in `content/behaviours/` are loaded at startup and **hot reloaded** when they change (the
+GUI polls twice a second; each reload is a logged `SetBehaviorTree` command). Agents running a
+reloaded tree restart from its root. Scene files embed the trees they use under `"behaviours"`.
+
+```json
+{
+  "format": "crowdsim.bt", "version": 1, "name": "wanderer",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "params": {"name": "wandering"}},
+    {"type": "Repeat", "params": {"count": 3}, "children": [
+      {"type": "Sequence", "children": [
+        {"type": "Wander", "params": {"radius": 14}},
+        {"type": "Wait", "params": {"seconds": 2, "jitter": 3}}]}]},
+    {"type": "MoveToGoal"},
+    {"type": "Despawn"}]}
+}
+```
+
+- Every node has a `type`, an optional `id` (shown in the debugger and node editor) and optional
+  `params` (number, string or `[x, y, z]`). An `"editor"` block (node positions) is ignored by the
+  runtime.
+- Limits: 64 nodes, 24 composite/decorator memory slots and 8 timers per tree. Malformed trees are
+  rejected with the offending node's path (`root/Repeat[1]/...`); `ValidateBehaviorTree` checks a
+  tree without applying it.
+- Trees tick at `decisionHz` (10 Hz by default, staggered across agents). Statuses are
+  success / failure / running; composites resume their running child.
+- `goal` parameters name a goal; empty means the agent's spawner goal.
+
+| Node | Kind | Children | Params (default) | Behaviour |
+|---|---|---|---|---|
+| `Sequence` | composite | 1–32 | – | Run children in order; fail on the first failure, succeed when all succeed. |
+| `Selector` | composite | 1–32 | – | Run children in order until one succeeds; fail if all fail. |
+| `Parallel` | composite | 1–32 | `successThreshold` (1) | Tick all children; succeed once enough succeed, fail when that becomes impossible. |
+| `RandomSelector` | composite | 1–32 | – | Pick one child uniformly at random and run it to completion. |
+| `WeightedRandom` | composite | 1–32 | `weights` ("1,2,...") | Pick one child by weight and run it to completion. |
+| `Inverter` | decorator | 1 | – | Swap success and failure. |
+| `Succeeder` | decorator | 1 | – | Succeed once the child finishes. |
+| `Repeat` | decorator | 1 | `count` (0 = forever) | Re-run the child while it succeeds; fail when it fails. |
+| `Cooldown` | decorator | 1 | `seconds` (5) | After the child finishes, fail for `seconds`. |
+| `Timeout` | decorator | 1 | `seconds` (10) | Fail if the child is still running after `seconds`. |
+| `MoveToGoal` | action | 0 | `goal` | Walk to a goal along its flow field; succeed inside the goal area. |
+| `MoveToPoint` | action | 0 | `point`, `tolerance` (0.5) | Walk to a point along a navmesh path; fail if unreachable. |
+| `Wander` | action | 0 | `radius` (8) | Walk to a random reachable point within `radius`. |
+| `Wait` | action | 0 | `seconds` (2), `jitter` (0) | Stand still for `seconds` + random jitter. |
+| `Queue` | action | 0 | `goal` | Join the goal's line, wait for a free slot (`capacity`), get served for `serviceTime`. |
+| `FollowGroup` | action | 0 | `distance` (1.2) | Follow the group leader (keeps running); fails for leaders and solo agents. |
+| `FleeFrom` | action | 0 | `tag` ("danger"), `radius` (10) | Run from the nearest object with `tag` within `radius`; fail when none. |
+| `AvoidArea` | action | 0 | `tag` | Steer around objects with `tag` from now on. |
+| `SetSpeed` | action | 0 | `multiplier` (1) | Scale walking speed. |
+| `SetState` | action | 0 | `name` ("walking") | Set the state label (debugger, metrics). |
+| `Despawn` | action | 0 | – | Remove the agent. |
+| `IsNearGoal` | condition | 0 | `distance` (3), `goal` | Within `distance` of the goal area. |
+| `IsCrowded` | condition | 0 | `threshold` (6), `radius` (2) | At least `threshold` agents within `radius`. |
+| `IsAreaTagged` | condition | 0 | `tag` | Standing inside the footprint of an object with `tag`. |
+| `RandomChance` | condition | 0 | `probability` (0.5) | Succeed with the given probability. |
+
+`ListBehaviorNodeTypes` returns the same list with JSON parameter schemas.
+
+## Agent types — `*.agent.json` (version 1)
+
+Files in `content/agents/` (loaded and hot reloaded like trees, as `DefineAgentType`) bind a
+behaviour to locomotion parameters. Scenes embed the types they use under `"agentTypes"`.
+
+```json
+{"format": "crowdsim.agent", "version": 1, "name": "queuer", "behaviour": "queuer",
+ "radius": [0.24, 0.3], "preferredSpeed": [1.0, 1.4], "maxSpeedFactor": 1.35, "maxAcceleration": 3,
+ "personalSpace": 0.08, "height": 1.75, "color": "#5cbf6a", "colorJitter": 0.1, "tags": []}
+```
+
+Ranges (`[min, max]`) are sampled per agent from its own random stream. `personalSpace` (m) is
+added to the radius for avoidance. Spawners choose types with
+`"agentMix": [{"type": "commuter", "weight": 0.55}, ...]` and spawn groups with
+`"groupSize": [1, 3]` (the first agent leads; the others' `FollowGroup` follows it). Goals used as
+service points add `"capacity"`, `"serviceTime"` (s), `"queueDirection"` (`[x, z]`, the way the
+line extends) and `"queueSpacing"` (m).
+
 ## Commands
 
 Every state change is a command: `{"cmd": "<Name>", "params": {...}}`. GUI actions, `--commands`
@@ -72,7 +150,7 @@ every command with its JSON Schema.
 | `RestoreScene` | yes | Replace the scene with an inline scene document (scene.json content). |
 | `LoadScene` | yes (as `RestoreScene`) | Load a *.scene.json file. |
 | `SaveScene` | no | Save the scene to a *.scene.json file. |
-| `LoadBuiltinScenario` | yes (as `RestoreScene`) | stream, counterflow, benchmark, building. |
+| `LoadBuiltinScenario` | yes (as `RestoreScene`) | stream, counterflow, benchmark, building, plaza. |
 | `PlaceObject` | yes | Add a static object (primitive or imported mesh). Returns its id. |
 | `ImportGltf` | yes (as `PlaceObject`) | Import a glTF file as a mesh object; reports per-node tags. |
 | `CreateSpawner` / `CreateGoal` / `CreateOffMeshLink` | yes | Add an entity. Returns its id. |
@@ -81,6 +159,11 @@ every command with its JSON Schema.
 | `TransformObject` | yes | Move / rotate / resize an object. |
 | `SetSpawnerConfig` / `SetGoalConfig` | yes | Merge-patch a spawner / goal. |
 | `DeleteEntity` | yes | Delete any entity by id. |
+| `SetBehaviorTree` | yes | Add or replace (hot reload) a behaviour tree from `*.bt.json` content. |
+| `ValidateBehaviorTree` | no | Check a tree; returns `valid`, node / slot counts or the error. |
+| `ListBehaviorNodeTypes` | no | Node types with parameter schemas. |
+| `DefineAgentType` | yes | Add or replace an agent type from `*.agent.json` content. |
+| `SetAgentTypeBehaviour` | yes | Switch an agent type to another tree (its agents restart). |
 | `RebuildNavmesh` | yes | Rebuild navmesh + flow fields now; returns polygon/tile/wall counts. |
 | `SetNavigationSettings` | yes | Change navmesh build settings. |
 | `SetSimParams` | yes | Locomotion parameters and/or seed. |
