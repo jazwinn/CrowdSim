@@ -14,7 +14,9 @@
     "benchmark",
     "recastnavigation",
     "joltphysics",
-    "cgltf"
+    "cgltf",
+    "luajit",
+    "sol2"
   ],
   "default-features": ["gui"],
   "features": {
