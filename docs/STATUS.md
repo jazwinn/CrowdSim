@@ -8,11 +8,63 @@ Last updated: 2026-11-12
 | M1 — Simulation core | done (Windows) |
 | M2 — 3D navigation | done (Windows) |
 | M3 — Command layer & scene format | done (Windows) |
-| M4 — Behaviour trees | **done** (Windows) |
-| M5 — Animation & rendering scale | next |
+| M4 — Behaviour trees | done (Windows) |
+| M5 — Animated characters | **done** (Windows) |
+| M6 — Lua scripting | next |
 
 CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
 is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+
+## M5 — Animated characters
+
+### What works
+
+- **Procedural humanoid** (`animation/`): 18-joint skeleton, near/mid skinned meshes (2,412 / 556
+  triangles), idle / walk / run / turn-in-place clips from two-bone IK on authored foot paths,
+  built and sampled with **ozz-animation** (FetchContent, pinned 0.16.0) and baked into a
+  **bone-matrix VAT** (54 × 128 RGBA32F) in ~1 ms at start-up. ADR 0008.
+- **Gait controller**: walk/run phase advanced by distance ÷ cycle distance (no foot sliding on
+  straight walks), walk↔run cross-fade 2.0–2.7 m/s, idle below 0.45 m/s, turn in place when
+  stopped and turning; smoothed blend weights; per-agent desynchronised idles.
+- **Instanced skinned rendering**: one draw per LOD batch; per-agent shirt colour from the agent
+  type, hashed trousers / skin / hair palettes, uniform size variation from the agent radius.
+- **LOD**: near VAT (< 30 m), mid VAT (< 90 m), capsule beyond; configurable in *Rendering* and
+  with `--lod NEAR,FAR`.
+- **Frustum culling** of camera and shadow casters, parallel on the job system.
+- **Shadows**: 2048² directional shadow map with PCF on ground, scene meshes and characters,
+  texel-snapped around the camera target; toggle in *Rendering* or `--overlays noshadows`
+  (`capsules` turns characters off).
+- Stats panel: near / mid / far / culled counts, shadow casters, crowd prepare time.
+- Fix: spawner/goal decals are depth tested (they no longer draw over walls in front of them).
+
+### Measured (Windows, i7-13700H, laptop RTX GPU, D3D11, 1600×900, no vsync)
+
+| Measurement | Result | Budget |
+|---|---|---|
+| 5,000 agents, **all 4,744 visible as full-detail characters**, shadows | avg 6.34 ms, p99 8.33 ms (~158 FPS) | ≤ 16.6 ms |
+| 5,000 agents, all visible at mid LOD, shadows | avg 2.62 ms, p99 3.93 ms | |
+| 5,000 agents, default LOD, typical view | avg 1.93 ms, p99 5.47 ms | |
+| Crowd prepare (cull + LOD + gait), 5k visible | ~1.0 ms CPU | |
+| Character bake (`BakeCharacter`) | 1.0 ms | |
+| Gait update, 5k / 50k agents, one thread (`GaitUpdate`) | 0.20 ms / 2.07 ms | |
+
+### Tests
+
+New doctest cases: the bake is consistent (texture size, clip rows, LOD meshes index/joint/weight
+validity, head height in every frame); **walk and run feet stay planted**: in the baked texture
+the stance foot moves backwards at the clip's cycle distance per cycle (within 6 %) at ankle
+height; gait controller phase is distance-driven (quarter cycle after walking a quarter of the
+cycle distance; 1.25× scale → 0.2), and clip selection by speed and turn rate. GUI smoke test now
+bakes and renders characters. All 8 CTest entries and 53 doctest cases pass.
+
+Screenshots (not committed): `screenshots/m5_close.png` (plaza close-up with the BT debugger),
+`m5_side.png` (side view of the gait), `m5_bench5k.png` (5k benchmark crowd), `m5_shadow.png`.
+
+### Known issues
+
+- No runtime foot IK: sideways avoidance steps and turning while walking slide the feet a little.
+- The capsule far LOD differs in silhouette from the character (switch at 90 m).
+- The crowd prepare pass uses a hash map per agent id; ~1 ms at 5k, to be reworked for 50k (M10).
 
 ## M4 — Behaviour trees
 

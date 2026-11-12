@@ -10,7 +10,8 @@ Design decisions: [docs/decisions/](docs/decisions/).
 
 Requirements: CMake ≥ 3.25, a C++20 compiler (MSVC 19.4x+, GCC 13+, Clang 17+ / Apple Clang 16+),
 Ninja (Linux/macOS), and [vcpkg](https://github.com/microsoft/vcpkg) with `VCPKG_ROOT` set.
-Dependencies are installed automatically from `vcpkg.json` on first configure.
+Dependencies are installed automatically from `vcpkg.json` on first configure; ozz-animation
+(not in the vcpkg baseline) is fetched by CMake from its pinned 0.16.0 release.
 
 ```bash
 # Windows (Visual Studio 2026)
@@ -37,6 +38,7 @@ build/windows-msvc/bin/Release/crowdsim --scenario counterflow --agents 5000 --s
 build/windows-msvc/bin/Release/crowdsim --scenario building --agents 2000 --overlays navmesh,flow
 build/windows-msvc/bin/Release/crowdsim --scene scenes/two_floor_building.scene.json
 build/windows-msvc/bin/Release/crowdsim --scenario plaza --agents 5000        # behaviour trees; click an agent to debug it
+build/windows-msvc/bin/Release/crowdsim --scenario benchmark --lod 60,200 --no-vsync   # 5k animated characters
 build/windows-msvc/bin/Release/crowdsim_headless --commands content/commands/build_corridor.commands.json --save-log run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_headless --replay run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_bench
@@ -54,7 +56,8 @@ the editor runs and the agents pick up the change immediately.
 |---|---|
 | `core/` | logging, job system, RNG, IDs, hashing, fixed-step clock, triple buffer |
 | `geometry/` | triangle meshes and primitives (box, ramp, stairs, plane) |
-| `snapshot/` | plain render-snapshot data passed from sim to render |
+| `snapshot/` | plain data passed to render: render snapshots, baked character assets |
+| `animation/` | procedural character, ozz-animation clip baking into a VAT, gait controller |
 | `sim/` | agent pool, spawners/goals (EnTT), navmesh (Recast/Detour), flow fields, ORCA, behaviour trees, scenarios (no rendering dependencies) |
 | `physics/` | Jolt static collision and raycasts behind `IPhysicsWorld` |
 | `assets/` | scene JSON, glTF import, asset library |
