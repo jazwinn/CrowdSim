@@ -1,0 +1,15 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "tourist",
+  "behaviour": "tourist",
+  "radius": [0.24, 0.3],
+  "preferredSpeed": [0.9, 1.25],
+  "maxSpeedFactor": 1.3,
+  "maxAcceleration": 2.5,
+  "personalSpace": 0.1,
+  "height": 1.75,
+  "color": "#e8b04a",
+  "colorJitter": 0.1,
+  "tags": []
+}

@@ -1,0 +1,16 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "tourist",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "id": "label", "params": {"name": "touring"}},
+    {"type": "Succeeder", "id": "optional", "children": [
+      {"type": "Repeat", "id": "twice", "params": {"count": 2}, "children": [
+        {"type": "VisitAttraction", "id": "visit", "params": {"tag": "attraction", "radius": 40, "seconds": 5}}
+      ]}
+    ]},
+    {"type": "SetState", "id": "label2", "params": {"name": "leaving"}},
+    {"type": "MoveToGoal", "id": "exit"},
+    {"type": "Despawn", "id": "leave"}
+  ]}
+}
