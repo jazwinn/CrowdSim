@@ -26,6 +26,11 @@ struct OverlayToggles {
     int flowGoal = 0;
     bool links = true;
     bool velocities = false;
+    // Crowd rendering (mirrors render::RenderSettings)
+    bool animatedCharacters = true;
+    bool shadows = true;
+    float lodNearDistance = 30.0f;
+    float lodFarDistance = 90.0f;
 };
 
 /// Read-only data the shell displays this frame.
@@ -61,6 +66,12 @@ struct EditorFrameData {
     std::string_view rendererName;
     std::uint32_t agentsDrawn = 0;
     std::uint32_t drawCalls = 0;
+    std::uint32_t agentsNear = 0;
+    std::uint32_t agentsMid = 0;
+    std::uint32_t agentsFar = 0;
+    std::uint32_t agentsCulled = 0;
+    std::uint32_t shadowCasters = 0;
+    float crowdPrepareMs = 0.0f;
     std::uint32_t jobThreads = 0;
     std::uint32_t framebufferWidth = 0;
     std::uint32_t framebufferHeight = 0;

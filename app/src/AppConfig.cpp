@@ -116,6 +116,18 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             }
         } else if (gui && arg == "--sim-speed") {
             number(c.simSpeed);
+        } else if (gui && arg == "--lod") {
+            if (auto v = value()) {
+                const std::size_t comma = v->find(',');
+                float nearD = 0.0f;
+                float farD = 0.0f;
+                if (comma == std::string_view::npos || !parseNumber(v->substr(0, comma), nearD) ||
+                    !parseNumber(v->substr(comma + 1), farD) || nearD < 0.0f || farD < nearD) {
+                    result.error = std::format("invalid --lod '{}', expected near,far in metres (near <= far)", *v);
+                } else {
+                    c.lodDistances = std::array<float, 2>{nearD, farD};
+                }
+            }
         } else if (gui && arg == "--camera") {
             if (auto v = value()) {
                 std::array<float, 5> cam{};
@@ -213,6 +225,7 @@ std::string usage(std::string_view exeName, bool gui) {
             "  --sim-speed X       initial simulation speed multiplier (default 1)\n"
             "  --overlays LIST     enable overlays: navmesh,flow,velocities,nogrid,noareas,nolinks\n"
             "  --camera x,z,d,y,p  initial camera: target x/z, distance, yaw and pitch in degrees\n"
+            "  --lod NEAR,FAR      character LOD distances in metres (default 30,90; capsules beyond FAR)\n"
             "  --select ID         select a scene entity at startup\n"
             "  --select-agent ID   inspect (and follow) an agent at startup\n"
             "  --frames N          exit after N frames (smoke tests)\n"

@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "EngineContext.hpp"
+#include "crowdsim/animation/ProceduralCharacter.hpp"
 #include "crowdsim/core/FixedStepClock.hpp"
 #include "crowdsim/core/Profile.hpp"
 #include "crowdsim/core/TripleBuffer.hpp"
@@ -27,6 +28,7 @@
 #include "crowdsim/render/Renderer.hpp"
 #include "crowdsim/render/SceneRenderer.hpp"
 #include "crowdsim/sim/Scenarios.hpp"
+#include "crowdsim/snapshot/CharacterAsset.hpp"
 #include "crowdsim/snapshot/RenderSnapshot.hpp"
 #include "crowdsim/ui/EditorShell.hpp"
 
@@ -264,6 +266,18 @@ int runGui(EngineContext& engine) {
     ImGuiSession imguiSession(window.sdlWindow(), window.displayScale());
     render::ImGuiRenderer imguiRenderer(renderer, render::kViewImGui);
     render::SceneRenderer sceneRenderer;
+    sceneRenderer.setJobSystem(&engine.jobs());
+    {
+        // Procedural character, baked with ozz into a vertex animation texture.
+        const auto bakeStart = std::chrono::steady_clock::now();
+        auto character = std::make_shared<const snapshot::CharacterAsset>(animation::buildProceduralCharacter());
+        engine.log().info(
+            "Character '{}' baked: {} joints, {} clips, {}x{} VAT, LOD meshes {} / {} triangles in {:.1f} ms",
+            character->name, character->jointCount, character->clips.size(), character->textureWidth,
+            character->textureHeight, character->lods[0].indices.size() / 3, character->lods[1].indices.size() / 3,
+            std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - bakeStart).count());
+        sceneRenderer.setCharacter(std::move(character));
+    }
     ui::OverlayToggles initialOverlays;
     {
         const std::string& list = config.overlays;
@@ -274,6 +288,12 @@ int runGui(EngineContext& engine) {
         initialOverlays.ground = !has("nogrid");
         initialOverlays.areas = !has("noareas");
         initialOverlays.links = !has("nolinks");
+        initialOverlays.shadows = !has("noshadows");
+        initialOverlays.animatedCharacters = !has("capsules");
+        if (config.lodDistances) {
+            initialOverlays.lodNearDistance = (*config.lodDistances)[0];
+            initialOverlays.lodFarDistance = (*config.lodDistances)[1];
+        }
     }
     ui::EditorShell shell(initialOverlays);
     shell.sceneEditor().select(config.selectId);
@@ -447,6 +467,12 @@ int runGui(EngineContext& engine) {
             .rendererName = renderer.backendName(),
             .agentsDrawn = sceneStats.agentsDrawn,
             .drawCalls = sceneStats.drawCalls,
+            .agentsNear = sceneStats.agentsNear,
+            .agentsMid = sceneStats.agentsMid,
+            .agentsFar = sceneStats.agentsFar,
+            .agentsCulled = sceneStats.agentsCulled,
+            .shadowCasters = sceneStats.shadowCasters,
+            .crowdPrepareMs = sceneStats.prepareMs,
             .jobThreads = engine.jobs().threadCount(),
             .framebufferWidth = fb.width,
             .framebufferHeight = fb.height,
@@ -546,6 +572,10 @@ int runGui(EngineContext& engine) {
             .links = req.overlays.links,
             .velocities = req.overlays.velocities,
         };
+        sceneRenderer.settings.animatedCharacters = req.overlays.animatedCharacters;
+        sceneRenderer.settings.shadows = req.overlays.shadows;
+        sceneRenderer.settings.lodNearDistance = req.overlays.lodNearDistance;
+        sceneRenderer.settings.lodFarDistance = req.overlays.lodFarDistance;
         if (req.viewport.width >= 1.0f && req.viewport.height >= 1.0f) {
             viewport = req.viewport;
         }
@@ -583,7 +613,8 @@ int runGui(EngineContext& engine) {
         sceneStats = sceneRenderer.render(
             snapshots.readSlot(), alpha, camera,
             render::ViewRect{static_cast<std::uint16_t>(viewport.x), static_cast<std::uint16_t>(viewport.y),
-                             static_cast<std::uint16_t>(viewport.width), static_cast<std::uint16_t>(viewport.height)});
+                             static_cast<std::uint16_t>(viewport.width), static_cast<std::uint16_t>(viewport.height)},
+            static_cast<float>(dt) * (control.playing ? control.speed : 0.0f));
         imguiRenderer.render(ImGui::GetDrawData());
         renderMs =
             0.9f * renderMs +
@@ -609,6 +640,12 @@ int runGui(EngineContext& engine) {
     log.info("Exiting after {} frames ({:.2f} ms/frame avg), {} sim steps, {} agents alive", frameIndex,
              frameIndex > 0 ? totalMs / static_cast<double>(frameIndex) : 0.0, simulation.stepIndex(),
              simulation.agents().size());
+    log.info(
+        "Last frame: {} near, {} mid, {} far, {} culled characters, {} shadow casters (shadows {}), "
+        "crowd prepare {:.3f} ms, {} draw calls",
+        sceneStats.agentsNear, sceneStats.agentsMid, sceneStats.agentsFar, sceneStats.agentsCulled,
+        sceneStats.shadowCasters, sceneRenderer.shadowsSupported() ? "supported" : "unsupported", sceneStats.prepareMs,
+        sceneStats.drawCalls);
     // Steady-state report over the last frames (ignores start-up), e.g. at full population.
     const std::size_t recent = std::min<std::size_t>(recentFrameMs.size(), frameIndex > 1 ? frameIndex - 1 : 0);
     if (recent > 0) {

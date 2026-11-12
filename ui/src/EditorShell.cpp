@@ -226,6 +226,13 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         }
         overlays_.flowGoal = std::clamp(overlays_.flowGoal, 0, std::max(0, static_cast<int>(data.goals) - 1));
     }
+    if (ImGui::CollapsingHeader("Rendering")) {
+        ImGui::Checkbox("Animated characters", &overlays_.animatedCharacters);
+        ImGui::Checkbox("Shadows", &overlays_.shadows);
+        ImGui::SliderFloat("Full detail (m)", &overlays_.lodNearDistance, 5.0f, 150.0f, "%.0f");
+        ImGui::SliderFloat("Characters (m)", &overlays_.lodFarDistance, 10.0f, 400.0f, "%.0f");
+        overlays_.lodFarDistance = std::max(overlays_.lodFarDistance, overlays_.lodNearDistance);
+    }
     ImGui::Separator();
     if (data.editor != nullptr) {
         sceneEditor_.drawHierarchy(*data.editor, req.commands);
@@ -305,6 +312,10 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::Text("Render    %.3f ms (CPU submit)", data.renderSubmitMs);
     ImGui::Text("Renderer  %.*s", static_cast<int>(data.rendererName.size()), data.rendererName.data());
     ImGui::Text("Drawn     %u agents, %u draws", data.agentsDrawn, data.drawCalls);
+    ImGui::Text("LOD       %u near, %u mid, %u far, %u culled", data.agentsNear, data.agentsMid, data.agentsFar,
+                data.agentsCulled);
+    ImGui::Text("Shadows   %u casters", data.shadowCasters);
+    ImGui::Text("Crowd     %.3f ms (cull + LOD + animate)", data.crowdPrepareMs);
     ImGui::Text("Viewport  %u x %u", data.framebufferWidth, data.framebufferHeight);
     ImGui::Text("Jobs      %u threads", data.jobThreads);
     ImGui::End();

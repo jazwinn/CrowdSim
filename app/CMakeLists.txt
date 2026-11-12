@@ -19,7 +19,8 @@ crowdsim_set_warnings(crowdsim_headless)
 
 if(CROWDSIM_BUILD_GUI)
   add_executable(crowdsim src/gui_main.cpp src/GuiApp.cpp)
-  target_link_libraries(crowdsim PRIVATE crowdsim_app_common CrowdSim::platform CrowdSim::render CrowdSim::ui)
+  target_link_libraries(crowdsim PRIVATE crowdsim_app_common CrowdSim::platform CrowdSim::render CrowdSim::ui
+                                         CrowdSim::animation)
   crowdsim_set_warnings(crowdsim)
   if(WIN32)
     # Keep a console so logs are visible; switch to WIN32 subsystem for release packaging later.

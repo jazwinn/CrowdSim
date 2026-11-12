@@ -34,10 +34,11 @@ struct AppConfig {
     std::string overlays;  ///< gui: comma-separated overlays to enable (navmesh,flow,velocities,...)
     /// gui: initial camera (target x, target z, distance, yaw deg, pitch deg); empty = default
     std::optional<std::array<float, 5>> camera;
-    std::uint32_t threads = 0;      ///< 0 = hardware concurrency
-    std::uint64_t steps = 300;      ///< headless: number of sim steps to run
-    bool dumpRemaining = false;     ///< headless: print the agents still alive at the end
-    bool listCommands = false;      ///< headless: print every command with its JSON schema and exit
+    std::optional<std::array<float, 2>> lodDistances;  ///< gui: character LOD near / far distances (m)
+    std::uint32_t threads = 0;                         ///< 0 = hardware concurrency
+    std::uint64_t steps = 300;                         ///< headless: number of sim steps to run
+    bool dumpRemaining = false;                        ///< headless: print the agents still alive at the end
+    bool listCommands = false;                         ///< headless: print every command with its JSON schema and exit
     bool loadContent = true;        ///< load content/behaviours and content/agents (and hot reload them)
     std::uint64_t frames = 0;       ///< gui: exit after N frames (0 = run until closed)
     std::string screenshotPath;     ///< gui: save a PNG of the last frame before exit
