@@ -50,6 +50,16 @@ struct AgentParams {
     std::uint16_t agentType = 0;
 };
 
+/// Stable identifier of a scene entity (object, spawner, goal, link). Unique
+/// within a scene, never reused, and persisted in scene files and command logs.
+using SceneId = std::uint32_t;
+inline constexpr SceneId kNoSceneId = 0;
+
+/// ECS component carrying an entity's SceneId.
+struct SceneIdComponent {
+    SceneId id = kNoSceneId;
+};
+
 struct Goal {
     std::string name;
     Area area;
@@ -64,7 +74,7 @@ struct Spawner {
     std::uint32_t total = 0;  ///< 0 = unlimited
     float startTime = 0.0f;   ///< seconds of sim time
     float stopTime = std::numeric_limits<float>::infinity();
-    std::uint32_t goal = 0;  ///< index into Simulation goals
+    SceneId goal = kNoSceneId;  ///< goal the spawned agents walk to
     AgentParams agent;
     // Runtime state (reset with the simulation)
     float accumulator = 0.0f;

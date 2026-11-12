@@ -1,5 +1,6 @@
 #include "crowdsim/geometry/Primitives.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
 
@@ -97,6 +98,8 @@ TriangleMesh buildPrimitive(const PrimitiveDesc& desc) {
             mb.quad(b, {h.x, 0, h.z}, c, c, {1, 0, 0}, side);                 // right (tri)
             break;
         }
+        case PrimitiveKind::Mesh:
+            break;  // external geometry: see transformMesh
         case PrimitiveKind::Stairs: {
             const std::uint32_t n = desc.steps == 0 ? 1 : desc.steps;
             const float rise = desc.size.y / static_cast<float>(n);
@@ -113,6 +116,21 @@ TriangleMesh buildPrimitive(const PrimitiveDesc& desc) {
     return mb.take();
 }
 
+TriangleMesh transformMesh(const TriangleMesh& local, glm::vec3 position, float rotationY, float scale,
+                           std::uint8_t flagsOverride) {
+    TriangleMesh out = local;
+    const float c = std::cos(rotationY);
+    const float s = std::sin(rotationY);
+    for (glm::vec3& p : out.positions) {
+        const glm::vec3 q = p * scale;
+        p = glm::vec3(c * q.x + s * q.z, q.y, -s * q.x + c * q.z) + position;
+    }
+    if (flagsOverride != 0) {
+        std::fill(out.triangleFlags.begin(), out.triangleFlags.end(), flagsOverride);
+    }
+    return out;
+}
+
 std::string_view primitiveKindName(PrimitiveKind kind) {
     switch (kind) {
         case PrimitiveKind::Box:
@@ -123,12 +141,15 @@ std::string_view primitiveKindName(PrimitiveKind kind) {
             return "stairs";
         case PrimitiveKind::Plane:
             return "plane";
+        case PrimitiveKind::Mesh:
+            return "mesh";
     }
     return "box";
 }
 
 std::optional<PrimitiveKind> parsePrimitiveKind(std::string_view name) {
-    for (PrimitiveKind k : {PrimitiveKind::Box, PrimitiveKind::Ramp, PrimitiveKind::Stairs, PrimitiveKind::Plane}) {
+    for (PrimitiveKind k :
+         {PrimitiveKind::Box, PrimitiveKind::Ramp, PrimitiveKind::Stairs, PrimitiveKind::Plane, PrimitiveKind::Mesh}) {
         if (primitiveKindName(k) == name) {
             return k;
         }

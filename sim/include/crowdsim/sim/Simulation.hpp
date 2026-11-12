@@ -7,9 +7,11 @@
 /// scene, seed and inputs give bit-identical state on the same build,
 /// regardless of thread count.
 
+#include <algorithm>
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <entt/entity/registry.hpp>
@@ -69,10 +71,14 @@ struct SimStats {
     float averageSpeed = 0.0f;
 };
 
-/// A piece of static environment geometry (ECS component).
+/// A piece of static environment geometry (ECS component). Either a parametric
+/// primitive, or (primitive.kind == Mesh) an imported mesh placed by
+/// primitive.position / rotationY with uniform scale primitive.size.x.
 struct StaticObject {
     std::string name;
     geometry::PrimitiveDesc primitive;
+    std::string meshAsset;                               ///< asset path for Mesh objects
+    std::shared_ptr<const geometry::TriangleMesh> mesh;  ///< local-space geometry for Mesh objects
 };
 
 class Simulation {
@@ -83,12 +89,47 @@ public:
     Simulation(const Simulation&) = delete;
     Simulation& operator=(const Simulation&) = delete;
 
-    // --- Environment setup (becomes commands in M3) ---------------------------------
-    std::uint32_t addStaticObject(const StaticObject& object);
-    void addOffMeshLink(const OffMeshLink& link);
-    /// Returns the goal index used by Spawner::goal.
-    std::uint32_t addGoal(const Goal& goal);
-    std::uint32_t addSpawner(const Spawner& spawner);
+    // --- Scene editing (driven by the command layer) --------------------------------
+    // Every scene entity has a stable SceneId. `add*` takes an explicit id (used when
+    // loading scenes and undoing deletes) or kNoSceneId to allocate the next one, and
+    // returns the id, or kNoSceneId if the requested id is already taken.
+    SceneId addStaticObject(const StaticObject& object, SceneId id = kNoSceneId);
+    SceneId addOffMeshLink(const OffMeshLink& link, SceneId id = kNoSceneId);
+    SceneId addGoal(const Goal& goal, SceneId id = kNoSceneId);
+    SceneId addSpawner(const Spawner& spawner, SceneId id = kNoSceneId);
+
+    /// Replace an entity's description. Returns false if `id` is not of that kind.
+    bool updateStaticObject(SceneId id, const StaticObject& object);
+    bool updateOffMeshLink(SceneId id, const OffMeshLink& link);
+    bool updateGoal(SceneId id, const Goal& goal);     ///< keeps the arrival counter
+    bool updateSpawner(SceneId id, const Spawner& s);  ///< keeps spawn progress
+
+    /// Remove one entity. Removing a goal also removes the agents heading to it.
+    bool removeEntity(SceneId id);
+
+    [[nodiscard]] const StaticObject* findStaticObject(SceneId id) const;
+    [[nodiscard]] const OffMeshLink* findOffMeshLink(SceneId id) const;
+    [[nodiscard]] const Goal* findGoal(SceneId id) const;
+    [[nodiscard]] const Spawner* findSpawner(SceneId id) const;
+
+    /// Ids in creation order.
+    [[nodiscard]] std::vector<SceneId> staticObjectIds() const;
+    [[nodiscard]] std::vector<SceneId> offMeshLinkIds() const;
+    [[nodiscard]] std::vector<SceneId> goalIds() const;
+    [[nodiscard]] std::vector<SceneId> spawnerIds() const;
+    [[nodiscard]] SceneId nextSceneId() const noexcept { return nextSceneId_; }
+    /// Never allocate ids below `next` (keeps ids of deleted entities retired across save/load).
+    void reserveSceneIds(SceneId next) noexcept { nextSceneId_ = std::max(nextSceneId_, next); }
+
+    /// Navmesh build settings (marks the navmesh dirty).
+    void setNavigationSettings(const NavBuildSettings& settings);
+    /// Locomotion tuning and seed (the seed takes effect at the next reset()).
+    void setLocomotionParams(const LocomotionParams& params);
+    void setSeed(std::uint64_t seed) noexcept { config_.seed = seed; }
+
+    /// World-space triangles of one static object.
+    [[nodiscard]] geometry::TriangleMesh objectMesh(SceneId id) const;
+
     /// Remove all agents, static objects, links, spawners and goals.
     void clearScene();
 
@@ -134,6 +175,14 @@ private:
     void integrate(float dt);
     void removeArrivedAgents();
     [[nodiscard]] std::shared_ptr<const snapshot::StaticScene> buildStaticScene() const;
+    SceneId claimId(SceneId requested);
+    entt::entity createEntity(SceneId id);
+    [[nodiscard]] entt::entity entityOf(SceneId id) const;
+    template <typename T>
+    [[nodiscard]] std::vector<SceneId> idsOf(const std::vector<entt::entity>& list) const;
+    [[nodiscard]] std::uint32_t goalIndexOf(SceneId goal) const;
+    void removeAgentsOfGoal(std::uint32_t goalIndex);
+    void retargetAgentsOfGoal(std::uint32_t goalIndex);
 
     SimServices services_;
     SimConfig config_;
@@ -143,7 +192,9 @@ private:
 
     entt::registry registry_;
     std::vector<entt::entity> staticObjects_;
-    std::vector<OffMeshLink> offMeshLinks_;
+    std::vector<entt::entity> offMeshLinks_;
+    std::unordered_map<SceneId, entt::entity> idToEntity_;
+    SceneId nextSceneId_ = 1;
     std::vector<entt::entity> goals_;     ///< creation order = goal index
     std::vector<entt::entity> spawners_;  ///< creation order = processing order
     std::vector<Area> goalAreas_;         ///< per-step copy for the hot loops

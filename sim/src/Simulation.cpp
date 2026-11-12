@@ -124,32 +124,255 @@ Simulation::Simulation(SimServices services, const SimConfig& config)
 
 Simulation::~Simulation() = default;
 
-std::uint32_t Simulation::addStaticObject(const StaticObject& object) {
+SceneId Simulation::claimId(SceneId requested) {
+    if (requested == kNoSceneId) {
+        return nextSceneId_++;
+    }
+    if (idToEntity_.contains(requested)) {
+        return kNoSceneId;
+    }
+    nextSceneId_ = std::max(nextSceneId_, requested + 1);
+    return requested;
+}
+
+entt::entity Simulation::createEntity(SceneId id) {
     const entt::entity e = registry_.create();
+    registry_.emplace<SceneIdComponent>(e, id);
+    idToEntity_.emplace(id, e);
+    return e;
+}
+
+entt::entity Simulation::entityOf(SceneId id) const {
+    const auto it = idToEntity_.find(id);
+    return it == idToEntity_.end() ? entt::null : it->second;
+}
+
+template <typename T>
+std::vector<SceneId> Simulation::idsOf(const std::vector<entt::entity>& list) const {
+    std::vector<SceneId> ids;
+    ids.reserve(list.size());
+    for (entt::entity e : list) {
+        ids.push_back(registry_.get<SceneIdComponent>(e).id);
+    }
+    return ids;
+}
+
+std::uint32_t Simulation::goalIndexOf(SceneId goal) const {
+    for (std::uint32_t i = 0; i < goals_.size(); ++i) {
+        if (registry_.get<SceneIdComponent>(goals_[i]).id == goal) {
+            return i;
+        }
+    }
+    return kNoPoly;
+}
+
+SceneId Simulation::addStaticObject(const StaticObject& object, SceneId id) {
+    id = claimId(id);
+    if (id == kNoSceneId) {
+        return kNoSceneId;
+    }
+    const entt::entity e = createEntity(id);
     registry_.emplace<StaticObject>(e, object);
     staticObjects_.push_back(e);
     navDirty_ = true;
-    return static_cast<std::uint32_t>(staticObjects_.size() - 1);
+    return id;
 }
 
-void Simulation::addOffMeshLink(const OffMeshLink& link) {
-    offMeshLinks_.push_back(link);
+SceneId Simulation::addOffMeshLink(const OffMeshLink& link, SceneId id) {
+    id = claimId(id);
+    if (id == kNoSceneId) {
+        return kNoSceneId;
+    }
+    const entt::entity e = createEntity(id);
+    registry_.emplace<OffMeshLink>(e, link);
+    offMeshLinks_.push_back(e);
     navDirty_ = true;
+    return id;
 }
 
-std::uint32_t Simulation::addGoal(const Goal& goal) {
-    const entt::entity e = registry_.create();
+SceneId Simulation::addGoal(const Goal& goal, SceneId id) {
+    id = claimId(id);
+    if (id == kNoSceneId) {
+        return kNoSceneId;
+    }
+    const entt::entity e = createEntity(id);
     registry_.emplace<Goal>(e, goal);
     goals_.push_back(e);
     flowDirty_ = true;
-    return static_cast<std::uint32_t>(goals_.size() - 1);
+    return id;
 }
 
-std::uint32_t Simulation::addSpawner(const Spawner& spawner) {
-    const entt::entity e = registry_.create();
+SceneId Simulation::addSpawner(const Spawner& spawner, SceneId id) {
+    id = claimId(id);
+    if (id == kNoSceneId) {
+        return kNoSceneId;
+    }
+    const entt::entity e = createEntity(id);
     registry_.emplace<Spawner>(e, spawner);
     spawners_.push_back(e);
-    return static_cast<std::uint32_t>(spawners_.size() - 1);
+    return id;
+}
+
+bool Simulation::updateStaticObject(SceneId id, const StaticObject& object) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null || !registry_.all_of<StaticObject>(e)) {
+        return false;
+    }
+    registry_.get<StaticObject>(e) = object;
+    navDirty_ = true;
+    return true;
+}
+
+bool Simulation::updateOffMeshLink(SceneId id, const OffMeshLink& link) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null || !registry_.all_of<OffMeshLink>(e)) {
+        return false;
+    }
+    registry_.get<OffMeshLink>(e) = link;
+    navDirty_ = true;
+    return true;
+}
+
+bool Simulation::updateGoal(SceneId id, const Goal& goal) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null || !registry_.all_of<Goal>(e)) {
+        return false;
+    }
+    Goal& g = registry_.get<Goal>(e);
+    const std::uint32_t arrivals = g.arrivals;
+    g = goal;
+    g.arrivals = arrivals;
+    flowDirty_ = true;
+    retargetAgentsOfGoal(goalIndexOf(id));
+    return true;
+}
+
+bool Simulation::updateSpawner(SceneId id, const Spawner& spawner) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null || !registry_.all_of<Spawner>(e)) {
+        return false;
+    }
+    Spawner& s = registry_.get<Spawner>(e);
+    const float accumulator = s.accumulator;
+    const std::uint32_t spawned = s.spawned;
+    s = spawner;
+    s.accumulator = accumulator;
+    s.spawned = spawned;
+    return true;
+}
+
+bool Simulation::removeEntity(SceneId id) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null) {
+        return false;
+    }
+    auto eraseFrom = [e](std::vector<entt::entity>& list) {
+        list.erase(std::remove(list.begin(), list.end(), e), list.end());
+    };
+    if (registry_.all_of<StaticObject>(e)) {
+        eraseFrom(staticObjects_);
+        navDirty_ = true;
+    } else if (registry_.all_of<OffMeshLink>(e)) {
+        eraseFrom(offMeshLinks_);
+        navDirty_ = true;
+    } else if (registry_.all_of<Goal>(e)) {
+        removeAgentsOfGoal(goalIndexOf(id));
+        eraseFrom(goals_);
+        flowDirty_ = true;
+    } else if (registry_.all_of<Spawner>(e)) {
+        eraseFrom(spawners_);
+    }
+    registry_.destroy(e);
+    idToEntity_.erase(id);
+    return true;
+}
+
+void Simulation::removeAgentsOfGoal(std::uint32_t goalIndex) {
+    if (goalIndex == kNoPoly) {
+        return;
+    }
+    for (std::uint32_t i = agents_.size(); i-- > 0;) {
+        if (agents_.goalIndex[i] == goalIndex) {
+            agents_.swapRemove(i);
+        }
+    }
+    for (std::uint16_t& g : agents_.goalIndex) {
+        if (g > goalIndex) {
+            --g;
+        }
+    }
+}
+
+void Simulation::retargetAgentsOfGoal(std::uint32_t goalIndex) {
+    if (goalIndex == kNoPoly) {
+        return;
+    }
+    const Area& area = registry_.get<Goal>(goals_[goalIndex]).area;
+    for (std::uint32_t i = 0; i < agents_.size(); ++i) {
+        if (agents_.goalIndex[i] == goalIndex) {
+            const glm::vec2 lane = area.clamp(agents_.position[i], 0.5f);
+            agents_.goalTarget[i] = glm::vec3(lane.x, area.elevation, lane.y);
+        }
+    }
+}
+
+const StaticObject* Simulation::findStaticObject(SceneId id) const {
+    const entt::entity e = entityOf(id);
+    return e == entt::null ? nullptr : registry_.try_get<StaticObject>(e);
+}
+
+const OffMeshLink* Simulation::findOffMeshLink(SceneId id) const {
+    const entt::entity e = entityOf(id);
+    return e == entt::null ? nullptr : registry_.try_get<OffMeshLink>(e);
+}
+
+const Goal* Simulation::findGoal(SceneId id) const {
+    const entt::entity e = entityOf(id);
+    return e == entt::null ? nullptr : registry_.try_get<Goal>(e);
+}
+
+const Spawner* Simulation::findSpawner(SceneId id) const {
+    const entt::entity e = entityOf(id);
+    return e == entt::null ? nullptr : registry_.try_get<Spawner>(e);
+}
+
+std::vector<SceneId> Simulation::staticObjectIds() const {
+    return idsOf<StaticObject>(staticObjects_);
+}
+std::vector<SceneId> Simulation::offMeshLinkIds() const {
+    return idsOf<OffMeshLink>(offMeshLinks_);
+}
+std::vector<SceneId> Simulation::goalIds() const {
+    return idsOf<Goal>(goals_);
+}
+std::vector<SceneId> Simulation::spawnerIds() const {
+    return idsOf<Spawner>(spawners_);
+}
+
+geometry::TriangleMesh Simulation::objectMesh(SceneId id) const {
+    const StaticObject* o = findStaticObject(id);
+    if (o == nullptr) {
+        return {};
+    }
+    const geometry::PrimitiveDesc& p = o->primitive;
+    if (p.kind == geometry::PrimitiveKind::Mesh) {
+        if (!o->mesh) {
+            return {};
+        }
+        // A Mesh object's flags override the asset's per-triangle tags only when set explicitly.
+        return geometry::transformMesh(*o->mesh, p.position, p.rotationY, p.size.x, 0);
+    }
+    return geometry::buildPrimitive(p);
+}
+
+void Simulation::setNavigationSettings(const NavBuildSettings& settings) {
+    config_.navigation = settings;
+    navDirty_ = true;
+}
+
+void Simulation::setLocomotionParams(const LocomotionParams& params) {
+    config_.locomotion = params;
+    config_.locomotion.maxNeighbors = std::min(config_.locomotion.maxNeighbors, orca::kMaxNeighbors);
 }
 
 void Simulation::clearScene() {
@@ -158,6 +381,8 @@ void Simulation::clearScene() {
     offMeshLinks_.clear();
     goals_.clear();
     spawners_.clear();
+    idToEntity_.clear();
+    nextSceneId_ = 1;
     navDirty_ = true;
     flowDirty_ = true;
     reset();
@@ -186,9 +411,13 @@ bool Simulation::updateNavigation() {
         CS_PROFILE_ZONE_NAMED("BuildNavMesh");
         staticMesh_.clear();
         for (entt::entity e : staticObjects_) {
-            staticMesh_.append(geometry::buildPrimitive(registry_.get<StaticObject>(e).primitive));
+            staticMesh_.append(objectMesh(registry_.get<SceneIdComponent>(e).id));
         }
-        navMesh_.build(staticMesh_, offMeshLinks_, config_.navigation, services_.jobs, services_.log);
+        std::vector<OffMeshLink> links;
+        for (entt::entity e : offMeshLinks_) {
+            links.push_back(registry_.get<OffMeshLink>(e));
+        }
+        navMesh_.build(staticMesh_, links, config_.navigation, services_.jobs, services_.log);
         // Agents' polygon refs are invalid after a rebuild; re-acquire them.
         for (std::uint32_t i = 0; i < agents_.size(); ++i) {
             const glm::vec3 p(agents_.position[i].x, agents_.height[i], agents_.position[i].y);
@@ -250,7 +479,8 @@ void Simulation::spawnAgents(float dt) {
 
     for (entt::entity e : spawners_) {
         Spawner& s = registry_.get<Spawner>(e);
-        if (now < s.startTime || now >= s.stopTime || s.goal >= goalAreas_.size()) {
+        const std::uint32_t goalIndex = goalIndexOf(s.goal);
+        if (now < s.startTime || now >= s.stopTime || goalIndex == kNoPoly) {
             continue;
         }
         s.accumulator += s.rate * dt;
@@ -292,7 +522,7 @@ void Simulation::spawnAgents(float dt) {
                 break;  // keep the accumulator; retry next step
             }
 
-            const Area& goalArea = goalAreas_[s.goal];
+            const Area& goalArea = goalAreas_[goalIndex];
             const glm::vec2 lane = goalArea.clamp(pos, 0.5f);
             glm::vec3 target(lane.x, goalArea.elevation, lane.y);
             if (useNav) {
@@ -315,7 +545,7 @@ void Simulation::spawnAgents(float dt) {
             init.maxAcceleration = p.maxAcceleration;
             init.color = glm::clamp(p.color + jitter * p.colorJitter, glm::vec3(0.0f), glm::vec3(1.0f));
             init.goalTarget = target;
-            init.goalIndex = static_cast<std::uint16_t>(s.goal);
+            init.goalIndex = static_cast<std::uint16_t>(goalIndex);
             init.agentType = p.agentType;
             init.spawnTime = now;
             agents_.add(init);
