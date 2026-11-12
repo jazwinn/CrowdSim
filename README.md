@@ -47,6 +47,7 @@ build/windows-msvc/bin/Release/crowdsim --script scenarios/bottleneck_study.lua 
 build/windows-msvc/bin/Release/crowdsim_headless --commands content/commands/build_corridor.commands.json --save-log run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_headless --replay run.cmdlog.json
 build/windows-msvc/bin/Release/crowdsim_bench
+build/windows-msvc/bin/Release/crowdsim_headless --scenario benchmark --agents 50000 --steps 600 --profile
 ```
 
 File formats (scenes, behaviour trees, agent types), the behaviour node reference and the full

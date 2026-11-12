@@ -13,11 +13,47 @@ Last updated: 2026-11-12
 | M6 — Lua scripting | done (Windows) |
 | M7 — Node graph editor | done (Windows) |
 | M8 — MCP server | done (Windows) |
-| M9 — Metrics & analysis | **done** (Windows) |
-| M10 — Scale-up prep | next |
+| M9 — Metrics & analysis | done (Windows) |
+| M10 — Scale-up prep | **done** (Windows) |
 
-CI currently builds and tests **Windows only**. Linux and macOS are deferred until the application
-is feature-complete (the matrix entries are commented in `.github/workflows/ci.yml`).
+All milestones are complete. CI builds and tests Windows, Linux (GCC) and macOS (Apple Silicon);
+the headless build was also checked locally with GCC 13 under WSL before Linux/macOS CI was
+re-enabled.
+
+## M10 — Scale-up prep
+
+### What was done
+
+- **Profiling**: `Simulation::lastStepProfile()` times every step phase (always on, a dozen
+  clock reads); `crowdsim_headless --profile` prints the averages.
+- **Bottlenecks documented** in ADR 0013: avoidance is 60 % of a 50k step and memory-bound;
+  behaviour trees are cheap (0.2 ms at 50k); serial observers grow linearly; in the editor the
+  simulation shares the render thread, which dominates frame pacing at 50k.
+- **Wins implemented** (results stay identical across runs and thread counts):
+  - positions and heights stored in spatial-hash entries (contiguous neighbour filtering);
+  - **spatial reordering** of the agent pool every 64 steps (Z-order of 2.5 m cells, ties by
+    id): avoidance −30 %;
+  - metrics heatmap accumulated every third step;
+  - renderer gait state indexed by agent id (no hash map).
+- **Designed**: simulation thread, GPU culling + indirect draws, SIMD ORCA, and a GPU-compute
+  locomotion path for 200k+ agents (ADR 0013).
+
+### Measured (i7-13700H, 20 threads, Release; typical of repeated runs, ±30 % thermal variance)
+
+| Agents | Step before M10 | Step after M10 | Avoidance before → after |
+|---|---|---|---|
+| 5,000 | 1.24 ms | 1.20 ms | 0.61 → 0.56 ms |
+| 20,000 | 5.5 ms | 4.6 ms | 3.36 → 2.40 ms |
+| 50,000 | 12.8 ms | ~10.3 ms | 7.74 → ~5.4 ms |
+
+Editor at 50,000 agents (benchmark scene, D3D11, no vsync, ~3.7k characters visible): avg
+6.5 ms per frame, p99 23 ms (frames that run a simulation step). Rendering alone is ~2 ms,
+including 1.1 ms of crowd preparation.
+
+### Tests
+
+All 69 doctest cases and 9 CTest entries pass, including thread-count determinism with the
+reordered pool.
 
 ## M9 — Metrics & analysis
 
