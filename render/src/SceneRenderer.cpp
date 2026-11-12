@@ -21,6 +21,14 @@ glm::vec3 Camera::eye() const {
     return target + distance * glm::vec3(cp * std::sin(yaw), std::sin(pitch), cp * std::cos(yaw));
 }
 
+void cameraMatrices(const Camera& camera, float aspect, float* view16, float* proj16) {
+    const glm::vec3 eye = camera.eye();
+    bx::mtxLookAt(view16, bx::Vec3(eye.x, eye.y, eye.z), bx::Vec3(camera.target.x, camera.target.y, camera.target.z),
+                  bx::Vec3(0.0f, 1.0f, 0.0f));
+    bx::mtxProj(proj16, camera.fovYDegrees, aspect, camera.nearPlane, camera.farPlane,
+                bgfx::getCaps()->homogeneousDepth);
+}
+
 namespace {
 
 constexpr float kBodyRadius = 0.28f;  ///< mesh radius; instances scale x/z by radius / kBodyRadius
@@ -299,10 +307,7 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
     const glm::vec3 eye = camera.eye();
     float view[16];
     float proj[16];
-    bx::mtxLookAt(view, bx::Vec3(eye.x, eye.y, eye.z), bx::Vec3(camera.target.x, camera.target.y, camera.target.z),
-                  bx::Vec3(0.0f, 1.0f, 0.0f));
-    bx::mtxProj(proj, camera.fovYDegrees, static_cast<float>(rect.width) / static_cast<float>(rect.height),
-                camera.nearPlane, camera.farPlane, bgfx::getCaps()->homogeneousDepth);
+    cameraMatrices(camera, static_cast<float>(rect.width) / static_cast<float>(rect.height), view, proj);
     bgfx::setViewRect(kViewScene, rect.x, rect.y, rect.width, rect.height);
     bgfx::setViewTransform(kViewScene, view, proj);
 
@@ -426,6 +431,27 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
             bgfx::setVertexBuffer(0, &tvb);
             bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_DEPTH_TEST_LEQUAL | BGFX_STATE_PT_LINES |
                            BGFX_STATE_LINEAA);
+            bgfx::submit(kViewScene, r.lineProgram);
+            ++stats.drawCalls;
+        }
+    }
+
+    // Extra lines (selection outline etc.), drawn on top of the scene.
+    if (!extraLines.empty()) {
+        const auto wanted = static_cast<std::uint32_t>(extraLines.size() * 2);
+        const std::uint32_t verts = std::min(wanted, bgfx::getAvailTransientVertexBuffer(wanted, r.lineLayout)) & ~1u;
+        if (verts >= 2) {
+            bgfx::TransientVertexBuffer tvb;
+            bgfx::allocTransientVertexBuffer(&tvb, verts, r.lineLayout);
+            auto* v = reinterpret_cast<LineVertex*>(tvb.data);
+            for (std::uint32_t i = 0; i < verts / 2; ++i) {
+                const DebugLine& l = extraLines[i];
+                v[2 * i] = {l.a.x, l.a.y, l.a.z, l.abgr};
+                v[2 * i + 1] = {l.b.x, l.b.y, l.b.z, l.abgr};
+            }
+            bgfx::setVertexBuffer(0, &tvb);
+            bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_DEPTH_TEST_ALWAYS | BGFX_STATE_PT_LINES |
+                           BGFX_STATE_LINEAA | BGFX_STATE_BLEND_ALPHA);
             bgfx::submit(kViewScene, r.lineProgram);
             ++stats.drawCalls;
         }

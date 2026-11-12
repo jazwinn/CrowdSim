@@ -3,7 +3,12 @@
 crowdsim_add_library(ui
   SOURCES
     src/EditorShell.cpp
+    src/SceneEditor.cpp
   DEPS
     CrowdSim::core
     imgui::imgui
+    imguizmo::imguizmo
+    CrowdSim::sim
+    CrowdSim::assets
+    CrowdSim::commands
 )

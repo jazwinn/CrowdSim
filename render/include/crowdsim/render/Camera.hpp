@@ -21,4 +21,8 @@ struct Camera {
     [[nodiscard]] glm::vec3 eye() const;
 };
 
+/// View and projection matrices (bx layout, as used by bgfx and ImGuizmo) for the
+/// active renderer's depth range. Requires an initialised Renderer.
+void cameraMatrices(const Camera& camera, float aspect, float* view16, float* proj16);
+
 }  // namespace crowdsim::render

@@ -13,6 +13,7 @@
 #include <cmath>
 #include <filesystem>
 #include <format>
+#include <fstream>
 #include <string>
 #include <vector>
 
@@ -32,6 +33,9 @@
 namespace crowdsim::app {
 
 namespace {
+
+using commands::Json;
+using commands::makeCommand;
 
 constexpr std::array<sim::ScenarioKind, 4> kScenarios = {sim::ScenarioKind::Stream, sim::ScenarioKind::Counterflow,
                                                          sim::ScenarioKind::Benchmark, sim::ScenarioKind::Building};
@@ -66,10 +70,8 @@ private:
     ImGuiContext* context_ = nullptr;
 };
 
-std::string timestampedScreenshotPath() {
-    std::filesystem::create_directories("screenshots");
-    const auto now = std::chrono::system_clock::now();
-    return std::format("screenshots/crowdsim_{:%Y%m%d_%H%M%S}.png", std::chrono::floor<std::chrono::seconds>(now));
+std::string timestamp() {
+    return std::format("{:%Y%m%d_%H%M%S}", std::chrono::floor<std::chrono::seconds>(std::chrono::system_clock::now()));
 }
 
 render::Camera defaultCamera(const AppConfig& config) {
@@ -96,7 +98,7 @@ void updateCamera(render::Camera& camera, bool viewportHovered) {
         return;
     }
     constexpr float kOrbitSpeed = 0.006f;
-    if (ImGui::IsMouseDragging(ImGuiMouseButton_Left, 0.0f)) {
+    if (ImGui::IsMouseDragging(ImGuiMouseButton_Left, 2.0f)) {
         camera.yaw += io.MouseDelta.x * kOrbitSpeed;
         camera.pitch = std::clamp(camera.pitch + io.MouseDelta.y * kOrbitSpeed, 0.05f, 1.55f);
     }
@@ -105,7 +107,6 @@ void updateCamera(render::Camera& camera, bool viewportHovered) {
         const float k = camera.distance * 0.0015f;
         const float s = std::sin(camera.yaw);
         const float c = std::cos(camera.yaw);
-        // Screen-right in world XZ is (cos yaw, -sin yaw); screen-up maps to towards the target.
         camera.target.x += (-io.MouseDelta.x * c + io.MouseDelta.y * s) * k;
         camera.target.z += (io.MouseDelta.x * s + io.MouseDelta.y * c) * k;
     }
@@ -133,12 +134,75 @@ Ray viewportRay(const render::Camera& camera, const ui::PixelRect& viewport, flo
     return {eye, glm::normalize(forward + right * (ndcX * tanHalf * aspect) + up * (ndcY * tanHalf))};
 }
 
+/// Outline of the selected entity: triangle edges of objects, rectangles for areas.
+std::vector<render::DebugLine> selectionLines(const sim::Simulation& sim, sim::SceneId id) {
+    std::vector<render::DebugLine> lines;
+    constexpr std::uint32_t kColor = 0xff20d0ffu;  // amber (ABGR)
+    if (sim.findStaticObject(id) != nullptr) {
+        const geometry::TriangleMesh mesh = sim.objectMesh(id);
+        for (std::uint32_t t = 0; t < mesh.triangleCount() && lines.size() < 20000; ++t) {
+            for (int k = 0; k < 3; ++k) {
+                lines.push_back({mesh.positions[mesh.indices[3 * t + k]],
+                                 mesh.positions[mesh.indices[3 * t + (k + 1) % 3]], kColor});
+            }
+        }
+        return lines;
+    }
+    const sim::Area* area = nullptr;
+    if (const sim::Goal* g = sim.findGoal(id)) {
+        area = &g->area;
+    } else if (const sim::Spawner* s = sim.findSpawner(id)) {
+        area = &s->area;
+    }
+    if (area != nullptr) {
+        const float y = area->elevation + 0.05f;
+        const glm::vec2 c = area->center;
+        const glm::vec2 h = area->halfExtents;
+        const glm::vec3 p[4] = {
+            {c.x - h.x, y, c.y - h.y}, {c.x + h.x, y, c.y - h.y}, {c.x + h.x, y, c.y + h.y}, {c.x - h.x, y, c.y + h.y}};
+        for (int k = 0; k < 4; ++k) {
+            lines.push_back({p[k], p[(k + 1) % 4], kColor});
+        }
+    }
+    if (const sim::OffMeshLink* l = sim.findOffMeshLink(id)) {
+        lines.push_back({l->start, l->end, kColor});
+    }
+    return lines;
+}
+
+std::vector<std::string> listContentFiles(const assets::AssetLibrary& assets, const char* dir, const char* suffix) {
+    std::vector<std::string> files;
+    std::error_code ec;
+    const auto root = assets.contentRoot() / dir;
+    for (const auto& entry : std::filesystem::directory_iterator(root, ec)) {
+        const std::string name = entry.path().filename().string();
+        if (entry.is_regular_file() && name.ends_with(suffix)) {
+            files.push_back(std::string(dir) + "/" + name);
+        }
+    }
+    std::sort(files.begin(), files.end());
+    return files;
+}
+
+bool replacesScene(const std::string& command) {
+    return command == "CreateScene" || command == "LoadScene" || command == "LoadBuiltinScenario" ||
+           command == "ResetSimulation";
+}
+
+bool createsEntity(const std::string& command) {
+    return command == "PlaceObject" || command == "ImportGltf" || command == "CreateGoal" ||
+           command == "CreateSpawner" || command == "CreateOffMeshLink" || command == "AddEntity";
+}
+
 }  // namespace
 
 int runGui(EngineContext& engine) {
     const AppConfig& config = engine.config();
     spdlog::logger& log = engine.log();
     sim::Simulation& simulation = engine.simulation();
+    commands::SimControl& control = engine.control();
+    control.playing = true;
+    control.speed = config.simSpeed;
 
     platform::Window window(platform::WindowConfig{"CrowdSim", config.width, config.height});
     platform::PixelSize fb = window.pixelSize();
@@ -167,13 +231,17 @@ int runGui(EngineContext& engine) {
         initialOverlays.links = !has("nolinks");
     }
     ui::EditorShell shell(initialOverlays);
+    shell.sceneEditor().select(config.selectId);
     render::Camera camera = defaultCamera(config);
 
     // Sim -> render hand-off. Producer and consumer share this thread today; the
     // triple buffer keeps the contract ready for a dedicated simulation thread.
     core::TripleBuffer<snapshot::RenderSnapshot> snapshots;
-    simulation.writeSnapshot(snapshots.writeSlot());
-    snapshots.publish();
+    auto publishSnapshot = [&] {
+        simulation.writeSnapshot(snapshots.writeSlot());
+        snapshots.publish();
+    };
+    publishSnapshot();
 
     std::vector<std::string_view> scenarioNames;
     for (sim::ScenarioKind kind : kScenarios) {
@@ -182,10 +250,9 @@ int runGui(EngineContext& engine) {
     int scenarioIndex = static_cast<int>(
         std::distance(kScenarios.begin(), std::find(kScenarios.begin(), kScenarios.end(), config.scenario)));
     std::uint32_t scenarioAgents = config.agents;
+    std::vector<std::string> sceneFiles = listContentFiles(engine.assets(), "scenes", ".scene.json");
 
     core::FixedStepClock clock(config.sim.stepHz);
-    bool playing = true;
-    float simSpeed = config.simSpeed;
     float frameMs = 0.0f;
     float simStepMs = 0.0f;
     float renderMs = 0.0f;
@@ -197,12 +264,17 @@ int runGui(EngineContext& engine) {
     std::vector<std::string> logLines;
     ui::PixelRect viewport{0.0f, 0.0f, static_cast<float>(fb.width), static_cast<float>(fb.height)};
 
+    // Selection highlight cache.
+    sim::SceneId highlightId = sim::kNoSceneId;
+    std::uint64_t highlightVersion = ~0ull;
+    std::vector<render::DebugLine> highlight;
+
     using Clock = std::chrono::steady_clock;
     auto last = Clock::now();
     const auto loopStart = last;
-    // Wall-clock frame times of the most recent frames, for the exit report.
     std::array<float, 600> recentFrameMs{};
     bool running = true;
+    ImVec2 clickStart(0.0f, 0.0f);
 
     while (running) {
         CS_PROFILE_FRAME();
@@ -236,53 +308,74 @@ int runGui(EngineContext& engine) {
             recentFrameMs[frameIndex % recentFrameMs.size()] = static_cast<float>(dt * 1000.0);
         }
 
-        if (playing) {
-            const std::uint32_t steps = clock.advance(dt * static_cast<double>(simSpeed));
+        // --- Simulate ---------------------------------------------------------------
+        {
+            std::uint32_t steps = control.playing ? clock.advance(dt * static_cast<double>(control.speed)) : 0;
+            const auto simStart = Clock::now();
+            for (std::uint32_t i = 0; i < steps; ++i) {
+                simulation.step();
+            }
+            const std::uint64_t requested = engine.runPendingSteps(2000);  // Step / RunFor
+            steps += static_cast<std::uint32_t>(requested);
             if (steps > 0) {
-                const auto simStart = Clock::now();
-                for (std::uint32_t i = 0; i < steps; ++i) {
-                    simulation.step();
-                }
                 const double ms = std::chrono::duration<double, std::milli>(Clock::now() - simStart).count();
                 simStepMs = 0.9f * simStepMs + 0.1f * static_cast<float>(ms / steps);
-                simulation.writeSnapshot(snapshots.writeSlot());
-                snapshots.publish();
+                publishSnapshot();
             }
         }
         snapshots.acquire();
         const snapshot::RenderSnapshot& snap = snapshots.readSlot();
         const sim::SimStats stats = simulation.stats();
 
-        // UI
+        // --- UI -----------------------------------------------------------------------
         logLines = engine.logService().tail(500);
         ImGui_ImplSDL3_NewFrame();
         ImGui::NewFrame();
+
+        const ImGuiIO& io = ImGui::GetIO();
+        const float fbScaleX = io.DisplayFramebufferScale.x > 0.0f ? io.DisplayFramebufferScale.x : 1.0f;
+        const float fbScaleY = io.DisplayFramebufferScale.y > 0.0f ? io.DisplayFramebufferScale.y : 1.0f;
+
         // Cursor picking against the collision world (Jolt raycast).
         bool hasCursor = false;
         glm::vec3 cursorWorld(0.0f);
-        {
-            const ImGuiIO& io = ImGui::GetIO();
-            const float px = io.MousePos.x * io.DisplayFramebufferScale.x;
-            const float py = io.MousePos.y * io.DisplayFramebufferScale.y;
-            if (px >= viewport.x && py >= viewport.y && px < viewport.x + viewport.width &&
-                py < viewport.y + viewport.height) {
-                const Ray ray = viewportRay(camera, viewport, px, py);
-                if (const auto hit = engine.physics().raycast(ray.origin, ray.direction, 5000.0f)) {
-                    hasCursor = true;
-                    cursorWorld = hit->position;
-                }
+        const float mouseX = io.MousePos.x * fbScaleX;
+        const float mouseY = io.MousePos.y * fbScaleY;
+        const bool mouseInViewport = mouseX >= viewport.x && mouseY >= viewport.y &&
+                                     mouseX < viewport.x + viewport.width && mouseY < viewport.y + viewport.height;
+        if (mouseInViewport) {
+            const Ray ray = viewportRay(camera, viewport, mouseX, mouseY);
+            if (const auto hit = engine.physics().raycast(ray.origin, ray.direction, 5000.0f)) {
+                hasCursor = true;
+                cursorWorld = hit->position;
             }
         }
-        const sim::NavMesh& nav = simulation.navMesh();
 
-        const ui::EditorRequests req = shell.draw(ui::EditorFrameData{
-            .playing = playing,
+        float view[16];
+        float proj[16];
+        render::cameraMatrices(camera, viewport.width / std::max(1.0f, viewport.height), view, proj);
+        ui::SceneEditorInput editorInput{simulation, engine.dispatcher(), view, proj};
+        editorInput.viewportX = viewport.x / fbScaleX;
+        editorInput.viewportY = viewport.y / fbScaleY;
+        editorInput.viewportW = viewport.width / fbScaleX;
+        editorInput.viewportH = viewport.height / fbScaleY;
+        editorInput.hasCursorWorld = hasCursor;
+        editorInput.cursorWorld[0] = cursorWorld.x;
+        editorInput.cursorWorld[1] = cursorWorld.y;
+        editorInput.cursorWorld[2] = cursorWorld.z;
+        editorInput.cameraTarget[0] = camera.target.x;
+        editorInput.cameraTarget[1] = camera.target.y;
+        editorInput.cameraTarget[2] = camera.target.z;
+
+        const sim::NavMesh& nav = simulation.navMesh();
+        ui::EditorRequests req = shell.draw(ui::EditorFrameData{
+            .playing = control.playing,
             .stepIndex = simulation.stepIndex(),
             .simTimeSeconds = simulation.simTimeSeconds(),
             .stepHz = config.sim.stepHz,
             .stateHash = simulation.stateHash(),
-            .simSpeed = simSpeed,
-            .seed = config.sim.seed,
+            .simSpeed = control.speed,
+            .seed = simulation.config().seed,
             .scenarioNames = scenarioNames,
             .scenarioIndex = scenarioIndex,
             .scenarioAgents = scenarioAgents,
@@ -290,9 +383,7 @@ int runGui(EngineContext& engine) {
             .agentsSpawned = stats.spawned,
             .agentsArrived = stats.arrived,
             .averageSpeed = stats.averageSpeed,
-            .staticObjects = static_cast<std::uint32_t>(simulation.staticMesh().triangleCount() > 0
-                                                            ? simulation.registry().view<sim::StaticObject>().size()
-                                                            : 0),
+            .staticObjects = static_cast<std::uint32_t>(simulation.staticObjectIds().size()),
             .navPolygons = nav.polyCount(),
             .navTiles = nav.tileCount(),
             .goals = static_cast<std::uint32_t>(simulation.flowFields().size()),
@@ -308,41 +399,87 @@ int runGui(EngineContext& engine) {
             .framebufferWidth = fb.width,
             .framebufferHeight = fb.height,
             .logLines = logLines,
+            .editor = &editorInput,
+            .sceneFiles = sceneFiles,
+            .sceneName = engine.sceneName(),
         });
         updateCamera(camera, req.viewportHovered);
+
+        // Click (press + release without dragging) in the viewport selects what is under the cursor.
+        if (req.viewportHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            clickStart = io.MousePos;
+        }
+        if (req.viewportHovered && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && mouseInViewport) {
+            const float moved = std::abs(io.MousePos.x - clickStart.x) + std::abs(io.MousePos.y - clickStart.y);
+            if (moved < 4.0f) {
+                const Ray ray = viewportRay(camera, viewport, mouseX, mouseY);
+                const auto hit = engine.pick(ray.origin, ray.direction);
+                shell.sceneEditor().select(hit ? hit->id : sim::kNoSceneId);
+            }
+        }
         ImGui::Render();
 
-        // Apply UI requests (these become commands in M3).
+        // --- Turn UI requests into commands and apply them between steps ---------------
         if (req.togglePlay) {
-            playing = !playing;
+            req.commands.push_back(makeCommand(control.playing ? "Pause" : "Play"));
             clock.reset();
         }
-        if (req.stepOnce && !playing) {
-            simulation.step();
-            simulation.writeSnapshot(snapshots.writeSlot());
-            snapshots.publish();
+        if (req.stepOnce && !control.playing) {
+            req.commands.push_back(makeCommand("Step", {{"steps", 1}}));
         }
         if (req.reset) {
-            simulation.reset();
-            clock.reset();
-            simulation.writeSnapshot(snapshots.writeSlot());
-            snapshots.publish();
+            req.commands.push_back(makeCommand("ResetSimulation"));
         }
         if (req.rebuildScenario) {
             scenarioIndex = std::clamp(req.scenarioIndex, 0, static_cast<int>(kScenarios.size()) - 1);
             scenarioAgents = req.scenarioAgents;
-            sim::buildScenario(simulation, kScenarios[static_cast<std::size_t>(scenarioIndex)], scenarioAgents);
-            engine.syncScene();
-            log.info("Loaded scenario '{}' with {} agents", scenarioNames[static_cast<std::size_t>(scenarioIndex)],
-                     scenarioAgents);
+            req.commands.push_back(makeCommand(
+                "LoadBuiltinScenario", {{"name", std::string(scenarioNames[static_cast<std::size_t>(scenarioIndex)])},
+                                        {"agents", scenarioAgents}}));
+        }
+        if (req.simSpeed != control.speed) {
+            req.commands.push_back(makeCommand("SetSimSpeed", {{"speed", req.simSpeed}}));
+        }
+        bool sceneReplaced = false;
+        for (Json& cmd : req.commands) {
+            engine.dispatcher().submit(std::move(cmd));
+        }
+        for (const commands::CommandOutcome& o : engine.dispatcher().flush(engine.commandContext())) {
+            if (!o.ok) {
+                continue;
+            }
+            if (replacesScene(o.command)) {
+                sceneReplaced = true;
+            }
+            if (createsEntity(o.command) && o.result.contains("id")) {
+                shell.sceneEditor().select(o.result["id"].get<sim::SceneId>());
+            }
+            if (o.command == "SaveScene") {
+                sceneFiles = listContentFiles(engine.assets(), "scenes", ".scene.json");
+            }
+        }
+        if (sceneReplaced) {
+            engine.dispatcher().restartLog(engine.commandContext());
             clock.reset();
-            simulation.writeSnapshot(snapshots.writeSlot());
-            snapshots.publish();
+        }
+        if (req.saveCommandLog) {
+            const auto file =
+                engine.assets().resolve("logs/" + engine.sceneName() + "_" + timestamp() + ".cmdlog.json");
+            std::filesystem::create_directories(file.parent_path());
+            std::ofstream(file) << engine.dispatcher().logToJson(engine.commandContext()).dump(2) << '\n';
+            log.info("Command log saved to {}", file.string());
+        }
+        // Navmesh/collision rebuilds are deferred while a gizmo drag is in progress.
+        if (!shell.sceneEditor().gizmoActive()) {
+            engine.syncScene();
+        }
+        if (!req.commands.empty() || sceneReplaced) {
+            publishSnapshot();
+            snapshots.acquire();
         }
         if (req.frameAll) {
             camera = defaultCamera(config);
         }
-        simSpeed = req.simSpeed;
         sceneRenderer.overlays = render::Overlays{
             .ground = req.overlays.ground,
             .areas = req.overlays.areas,
@@ -359,15 +496,26 @@ int runGui(EngineContext& engine) {
             running = false;
         }
         if (req.screenshot) {
-            renderer.requestScreenshot(timestampedScreenshotPath());
+            const auto file = engine.assets().resolve("../screenshots/crowdsim_" + timestamp() + ".png");
+            std::filesystem::create_directories(file.parent_path());
+            renderer.requestScreenshot(file.string());
         }
 
-        // Render
+        // Selection outline (rebuilt when the selection or the scene changes).
+        const sim::SceneId selected = shell.sceneEditor().selected();
+        if (selected != highlightId || simulation.staticVersion() != highlightVersion || !req.commands.empty()) {
+            highlight = selectionLines(simulation, selected);
+            highlightId = selected;
+            highlightVersion = simulation.staticVersion();
+        }
+        sceneRenderer.extraLines = highlight;
+
+        // --- Render -------------------------------------------------------------------
         const auto renderStart = Clock::now();
         renderer.beginFrame();
-        const float alpha = playing ? clock.alpha() : 1.0f;
+        const float alpha = control.playing ? clock.alpha() : 1.0f;
         sceneStats = sceneRenderer.render(
-            snap, alpha, camera,
+            snapshots.readSlot(), alpha, camera,
             render::ViewRect{static_cast<std::uint16_t>(viewport.x), static_cast<std::uint16_t>(viewport.y),
                              static_cast<std::uint16_t>(viewport.width), static_cast<std::uint16_t>(viewport.height)});
         imguiRenderer.render(ImGui::GetDrawData());
@@ -375,6 +523,7 @@ int runGui(EngineContext& engine) {
             0.9f * renderMs +
             0.1f * static_cast<float>(std::chrono::duration<double, std::milli>(Clock::now() - renderStart).count());
         renderer.endFrame();
+        (void)snap;
 
         ++frameIndex;
         if (config.frames > 0) {
@@ -397,12 +546,9 @@ int runGui(EngineContext& engine) {
     // Steady-state report over the last frames (ignores start-up), e.g. at full population.
     const std::size_t recent = std::min<std::size_t>(recentFrameMs.size(), frameIndex > 1 ? frameIndex - 1 : 0);
     if (recent > 0) {
-        std::vector<float> sorted(recentFrameMs.begin(), recentFrameMs.end());
-        if (recent < sorted.size()) {
-            sorted.clear();
-            for (std::uint64_t f = 1; f < frameIndex; ++f) {
-                sorted.push_back(recentFrameMs[f % recentFrameMs.size()]);
-            }
+        std::vector<float> sorted;
+        for (std::uint64_t f = frameIndex - recent; f < frameIndex; ++f) {
+            sorted.push_back(recentFrameMs[f % recentFrameMs.size()]);
         }
         std::sort(sorted.begin(), sorted.end());
         double sum = 0.0;

@@ -9,6 +9,11 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <vector>
+
+#include <nlohmann/json.hpp>
+
+#include "crowdsim/ui/SceneEditor.hpp"
 
 namespace crowdsim::ui {
 
@@ -61,6 +66,10 @@ struct EditorFrameData {
     std::uint32_t framebufferHeight = 0;
     // Log lines, oldest first
     std::span<const std::string> logLines;
+    // Scene editing
+    const SceneEditorInput* editor = nullptr;  ///< null disables editing panels
+    std::span<const std::string> sceneFiles;   ///< content-relative *.scene.json files
+    std::string_view sceneName;
 };
 
 /// Rectangle in framebuffer pixels.
@@ -88,6 +97,9 @@ struct EditorRequests {
     bool viewportHovered = false;  ///< mouse is over the 3D view and not over a widget
     OverlayToggles overlays;
     bool frameAll = false;  ///< reset the camera
+    /// Commands produced by editing this frame (submit to the dispatcher in order).
+    std::vector<nlohmann::json> commands;
+    bool saveCommandLog = false;
 };
 
 class EditorShell {
@@ -99,6 +111,14 @@ public:
 
 private:
     void buildDefaultLayout(unsigned int dockspaceId);
+    void fileMenu(const EditorFrameData& data, EditorRequests& req);
+
+public:
+    [[nodiscard]] SceneEditor& sceneEditor() noexcept { return sceneEditor_; }
+
+private:
+    SceneEditor sceneEditor_;
+    char saveAsName_[128] = "my_scene";
 
     bool layoutBuilt_ = false;
     bool showDemo_ = false;

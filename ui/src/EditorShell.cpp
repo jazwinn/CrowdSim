@@ -5,7 +5,10 @@
 
 #include <algorithm>
 #include <cstdio>
+
 #include <string>
+#include "crowdsim/commands/Command.hpp"
+#include "crowdsim/commands/CommandDispatcher.hpp"
 
 namespace crowdsim::ui {
 
@@ -16,6 +19,7 @@ constexpr const char* kStatsWindow = "Stats";
 constexpr const char* kLogWindow = "Log";
 constexpr const char* kHierarchyWindow = "Scene";
 constexpr const char* kInspectorWindow = "Inspector";
+constexpr const char* kHistoryWindow = "History";
 
 }  // namespace
 
@@ -39,8 +43,52 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kStatsWindow, rightTop);
     ImGui::DockBuilderDockWindow(kInspectorWindow, rightBottom);
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
+    ImGui::DockBuilderDockWindow(kHistoryWindow, bottom);
     // The central node stays empty: it is the 3D viewport.
     ImGui::DockBuilderFinish(dockspaceId);
+}
+
+void EditorShell::fileMenu(const EditorFrameData& data, EditorRequests& req) {
+    if (!ImGui::BeginMenu("File")) {
+        return;
+    }
+    if (ImGui::MenuItem("New scene")) {
+        req.commands.push_back(commands::makeCommand("CreateScene", {{"name", "untitled"}}));
+    }
+    if (ImGui::BeginMenu("Open scene", !data.sceneFiles.empty())) {
+        for (const std::string& file : data.sceneFiles) {
+            if (ImGui::MenuItem(file.c_str())) {
+                req.commands.push_back(commands::makeCommand("LoadScene", {{"path", file}}));
+            }
+        }
+        ImGui::EndMenu();
+    }
+    const std::string current(data.sceneName);
+    if (ImGui::MenuItem(("Save scenes/" + current + ".scene.json").c_str(), "Ctrl+S")) {
+        req.commands.push_back(commands::makeCommand("SaveScene", {{"path", "scenes/" + current + ".scene.json"}}));
+    }
+    if (ImGui::BeginMenu("Save as")) {
+        ImGui::InputText("name", saveAsName_, sizeof(saveAsName_));
+        if (ImGui::Button("Save")) {
+            const std::string name(saveAsName_);
+            req.commands.push_back(
+                commands::makeCommand("SaveScene", {{"path", "scenes/" + name + ".scene.json"}, {"name", name}}));
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndMenu();
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Save command log")) {
+        req.saveCommandLog = true;
+    }
+    if (ImGui::MenuItem("Save screenshot", "F12")) {
+        req.screenshot = true;
+    }
+    ImGui::Separator();
+    if (ImGui::MenuItem("Quit", "Alt+F4")) {
+        req.quit = true;
+    }
+    ImGui::EndMenu();
 }
 
 EditorRequests EditorShell::draw(const EditorFrameData& data) {
@@ -50,14 +98,21 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
 
     // Main menu
     if (ImGui::BeginMainMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Save screenshot", "F12")) {
-                req.screenshot = true;
+        fileMenu(data, req);
+        if (ImGui::BeginMenu("Edit")) {
+            const bool canUndo = data.editor != nullptr && data.editor->dispatcher.canUndo();
+            const bool canRedo = data.editor != nullptr && data.editor->dispatcher.canRedo();
+            if (ImGui::MenuItem("Undo", "Ctrl+Z", false, canUndo)) {
+                req.commands.push_back(commands::makeCommand("Undo"));
+            }
+            if (ImGui::MenuItem("Redo", "Ctrl+Y", false, canRedo)) {
+                req.commands.push_back(commands::makeCommand("Redo"));
             }
             ImGui::Separator();
-            if (ImGui::MenuItem("Quit", "Alt+F4")) {
-                req.quit = true;
+            if (ImGui::MenuItem("Delete selected", "Del", false, sceneEditor_.selected() != 0)) {
+                req.commands.push_back(commands::makeCommand("DeleteEntity", {{"id", sceneEditor_.selected()}}));
             }
+            ImGui::MenuItem("Snap gizmo", nullptr, &sceneEditor_.snap);
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Simulation")) {
@@ -93,6 +148,16 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         if (ImGui::IsKeyPressed(ImGuiKey_F12, false)) {
             req.screenshot = true;
         }
+        const ImGuiIO& io = ImGui::GetIO();
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
+            req.commands.push_back(commands::makeCommand(io.KeyShift ? "Redo" : "Undo"));
+        }
+        if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Y, false)) {
+            req.commands.push_back(commands::makeCommand("Redo"));
+        }
+        if (data.editor != nullptr) {
+            sceneEditor_.handleShortcuts(*data.editor, req.commands);
+        }
     }
 
     const ImGuiID dockspaceId = ImGui::GetID("CrowdSimDockspace");
@@ -120,10 +185,11 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
                                 mouse.y < origin.y + central->Size.y;
         // Keep ownership while dragging even if the cursor leaves the rectangle.
         viewportDragging_ = viewportDragging_ && ImGui::IsAnyMouseDown();
-        if (insideRect && !io.WantCaptureMouse && ImGui::IsAnyMouseDown()) {
+        if (insideRect && !io.WantCaptureMouse && ImGui::IsAnyMouseDown() && !sceneEditor_.gizmoActive()) {
             viewportDragging_ = true;
         }
-        req.viewportHovered = (insideRect && !io.WantCaptureMouse) || viewportDragging_;
+        req.viewportHovered =
+            ((insideRect && !io.WantCaptureMouse) || viewportDragging_) && !sceneEditor_.gizmoActive();
 
         ImDrawList* dl = ImGui::GetBackgroundDrawList();
         std::string overlay = std::to_string(data.agentsAlive) + " agents";
@@ -141,25 +207,41 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         req.frameAll = true;
     }
 
-    ImGui::Begin(kHierarchyWindow);
-    ImGui::Text("Objects   %u", data.staticObjects);
-    ImGui::Text("Navmesh   %u polys, %u tiles", data.navPolygons, data.navTiles);
-    ImGui::Text("Goals     %u", data.goals);
-    ImGui::SeparatorText("Overlays");
-    ImGui::Checkbox("Reference grid", &overlays_.ground);
-    ImGui::Checkbox("Spawner / goal areas", &overlays_.areas);
-    ImGui::Checkbox("Navmesh + walls", &overlays_.navmesh);
-    ImGui::Checkbox("Off-mesh links", &overlays_.links);
-    ImGui::Checkbox("Velocities", &overlays_.velocities);
-    ImGui::Checkbox("Flow field", &overlays_.flowField);
-    if (overlays_.flowField && data.goals > 1) {
-        ImGui::SliderInt("Goal", &overlays_.flowGoal, 0, static_cast<int>(data.goals) - 1);
+    if (data.editor != nullptr) {
+        sceneEditor_.drawGizmo(*data.editor, req.commands);
     }
-    overlays_.flowGoal = std::clamp(overlays_.flowGoal, 0, std::max(0, static_cast<int>(data.goals) - 1));
+
+    ImGui::Begin(kHierarchyWindow);
+    ImGui::Text("%.*s", static_cast<int>(data.sceneName.size()), data.sceneName.data());
+    ImGui::TextDisabled("Navmesh %u polys, %u tiles", data.navPolygons, data.navTiles);
+    if (ImGui::CollapsingHeader("Overlays")) {
+        ImGui::Checkbox("Reference grid", &overlays_.ground);
+        ImGui::Checkbox("Spawner / goal areas", &overlays_.areas);
+        ImGui::Checkbox("Navmesh + walls", &overlays_.navmesh);
+        ImGui::Checkbox("Off-mesh links", &overlays_.links);
+        ImGui::Checkbox("Velocities", &overlays_.velocities);
+        ImGui::Checkbox("Flow field", &overlays_.flowField);
+        if (overlays_.flowField && data.goals > 1) {
+            ImGui::SliderInt("Goal", &overlays_.flowGoal, 0, static_cast<int>(data.goals) - 1);
+        }
+        overlays_.flowGoal = std::clamp(overlays_.flowGoal, 0, std::max(0, static_cast<int>(data.goals) - 1));
+    }
+    ImGui::Separator();
+    if (data.editor != nullptr) {
+        sceneEditor_.drawHierarchy(*data.editor, req.commands);
+    }
     ImGui::End();
 
     ImGui::Begin(kInspectorWindow);
-    ImGui::TextDisabled("Nothing selected");
+    if (data.editor != nullptr) {
+        sceneEditor_.drawInspector(*data.editor, req.commands);
+    }
+    ImGui::End();
+
+    ImGui::Begin(kHistoryWindow);
+    if (data.editor != nullptr) {
+        sceneEditor_.drawHistory(*data.editor, req.commands);
+    }
     ImGui::End();
 
     ImGui::Begin(kSimWindow);

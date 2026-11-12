@@ -8,6 +8,9 @@
 
 #include <cstdint>
 #include <memory>
+#include <vector>
+
+#include <glm/vec3.hpp>
 
 #include "crowdsim/render/Camera.hpp"
 
@@ -29,6 +32,13 @@ struct ViewRect {
 struct SceneStats {
     std::uint32_t agentsDrawn = 0;
     std::uint32_t drawCalls = 0;
+};
+
+/// A coloured line segment drawn this frame (selection outlines, gizmos, debug).
+struct DebugLine {
+    glm::vec3 a;
+    glm::vec3 b;
+    std::uint32_t abgr = 0xffffffffu;
 };
 
 /// Toggleable layers.
@@ -54,6 +64,8 @@ public:
     SceneStats render(const snapshot::RenderSnapshot& snap, float alpha, const Camera& camera, const ViewRect& rect);
 
     Overlays overlays;
+    /// Extra lines for this frame; the caller refills it every frame.
+    std::vector<DebugLine> extraLines;
 
 private:
     void uploadStatic(const snapshot::StaticScene& scene);
