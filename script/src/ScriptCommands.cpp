@@ -1,5 +1,8 @@
 #include "crowdsim/script/ScriptCommands.hpp"
 
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -89,6 +92,43 @@ void registerScriptCommands(commands::CommandRegistry& r, ScriptHost& host) {
                out.result = evalJson(result);
                out.logAs = makeCommand("LoadScript", Json{{"name", name}, {"source", source}});
                out.label = "Reload '" + name + "'";
+               return out;
+           }});
+
+    r.add({"SaveScript",
+           "Write content/scripts/<name>.lua and run it (the editor's Save). Logged as LoadScript with the "
+           "source, so logs replay without the file; nothing is written while replaying.",
+           obj({{"name", str("script name: letters, digits, _ and -")}, {"source", str("Lua source")}},
+               {"name", "source"}),
+           [&host](const Json& p, CommandContext& ctx) {
+               const std::string name = p.at("name").get<std::string>();
+               const std::string source = p.at("source").get<std::string>();
+               const bool validName = !name.empty() && name.size() <= 64 &&
+                                      std::all_of(name.begin(), name.end(), [](unsigned char c) {
+                                          return std::isalnum(c) != 0 || c == '_' || c == '-';
+                                      });
+               if (!validName) {
+                   throw std::invalid_argument("script names use letters, digits, _ and - (got '" + name + "')");
+               }
+               if (source.size() > kMaxSourceBytes) {
+                   throw std::invalid_argument("script too large (1 MiB max)");
+               }
+               CommandOutput out;
+               const std::string path = "scripts/" + name + ".lua";
+               if (!ctx.replaying) {
+                   const std::filesystem::path file = ctx.assets.resolve(path);
+                   std::filesystem::create_directories(file.parent_path());
+                   std::ofstream f(file, std::ios::binary);
+                   if (!f || !(f << source)) {
+                       throw std::invalid_argument("cannot write '" + path + "'");
+                   }
+               }
+               const EvalResult result = host.load(name, source);
+               out.result = evalJson(result);
+               out.result["name"] = name;
+               out.result["path"] = path;
+               out.logAs = makeCommand("LoadScript", Json{{"name", name}, {"source", source}});
+               out.label = "Save script '" + name + "'";
                return out;
            }});
 

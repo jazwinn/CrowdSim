@@ -181,6 +181,7 @@ every command with its JSON Schema.
 | `SpawnAgents` | yes | Spawn N agents in an area now (a one-shot spawner). |
 | `SetAgentTypeBehaviour` | yes | Switch an agent type to another tree (its agents restart). |
 | `LoadScript` / `ReloadScript` | yes (with source) | Run or hot-reload a Lua script (see `docs/scripting.md`). |
+| `SaveScript` | yes (as `LoadScript`) | Write `content/scripts/<name>.lua` and run it (the Script tab's Save). |
 | `EvalLua` | yes | Evaluate Lua; returns printed output and the result. |
 | `SpawnEntity` | yes | Place an instance of a Lua-registered entity type. |
 | `ListScripts` / `GetScript` / `ScriptErrors` / `ListEntityTypes` | no | Scripting queries. |
