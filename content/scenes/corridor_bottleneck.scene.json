@@ -144,6 +144,10 @@
         "agentType": 0,
         "color": "#d98c40",
         "colorJitter": 0.12,
+        "mass": [
+          75.0,
+          75.0
+        ],
         "maxAcceleration": 3.0,
         "maxSpeedFactor": 1.35,
         "preferredSpeed": [

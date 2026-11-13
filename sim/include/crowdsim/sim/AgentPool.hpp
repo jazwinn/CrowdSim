@@ -58,6 +58,7 @@ struct AgentInit {
     float maxSpeed = 1.8f;
     float maxAcceleration = 3.0f;
     float personalSpace = 0.06f;
+    float mass = 75.0f;  ///< kg (avoidance priority, see AgentParams::massMin)
     glm::vec3 color{1.0f};
     float height = 0.0f;         ///< world Y (floor height under the agent)
     std::uint32_t navPoly = 0;   ///< Detour polygon ref, 0 = not on the navmesh
@@ -86,6 +87,7 @@ public:
     std::vector<float> maxSpeed;
     std::vector<float> maxAcceleration;
     std::vector<float> personalSpace;
+    std::vector<float> mass;  ///< kg
     std::vector<glm::vec3> color;
     std::vector<float> height;
     std::vector<float> prevHeight;
@@ -157,6 +159,7 @@ public:
         maxSpeed.push_back(a.maxSpeed);
         maxAcceleration.push_back(a.maxAcceleration);
         personalSpace.push_back(a.personalSpace);
+        mass.push_back(a.mass);
         color.push_back(a.color);
         height.push_back(a.height);
         prevHeight.push_back(a.height);
@@ -232,6 +235,7 @@ private:
         f(maxSpeed);
         f(maxAcceleration);
         f(personalSpace);
+        f(mass);
         f(color);
         f(height);
         f(prevHeight);

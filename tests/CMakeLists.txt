@@ -11,6 +11,7 @@ add_executable(crowdsim_tests
   sim/test_navigation.cpp
   sim/test_behavior.cpp
   sim/test_escalators.cpp
+  sim/test_mass.cpp
   animation/test_animation.cpp
   script/test_scripting.cpp
   assets/test_bt_graph.cpp

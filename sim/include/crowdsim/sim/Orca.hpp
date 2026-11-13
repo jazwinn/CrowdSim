@@ -28,7 +28,16 @@ struct Neighbor {
     glm::vec2 velocity;
     float radius;
     std::uint32_t index;  ///< tie-breaker for degenerate (exact overlap) cases
+    /// Share of the avoidance this agent takes on for this neighbour (ORCA's
+    /// reciprocity): 0.5 = half each; nearer 1 = this agent gives way, nearer 0 = it
+    /// keeps going and the neighbour moves. The two shares of a pair add up to 1.
+    float responsibility = 0.5f;
 };
+
+/// Responsibility of an agent of mass `self` towards one of mass `other`: equal
+/// masses share half each; otherwise the lighter takes 1 - r/2 and the heavier r/2,
+/// with r = lighter / heavier, so a heavier agent pushes a lighter one aside.
+[[nodiscard]] float massResponsibility(float self, float other) noexcept;
 
 struct AgentState {
     glm::vec2 position;

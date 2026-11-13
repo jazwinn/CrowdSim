@@ -643,6 +643,9 @@ void Simulation::spawnAgents(float dt) {
                     }
                 }
                 const float prefSpeed = rng_.range(p.preferredSpeedMin, p.preferredSpeedMax);
+                // Only draw when the range is open, so default (single-mass) types keep
+                // every existing random sequence and result unchanged.
+                const float mass = p.massMax > p.massMin ? rng_.range(p.massMin, p.massMax) : p.massMin;
                 const glm::vec3 jitter(rng_.range(-1.0f, 1.0f), rng_.range(-1.0f, 1.0f), rng_.range(-1.0f, 1.0f));
 
                 AgentInit init;
@@ -656,6 +659,7 @@ void Simulation::spawnAgents(float dt) {
                 init.maxSpeed = prefSpeed * p.maxSpeedFactor;
                 init.maxAcceleration = p.maxAcceleration;
                 init.personalSpace = s.agentMix.empty() ? config_.locomotion.personalSpace : type.personalSpace;
+                init.mass = mass;
                 init.color = glm::clamp(p.color + jitter * p.colorJitter, glm::vec3(0.0f), glm::vec3(1.0f));
                 init.goalTarget = target;
                 init.goalIndex = static_cast<std::uint16_t>(goalIndex);
@@ -804,7 +808,8 @@ void Simulation::computeAvoidance(float dt) {
                 }
                 distSq[slot] = d2;
                 neighbors[slot] = orca::Neighbor{agents_.position[j], agents_.velocity[j],
-                                                 agents_.radius[j] + agents_.personalSpace[j], j};
+                                                 agents_.radius[j] + agents_.personalSpace[j], j,
+                                                 orca::massResponsibility(agents_.mass[i], agents_.mass[j])};
             });
 
             // Nearby navmesh boundary edges on this level, nearest first. Escalator riders

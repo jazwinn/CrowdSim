@@ -209,6 +209,7 @@ std::optional<AgentDebugInfo> Simulation::agentDebug(std::uint32_t agentId) cons
     d.position = {agents_.position[i].x, agents_.height[i], agents_.position[i].y};
     d.speed = glm::length(agents_.velocity[i]);
     d.speedMultiplier = agents_.speedMultiplier[i];
+    d.mass = agents_.mass[i];
     d.queueStage = agents_.queueStage[i];
     d.groupId = agents_.groupId[i];
     return d;

@@ -45,6 +45,11 @@ struct AgentParams {
     float preferredSpeedMin = 1.15f;
     float preferredSpeedMax = 1.55f;
     float maxSpeedFactor = 1.35f;  ///< max speed = preferred speed * factor
+    /// Body mass range, kg. In avoidance a heavier agent gives way less and pushes a
+    /// lighter one aside; equal masses avoid each other as usual. Sampled per agent
+    /// only when max > min, so the default draws no random number.
+    float massMin = 75.0f;
+    float massMax = 75.0f;
     float maxAcceleration = 3.0f;  ///< m/s^2
     glm::vec3 color{0.85f, 0.55f, 0.25f};
     float colorJitter = 0.12f;

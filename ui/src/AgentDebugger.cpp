@@ -130,6 +130,7 @@ void SceneEditor::drawAgentInspector(const SceneEditorInput& in) {
         }
         row("position", std::format("({:.1f}, {:.1f}, {:.1f})", info->position.x, info->position.y, info->position.z));
         row("speed", std::format("{:.2f} m/s (x{:.2f})", info->speed, info->speedMultiplier));
+    row("mass", std::format("{:.0f} kg", info->mass));
         if (info->queueStage != 0) {
             static constexpr const char* kStages[] = {"-", "waiting in line", "being served", "served", "done"};
             row("queue", kStages[info->queueStage < 5 ? info->queueStage : 0]);

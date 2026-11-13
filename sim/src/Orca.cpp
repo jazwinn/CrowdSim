@@ -152,6 +152,14 @@ void linearProgram3(const LineSet& set, std::uint32_t numObstLines, std::uint32_
 
 }  // namespace
 
+float massResponsibility(float self, float other) noexcept {
+    if (self <= 0.0f || other <= 0.0f || self == other) {
+        return 0.5f;
+    }
+    const float r = std::min(self, other) / std::max(self, other);
+    return self < other ? 1.0f - 0.5f * r : 0.5f * r;
+}
+
 glm::vec2 computeNewVelocity(const AgentState& self, std::span<const Neighbor> neighbors, std::span<const Wall> walls,
                              const Params& params) noexcept {
     LineSet set;
@@ -236,7 +244,7 @@ glm::vec2 computeNewVelocity(const AgentState& self, std::span<const Neighbor> n
         }
 
         // Reciprocity: each agent takes half the responsibility.
-        line.point = self.velocity + 0.5f * u;
+        line.point = self.velocity + other.responsibility * u;
         set.push(line);
     }
 

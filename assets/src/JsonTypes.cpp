@@ -286,6 +286,7 @@ Json toJson(const sim::AgentParams& p) {
     return Json{{"radius", Json::array({roundFloat(p.radiusMin), roundFloat(p.radiusMax)})},
                 {"preferredSpeed", Json::array({roundFloat(p.preferredSpeedMin), roundFloat(p.preferredSpeedMax)})},
                 {"maxSpeedFactor", roundFloat(p.maxSpeedFactor)},
+                {"mass", Json::array({roundFloat(p.massMin), roundFloat(p.massMax)})},
                 {"maxAcceleration", roundFloat(p.maxAcceleration)},
                 {"color", rgb(p.color)},
                 {"colorJitter", roundFloat(p.colorJitter)},
@@ -305,6 +306,14 @@ sim::AgentParams agentParamsFromJson(const Json& j) {
         p.preferredSpeedMax = s.y;
     }
     p.maxSpeedFactor = value<float>(j, "maxSpeedFactor", p.maxSpeedFactor);
+    if (j.contains("mass")) {
+        const glm::vec2 m = vec2From(j["mass"]);
+        p.massMin = m.x;
+        p.massMax = m.y;
+        if (p.massMin <= 0.0f || p.massMax < p.massMin) {
+            throw std::invalid_argument("agent mass range must be positive and ordered [min, max] (kg)");
+        }
+    }
     p.maxAcceleration = value<float>(j, "maxAcceleration", p.maxAcceleration);
     if (j.contains("color")) {
         p.color = rgbFrom(j["color"]);

@@ -108,6 +108,7 @@ struct AgentDebugInfo {
     glm::vec3 position{0.0f};
     float speed = 0.0f;
     float speedMultiplier = 1.0f;
+    float mass = 75.0f;  ///< kg
     std::uint8_t queueStage = 0;
     std::uint32_t groupId = kNoAgent;
 };

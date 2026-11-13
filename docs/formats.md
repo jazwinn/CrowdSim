@@ -138,12 +138,16 @@ behaviour to locomotion parameters. Scenes embed the types they use under `"agen
 
 ```json
 {"format": "crowdsim.agent", "version": 1, "name": "queuer", "behaviour": "queuer",
- "radius": [0.24, 0.3], "preferredSpeed": [1.0, 1.4], "maxSpeedFactor": 1.35, "maxAcceleration": 3,
+ "radius": [0.24, 0.3], "preferredSpeed": [1.0, 1.4], "maxSpeedFactor": 1.35, "maxAcceleration": 3, "mass": [60, 90],
  "personalSpace": 0.08, "height": 1.75, "color": "#5cbf6a", "colorJitter": 0.1, "tags": []}
 ```
 
 Ranges (`[min, max]`) are sampled per agent from its own random stream. `personalSpace` (m) is
-added to the radius for avoidance. Spawners choose types with
+added to the radius for avoidance. `mass` (kg, default `[75, 75]`) sets who gives way: two
+agents of equal mass share avoidance half each; otherwise the lighter takes `1 - r/2` of it and
+the heavier `r/2` (`r` = lighter / heavier), so a heavier agent pushes a lighter one aside
+while a lighter one goes round a heavier one. A single value draws no random number, so
+existing scenes are unchanged. Spawners' inline `agent` parameters take `mass` too. Spawners choose types with
 `"agentMix": [{"type": "commuter", "weight": 0.55}, ...]` and spawn groups with
 `"groupSize": [1, 3]` (the first agent leads; the others' `FollowGroup` follows it). Goals used as
 service points add `"capacity"`, `"serviceTime"` (s), `"queueDirection"` (`[x, z]`, the way the
