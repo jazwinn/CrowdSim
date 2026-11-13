@@ -4,7 +4,10 @@ Two identical halls side by side, each with one up escalator (13 m long, 7.5 m
 rise, 0.5 m/s) to an upper concourse, fed by the same arrival rate:
 
   Hall A (west): "keep left, walk right" - 75% stand on the left, 25% walk on the right.
-  Hall B (east): "stand on both sides"   - everyone stands, on whichever side is shorter.
+  Hall B (east): "stand on both sides"   - everyone stands, on the side they are already on.
+
+Riding style comes from behaviour trees (content/behaviours/escalator_*.bt.json, the
+SetEscalatorStyle node), not from the escalators or the agent types.
 
 The numbers follow CNA's report on SMRT's 2026 trial at City Hall: a standing
 ride of about 30 s, about 20 s for those who walk up.
@@ -123,13 +126,18 @@ for key, cx, title in halls:
         "agentMix": mixes[key],
     })
 
-# Embed the agent types so the scene also loads without content/agents.
-agents_dir = Path(__file__).resolve().parent.parent / "content" / "agents"
-agent_types = [json.loads((agents_dir / f"{name}.agent.json").read_text(encoding="utf-8"))
+# Embed the agent types and their behaviour trees so the scene also loads without
+# content/. How people ride the escalator is behaviour: each tree sets it with the
+# SetEscalatorStyle node; the escalator objects only say that their steps move.
+content = Path(__file__).resolve().parent.parent / "content"
+agent_types = [json.loads((content / "agents" / f"{name}.agent.json").read_text(encoding="utf-8"))
                for name in ("escalator_stander_left", "escalator_walker_right", "escalator_stander_either")]
+behaviours = [json.loads((content / "behaviours" / f"{t['behaviour']}.bt.json").read_text(encoding="utf-8"))
+              for t in agent_types]
 
 scene = {
     "format": "crowdsim.scene", "version": 1, "name": "escalator_etiquette",
+    "behaviours": behaviours,
     "agentTypes": agent_types,
     "navigation": {"agentHeight": 1.9, "agentMaxClimb": 0.45, "agentMaxSlope": 45.0, "agentRadius": 0.3,
                    "cellHeight": 0.1, "cellSize": 0.2, "tileSize": 64},

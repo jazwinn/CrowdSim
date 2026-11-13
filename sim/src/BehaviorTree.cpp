@@ -15,7 +15,7 @@ constexpr BtParamSpec kNone{"", K::Number, 0.0f, "", ""};
 // Composite children limit: kBtMaxNodes bounds the tree anyway.
 constexpr std::uint8_t kMany = 32;
 
-constexpr std::array<BtNodeTypeInfo, 26> kNodeTypes = {{
+constexpr std::array<BtNodeTypeInfo, 27> kNodeTypes = {{
     {BtNodeType::Sequence,
      "Sequence",
      BtCategory::Composite,
@@ -179,6 +179,15 @@ constexpr std::array<BtNodeTypeInfo, 26> kNodeTypes = {{
      1,
      {BtParamSpec{"name", K::Text, 0.0f, "walking", "state label (debug colours, metrics)"}, kNone, kNone},
      "Set the agent's state label."},
+    {BtNodeType::SetEscalatorStyle,
+     "SetEscalatorStyle",
+     BtCategory::Action,
+     0,
+     0,
+     2,
+     {BtParamSpec{"side", K::Text, 0.0f, "either", "lane to ride in: left, right or either (the shorter line)"},
+      BtParamSpec{"walk", K::Number, 0.0f, "", "1 = walk on the moving steps, 0 = stand still"}, kNone},
+     "Choose how the agent rides escalators from now on: which side, standing or walking."},
     {BtNodeType::Despawn,
      "Despawn",
      BtCategory::Action,
@@ -340,6 +349,13 @@ public:
                         node.hasVec = true;
                     }
                     break;
+            }
+        }
+        if (node.type == BtNodeType::SetEscalatorStyle) {
+            const std::string& side = t_.strings[node.text];
+            if (side != "left" && side != "right" && side != "either") {
+                throw std::invalid_argument(
+                    std::format("{}: SetEscalatorStyle side must be left, right or either, got '{}'", path, side));
             }
         }
         // Script nodes: leaves whose parameters are checked against the registered spec

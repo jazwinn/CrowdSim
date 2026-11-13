@@ -300,6 +300,7 @@ private:
     void rebuildTreeLookups();
     void rebuildTaggedVolumes();
     void rebuildEscalators();
+    [[nodiscard]] static std::uint8_t escalatorStyleOf(std::string_view side, bool walks);
     void assignEscalatorLanes();
     [[nodiscard]] glm::vec2 escalatorSteering(std::uint32_t agent, glm::vec2 pref) const;
     [[nodiscard]] glm::vec2 beltVelocityAt(glm::vec2 position, float height) const;
@@ -372,7 +373,6 @@ private:
     std::vector<std::string> tagNames_{""};
     std::vector<TaggedVolume> taggedVolumes_;
     std::vector<Escalator> escalators_;
-    std::vector<std::uint8_t> escalatorRoles_;  ///< per agent type, see Escalators.cpp
 };
 
 }  // namespace crowdsim::sim

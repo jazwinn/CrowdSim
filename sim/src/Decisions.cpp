@@ -708,6 +708,9 @@ BtStatus Simulation::tickNode(const CompiledTree& tree, std::uint16_t index, std
         case BtNodeType::SetState:
             agents_.stateId[i] = lookup.stateOf[n.text];
             return BtStatus::Success;
+        case BtNodeType::SetEscalatorStyle:
+            agents_.escalatorStyle[i] = escalatorStyleOf(tree.strings[n.text], n.number[0] > 0.5f);
+            return BtStatus::Success;
         case BtNodeType::Despawn:
             agents_.despawnRequested[i] = 1;
             agents_.moveMode[i] = MoveMode::Stop;

@@ -2,13 +2,120 @@
   "format": "crowdsim.scene",
   "version": 1,
   "name": "escalator_etiquette",
+  "behaviours": [
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "escalator_stand_left",
+      "description": "Walk to the goal; on escalators stand on the left (keep the right clear).",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "walking"
+            }
+          },
+          {
+            "type": "SetEscalatorStyle",
+            "id": "escalator",
+            "params": {
+              "side": "left",
+              "walk": 0
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "walk"
+          },
+          {
+            "type": "Despawn",
+            "id": "leave"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "escalator_walk_right",
+      "description": "Walk to the goal; on escalators walk up on the right.",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "walking"
+            }
+          },
+          {
+            "type": "SetEscalatorStyle",
+            "id": "escalator",
+            "params": {
+              "side": "right",
+              "walk": 1
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "walk"
+          },
+          {
+            "type": "Despawn",
+            "id": "leave"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "escalator_stand_either",
+      "description": "Walk to the goal; on escalators stand on whichever side has the shorter line.",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "walking"
+            }
+          },
+          {
+            "type": "SetEscalatorStyle",
+            "id": "escalator",
+            "params": {
+              "side": "either",
+              "walk": 0
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "walk"
+          },
+          {
+            "type": "Despawn",
+            "id": "leave"
+          }
+        ]
+      }
+    }
+  ],
   "agentTypes": [
     {
       "format": "crowdsim.agent",
       "version": 1,
       "name": "escalator_stander_left",
-      "description": "Stands on the left of escalators (keeps the right clear).",
-      "behaviour": "commuter",
+      "description": "Stands on the left of escalators (keeps the right clear). Behaviour tree: escalator_stand_left.",
+      "behaviour": "escalator_stand_left",
       "radius": [
         0.22,
         0.26
@@ -23,16 +130,14 @@
       "height": 1.75,
       "color": "#4a90d9",
       "colorJitter": 0.08,
-      "tags": [
-        "escalator:stand-left"
-      ]
+      "tags": []
     },
     {
       "format": "crowdsim.agent",
       "version": 1,
       "name": "escalator_walker_right",
-      "description": "Walks up escalators on the right.",
-      "behaviour": "commuter",
+      "description": "Walks up escalators on the right. Behaviour tree: escalator_walk_right.",
+      "behaviour": "escalator_walk_right",
       "radius": [
         0.22,
         0.26
@@ -47,16 +152,14 @@
       "height": 1.75,
       "color": "#e8913a",
       "colorJitter": 0.08,
-      "tags": [
-        "escalator:walk-right"
-      ]
+      "tags": []
     },
     {
       "format": "crowdsim.agent",
       "version": 1,
       "name": "escalator_stander_either",
-      "description": "Stands on whichever side of the escalator has the shorter line.",
-      "behaviour": "commuter",
+      "description": "Stands on whichever side of the escalator has the shorter line. Behaviour tree: escalator_stand_either.",
+      "behaviour": "escalator_stand_either",
       "radius": [
         0.22,
         0.26
@@ -71,9 +174,7 @@
       "height": 1.75,
       "color": "#45b39d",
       "colorJitter": 0.08,
-      "tags": [
-        "escalator:stand-either"
-      ]
+      "tags": []
     }
   ],
   "navigation": {

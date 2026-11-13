@@ -2,15 +2,21 @@
   "format": "crowdsim.agent",
   "version": 1,
   "name": "escalator_stander_left",
-  "description": "Stands on the left of escalators (keeps the right clear).",
-  "behaviour": "commuter",
-  "radius": [0.22, 0.26],
-  "preferredSpeed": [1.1, 1.45],
+  "description": "Stands on the left of escalators (keeps the right clear). Behaviour tree: escalator_stand_left.",
+  "behaviour": "escalator_stand_left",
+  "radius": [
+    0.22,
+    0.26
+  ],
+  "preferredSpeed": [
+    1.1,
+    1.45
+  ],
   "maxSpeedFactor": 1.35,
   "maxAcceleration": 3,
   "personalSpace": 0.03,
   "height": 1.75,
   "color": "#4a90d9",
   "colorJitter": 0.08,
-  "tags": ["escalator:stand-left"]
+  "tags": []
 }

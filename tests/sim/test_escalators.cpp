@@ -1,15 +1,17 @@
-// Escalators: stairs tagged "escalator" carry agents; agent-type tags set who stands
-// or walks and on which side.
+// Escalators: stairs tagged "escalator" carry agents; the SetEscalatorStyle behaviour
+// tree node sets who stands or walks and on which side.
 
 #include <doctest/doctest.h>
 
 #include <cmath>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/geometry/Primitives.hpp"
+#include "crowdsim/sim/BehaviorTree.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 #include "crowdsim/snapshot/RenderSnapshot.hpp"
 
@@ -26,7 +28,8 @@ struct World {
     core::JobSystem jobs{4};
     sim::Simulation sim{{logs.logger(), jobs}, sim::SimConfig{}};
 
-    explicit World(const std::string& type) {
+    /// `style` is "stand-left", "walk-right", ...: a tree that sets it, then walks to the goal.
+    explicit World(const std::string& style) {
         auto box = [&](glm::vec3 pos, glm::vec3 size) {
             geometry::PrimitiveDesc d;
             d.position = pos;
@@ -41,12 +44,21 @@ struct World {
         esc.steps = 30;
         sim.addStaticObject(sim::StaticObject{"escalator", esc, {}, {}, {"escalator", "escalator:speed=0.5"}});
 
+        const std::size_t dash = style.find('-');
+        sim::BtNodeDesc setStyle{"SetEscalatorStyle", "style", {}, {}};
+        setStyle.params["side"].kind = sim::BtParamKind::Text;
+        setStyle.params["side"].text = style.substr(dash + 1);
+        setStyle.params["walk"].number = style.starts_with("walk") ? 1.0f : 0.0f;
+        sim::BtNodeDesc root{"Sequence", "root", {}, {setStyle, sim::BtNodeDesc{"MoveToGoal", "walk", {}, {}},
+                                                      sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+        sim.setBehaviorTree(sim::compileBehaviorTree(root, style));
+
         sim::AgentType stander;
-        stander.name = type;
+        stander.name = style;
+        stander.behaviour = style;
         stander.params.radiusMin = stander.params.radiusMax = 0.24f;
         stander.params.preferredSpeedMin = stander.params.preferredSpeedMax = 1.3f;
         stander.personalSpace = 0.03f;
-        stander.tags = {"escalator:" + type};
         sim.defineAgentType(stander);
 
         sim::Goal goal;
@@ -59,7 +71,7 @@ struct World {
         s.rate = 5.0f;
         s.total = 1;
         s.goal = goalId;
-        s.agentMix = {{type, 1.0f}};
+        s.agentMix = {{style, 1.0f}};
         sim.addSpawner(s);
     }
 };
@@ -131,4 +143,11 @@ TEST_CASE("Walkers climb the moving steps faster than standers") {
     CHECK(walker.seconds < stander.seconds * 0.7f);
     CHECK(walker.meanLateral > 0.15f);
     CHECK(walker.maxGaitSpeed > 0.3f);
+}
+
+TEST_CASE("SetEscalatorStyle rejects an unknown side") {
+    sim::BtNodeDesc bad{"SetEscalatorStyle", "style", {}, {}};
+    bad.params["side"].kind = sim::BtParamKind::Text;
+    bad.params["side"].text = "middle";
+    CHECK_THROWS_AS((void)sim::compileBehaviorTree(bad, "bad"), std::invalid_argument);
 }

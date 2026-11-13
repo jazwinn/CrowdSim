@@ -85,6 +85,8 @@ public:
     std::vector<std::uint32_t> linkEndPoly;
     // Escalator lane while boarding or riding: -1 left, +1 right, 0 none.
     std::vector<std::int8_t> escalatorLane;
+    // How the agent rides escalators (SetEscalatorStyle): bit 0 stands, bit 1 left, bit 2 right.
+    std::vector<std::uint8_t> escalatorStyle;
 
     // --- Decision layer ---
     std::vector<std::uint16_t> tree;
@@ -151,6 +153,7 @@ public:
         linkEnd.push_back(glm::vec3(0.0f));
         linkEndPoly.push_back(0);
         escalatorLane.push_back(0);
+        escalatorStyle.push_back(0);
 
         tree.push_back(a.tree);
         bt.push_back(BtState{});
@@ -224,6 +227,7 @@ private:
         f(linkEnd);
         f(linkEndPoly);
         f(escalatorLane);
+        f(escalatorStyle);
         f(tree);
         f(bt);
         f(rng);

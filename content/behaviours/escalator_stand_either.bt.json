@@ -1,0 +1,35 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "escalator_stand_either",
+  "description": "Walk to the goal; on escalators stand on whichever side has the shorter line.",
+  "root": {
+    "type": "Sequence",
+    "id": "root",
+    "children": [
+      {
+        "type": "SetState",
+        "id": "label",
+        "params": {
+          "name": "walking"
+        }
+      },
+      {
+        "type": "SetEscalatorStyle",
+        "id": "escalator",
+        "params": {
+          "side": "either",
+          "walk": 0
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "walk"
+      },
+      {
+        "type": "Despawn",
+        "id": "leave"
+      }
+    ]
+  }
+}

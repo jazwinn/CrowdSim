@@ -44,9 +44,9 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   along the slope (default 0.5), `escalator:walk=<factor>` the pace of people walking on the
   steps as a fraction of their preferred speed (0.45), `escalator:gap=<m>` the spacing standers
   wait for before stepping on (0.9). Two lanes fit when the object is at least 2.4 m wide (the
-  navmesh loses about 0.5 m per side). Agent-type tags pick the behaviour: `escalator:stand-left`,
-  `stand-right`, `stand-either`, `walk-left`, `walk-right`, `walk-either` (the default). See
-  `scenes/escalator_etiquette.scene.json` and `scripts/escalator_trial.lua`.
+  navmesh loses about 0.5 m per side). How each person rides is behaviour, set by the
+  `SetEscalatorStyle` tree node (below); agents that never run it walk on either side. See
+  `scenes/escalator_etiquette.scene.json` and `behaviours/escalator_*.bt.json`.
 - **Ids** are stable and never reused (`nextId` keeps deleted ids retired). Spawners reference
   goals by id; commands also accept the goal's **name** (`"goal": "Exit"`).
 - Files are written in entity creation order with floats rounded to 6 significant digits, so
@@ -121,6 +121,7 @@ reloaded tree restart from its root. Scene files embed the trees they use under 
 | `AvoidArea` | action | 0 | `tag` | Steer around objects with `tag` from now on. |
 | `SetSpeed` | action | 0 | `multiplier` (1) | Scale walking speed. |
 | `SetState` | action | 0 | `name` ("walking") | Set the state label (debugger, metrics). |
+| `SetEscalatorStyle` | action | 0 | `side` ("either"), `walk` (0) | How to ride escalators from now on: `left`, `right` or `either` side; `walk` 1 to walk on the steps, 0 to stand. |
 | `Despawn` | action | 0 | – | Remove the agent. |
 | `IsNearGoal` | condition | 0 | `distance` (3), `goal` | Within `distance` of the goal area. |
 | `IsCrowded` | condition | 0 | `threshold` (6), `radius` (2) | At least `threshold` agents within `radius`. |

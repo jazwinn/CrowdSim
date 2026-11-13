@@ -1,0 +1,35 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "escalator_walk_right",
+  "description": "Walk to the goal; on escalators walk up on the right.",
+  "root": {
+    "type": "Sequence",
+    "id": "root",
+    "children": [
+      {
+        "type": "SetState",
+        "id": "label",
+        "params": {
+          "name": "walking"
+        }
+      },
+      {
+        "type": "SetEscalatorStyle",
+        "id": "escalator",
+        "params": {
+          "side": "right",
+          "walk": 1
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "walk"
+      },
+      {
+        "type": "Despawn",
+        "id": "leave"
+      }
+    ]
+  }
+}

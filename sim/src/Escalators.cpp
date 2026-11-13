@@ -11,9 +11,9 @@
 //   escalator:walk=<factor> walkers' pace on the steps, x preferred speed (default 0.45)
 //   escalator:gap=<m>       spacing between standers in one lane (default 0.9)
 //   escalator:down          travel from the top edge to the bottom edge
-// Agent-type tags:
-//   escalator:stand-left | stand-right | stand-either
-//   escalator:walk-left  | walk-right  | walk-either (the default)
+// How each agent rides (side, standing or walking) is behaviour, set from its
+// behaviour tree with the SetEscalatorStyle node; agents that never run it walk
+// on whichever side has the shorter line.
 
 #include <algorithm>
 #include <charconv>
@@ -41,30 +41,11 @@ constexpr float kQueueFile = 0.45f;  ///< lateral offset within which someone co
 constexpr float kQueueGap = 0.6f;    ///< m (centre to centre) at which people stop behind someone
 constexpr float kQueueEase = 0.5f;   ///< m over which they slow down before that
 
-// Escalator role per agent type: bit 0 = stands, bits 1-2 = side (0 either, 1 left, 2 right).
+// Escalator style per agent (AgentPool::escalatorStyle): bit 0 = stands,
+// bits 1-2 = side (0 either, 1 left, 2 right).
 constexpr std::uint8_t kStands = 1;
 constexpr std::uint8_t kSideLeft = 2;
 constexpr std::uint8_t kSideRight = 4;
-
-std::uint8_t roleFromTags(const std::vector<std::string>& tags) {
-    std::uint8_t role = 0;
-    for (const std::string& t : tags) {
-        if (t == "escalator:stand-left") {
-            role = kStands | kSideLeft;
-        } else if (t == "escalator:stand-right") {
-            role = kStands | kSideRight;
-        } else if (t == "escalator:stand-either") {
-            role = kStands;
-        } else if (t == "escalator:walk-left") {
-            role = kSideLeft;
-        } else if (t == "escalator:walk-right") {
-            role = kSideRight;
-        } else if (t == "escalator:walk-either") {
-            role = 0;
-        }
-    }
-    return role;
-}
 
 /// Value of "escalator:<key>=<number>" among `tags`, or `fallback`.
 float tagNumber(const std::vector<std::string>& tags, std::string_view key, float fallback) {
@@ -110,6 +91,16 @@ bool inApproach(const Escalator& e, Local q, float height) {
 }
 
 }  // namespace
+
+std::uint8_t Simulation::escalatorStyleOf(std::string_view side, bool walks) {
+    std::uint8_t style = walks ? 0 : kStands;
+    if (side == "left") {
+        style |= kSideLeft;
+    } else if (side == "right") {
+        style |= kSideRight;
+    }
+    return style;
+}
 
 void Simulation::rebuildEscalators() {
     escalators_.clear();
@@ -158,10 +149,6 @@ void Simulation::assignEscalatorLanes() {
         return;
     }
     CS_PROFILE_ZONE();
-    escalatorRoles_.resize(agentTypes_.size());
-    for (std::size_t t = 0; t < agentTypes_.size(); ++t) {
-        escalatorRoles_[t] = roleFromTags(agentTypes_[t].tags);
-    }
 
     // Serial and in index order, so the choice of lane is deterministic. Agents
     // already in a lane are counted first; newcomers then pick the shorter line.
@@ -189,12 +176,16 @@ void Simulation::assignEscalatorLanes() {
         if (agents_.escalatorLane[i] != 0) {
             // Either-side riders stuck at the foot on the other lane's line take that
             // lane instead of cutting across the people waiting there.
-            const std::uint8_t r = agents_.agentType[i] < escalatorRoles_.size()
-                                       ? escalatorRoles_[agents_.agentType[i]]
-                                       : std::uint8_t{0};
+            const std::uint8_t r = agents_.escalatorStyle[i];
             const Local q = toLocal(e, agents_.position[i]);
             const float laneL = static_cast<float>(agents_.escalatorLane[i]) * e.laneOffset;
             const bool sided = (r & (kSideLeft | kSideRight)) != 0;
+            if (sided && q.s < 0.0f) {
+                // The behaviour tree may set the style after a lane was picked (trees tick
+                // at a low, staggered rate): until boarding, a chosen side always wins.
+                agents_.escalatorLane[i] = (r & kSideLeft) != 0 ? std::int8_t{-1} : std::int8_t{1};
+                continue;
+            }
             const glm::vec2 v = agents_.velocity[i];
             const bool stuck = glm::dot(v, v) < 0.15f * 0.15f;
             if (!sided && stuck && q.s < 0.0f && q.s > -kBoardWindow - 1.0f &&
@@ -208,9 +199,7 @@ void Simulation::assignEscalatorLanes() {
         if (glm::dot(want, want) > 1e-6f && glm::dot(want, e.forward) <= 0.2f * std::sqrt(glm::dot(want, want))) {
             continue;
         }
-        const std::uint8_t role = agents_.agentType[i] < escalatorRoles_.size()
-                                      ? escalatorRoles_[agents_.agentType[i]]
-                                      : std::uint8_t{0};
+        const std::uint8_t role = agents_.escalatorStyle[i];
         std::int8_t lane = 0;
         if ((role & kSideLeft) != 0) {
             lane = -1;
@@ -252,9 +241,7 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
             continue;
         }
         const std::int8_t lane = agents_.escalatorLane[i];
-        const std::uint8_t role = agents_.agentType[i] < escalatorRoles_.size()
-                                      ? escalatorRoles_[agents_.agentType[i]]
-                                      : std::uint8_t{0};
+        const std::uint8_t role = agents_.escalatorStyle[i];
         const bool stands = (role & kStands) != 0;
         const float speed = agents_.preferredSpeed[i] * agents_.speedMultiplier[i];
         const float laneL = static_cast<float>(lane) * e.laneOffset;
