@@ -35,6 +35,10 @@ struct McpServices {
     std::function<std::string()> sceneName;
     /// GUI only: render a PNG of the viewport (base64) — null in headless mode.
     std::function<std::shared_future<ToolResult>(const Json& args)> screenshot;
+    /// GUI only: start / stop a video of the 3D view (no UI), tools video_start / video_stop
+    /// (recording_* are the trajectory tools) — null in headless mode.
+    std::function<ToolResult(const Json& args)> recordStart;
+    std::function<ToolResult(const Json& args)> recordStop;
 };
 
 void registerCrowdSimTools(McpServer& server, McpServices& services);

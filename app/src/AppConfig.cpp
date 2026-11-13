@@ -194,6 +194,14 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             number(c.steps);
         } else if (gui && arg == "--frames") {
             number(c.frames);
+        } else if (gui && arg == "--record") {
+            if (auto v = value()) {
+                c.recordPath = std::string(*v);
+            }
+        } else if (gui && arg == "--record-seconds") {
+            number(c.recordSeconds);
+        } else if (gui && arg == "--record-fps") {
+            number(c.recordFps);
         } else if (gui && arg == "--screenshot") {
             if (auto v = value()) {
                 c.screenshotPath = std::string(*v);
@@ -253,7 +261,10 @@ std::string usage(std::string_view exeName, bool gui) {
             "  --select-agent ID   inspect (and follow) an agent at startup\n"
             "  --edit-bt NAME      open a behaviour tree in the node editor at startup\n"
             "  --frames N          exit after N frames (smoke tests)\n"
-            "  --screenshot PATH   save a PNG of the final frame (use with --frames)\n";
+            "  --screenshot PATH   save a PNG of the final frame (use with --frames)\n"
+            "  --record PATH       record the 3D view (no UI) to an .avi video from the start\n"
+            "  --record-seconds S  stop that recording after S seconds (default: at exit)\n"
+            "  --record-fps F      video frame rate (default 30)\n";
     } else {
         text +=
             "\nHeadless options:\n"

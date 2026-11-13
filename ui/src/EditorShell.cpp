@@ -94,6 +94,13 @@ void EditorShell::fileMenu(const EditorFrameData& data, EditorRequests& req) {
     if (ImGui::MenuItem("Save screenshot", "F12")) {
         req.screenshot = true;
     }
+    if (ImGui::MenuItem(data.recording ? "Stop recording" : "Record 3D view (video)", "F9", false,
+                        data.recordingSupported || data.recording)) {
+        req.toggleRecording = true;
+    }
+    if (!data.recordingSupported && !data.recording) {
+        ImGui::SetItemTooltip("This graphics backend cannot read frames back; try --renderer d3d11 or vulkan");
+    }
     ImGui::Separator();
     if (ImGui::MenuItem("Quit", "Alt+F4")) {
         req.quit = true;
@@ -175,6 +182,9 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         if (ImGui::IsKeyPressed(ImGuiKey_F12, false)) {
             req.screenshot = true;
         }
+        if (ImGui::IsKeyPressed(ImGuiKey_F9, false) && (data.recordingSupported || data.recording)) {
+            req.toggleRecording = true;
+        }
         const ImGuiIO& io = ImGui::GetIO();
         if (io.KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Z, false)) {
             req.commands.push_back(commands::makeCommand(io.KeyShift ? "Redo" : "Undo"));
@@ -246,6 +256,21 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         }
         chip(ImVec2(origin.x + pad * 1.5f, origin.y + pad * 1.5f), agents.c_str(),
              where.empty() ? (data.playing ? nullptr : "paused") : where.c_str(), false);
+        // Recording indicator, top right (UI: never part of the video).
+        if (data.recording) {
+            const auto total = static_cast<int>(data.recordingSeconds);
+            const std::string text = std::format("REC  {}:{:02}", total / 60, total % 60);
+            const ImVec2 size = ImGui::CalcTextSize(text.c_str());
+            const float w = size.x + pad * 2.0f + em * 0.9f;
+            const float h = size.y + pad * 1.2f;
+            const ImVec2 p0(origin.x + central->Size.x - pad * 1.5f - w, origin.y + pad * 1.5f);
+            dl->AddRectFilled(p0, ImVec2(p0.x + w, p0.y + h), IM_COL32(18, 20, 23, 200), em * 0.35f);
+            const bool blink = static_cast<int>(data.recordingSeconds * 2.0) % 2 == 0;
+            dl->AddCircleFilled(ImVec2(p0.x + pad + em * 0.3f, p0.y + h * 0.5f), em * 0.28f,
+                                blink ? IM_COL32(229, 72, 72, 255) : IM_COL32(120, 40, 40, 255));
+            dl->AddText(fonts_.strong, 0.0f, ImVec2(p0.x + pad + em * 0.9f, p0.y + pad * 0.6f),
+                        IM_COL32(235, 238, 241, 255), text.c_str());
+        }
         // Camera controls: each input in a key cap followed by what it does. Shown only
         // while it fits inside the viewport; it is a hint, not a control.
         struct Hint {

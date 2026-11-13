@@ -1,4 +1,4 @@
-#include "GuiApp.hpp"
+﻿#include "GuiApp.hpp"
 
 #include <SDL3/SDL.h>
 #include <imgui.h>
@@ -37,6 +37,7 @@
 #include "crowdsim/sim/Scenarios.hpp"
 #include "crowdsim/snapshot/CharacterAsset.hpp"
 #include "crowdsim/snapshot/RenderSnapshot.hpp"
+#include "crowdsim/render/SceneRecorder.hpp"
 #include "crowdsim/ui/EditorShell.hpp"
 #include "crowdsim/ui/Theme.hpp"
 
@@ -406,6 +407,65 @@ int runGui(EngineContext& engine) {
     std::vector<render::DebugLine> highlight;
 
     using Clock = std::chrono::steady_clock;
+    render::SceneRecorder recorder(log);
+    const auto wallSeconds = [loopEpoch = Clock::now()] {
+        return std::chrono::duration<double>(Clock::now() - loopEpoch).count();
+    };
+    // Recording the 3D view (user: File menu / F9; AI: MCP video_start / video_stop; --record).
+    // `viewport` is the 3D view in framebuffer pixels; the video takes its size at start.
+    ui::PixelRect* const viewportForRecording = &viewport;
+    auto startRecording = [&](const std::string& path, double fps, double seconds) -> std::string {
+        render::RecordingOptions o;
+        o.file = path.empty() ? engine.assets().resolve("recordings/video_" + timestamp() + ".avi")
+                              : std::filesystem::path(path);
+        if (o.file.is_relative() && !path.empty()) {
+            o.file = engine.assets().resolve(path);
+        }
+        if (o.file.extension() != ".avi") {
+            o.file += ".avi";
+        }
+        // Even sizes keep every video player happy.
+        o.width = static_cast<std::uint16_t>(static_cast<int>(viewportForRecording->width) & ~1);
+        o.height = static_cast<std::uint16_t>(static_cast<int>(viewportForRecording->height) & ~1);
+        o.fps = fps;
+        o.maxSeconds = seconds;
+        return recorder.start(o, wallSeconds());
+    };
+    auto recordingJson = [&](const render::RecordingStatus& st) {
+        return Json{{"recording", st.active},
+                    {"file", st.file.string()},
+                    {"seconds", std::round(st.seconds * 10.0) / 10.0},
+                    {"frames", st.framesWritten},
+                    {"dropped", st.framesDropped},
+                    {"width", st.width},
+                    {"height", st.height}};
+    };
+    if (!config.mcpHttp.empty()) {
+        mcpServices.recordStart = [&](const Json& args) {
+            std::string name = args.value("name", std::string());
+            std::string path;
+            if (!name.empty()) {
+                if (name.find_first_of("/\\.:") != std::string::npos) {
+                    return mcp::ToolResult::error("name must be a plain file name without extension");
+                }
+                path = "recordings/" + name + ".avi";
+            }
+            const std::string error = startRecording(path, args.value("fps", 30.0), args.value("seconds", 0.0));
+            if (!error.empty()) {
+                return mcp::ToolResult::error(error);
+            }
+            return mcp::ToolResult::json(recordingJson(recorder.status(wallSeconds())));
+        };
+        mcpServices.recordStop = [&](const Json&) {
+            if (!recorder.active()) {
+                return mcp::ToolResult::error("not recording");
+            }
+            return mcp::ToolResult::json(recordingJson(recorder.stop()));
+        };
+        mcpServer.reset();
+        mcpServer.emplace("crowdsim", CROWDSIM_VERSION, kMcpInstructions);
+        mcp::registerCrowdSimTools(*mcpServer, mcpServices);
+    }
     auto last = Clock::now();
     const auto loopStart = last;
     std::array<float, 600> recentFrameMs{};
@@ -474,6 +534,13 @@ int runGui(EngineContext& engine) {
         const ImGuiIO& io = ImGui::GetIO();
         const float fbScaleX = io.DisplayFramebufferScale.x > 0.0f ? io.DisplayFramebufferScale.x : 1.0f;
         const float fbScaleY = io.DisplayFramebufferScale.y > 0.0f ? io.DisplayFramebufferScale.y : 1.0f;
+        if (const std::uint64_t tex = recorder.displayTexture(); tex != 0) {
+            const ImVec2 p0(viewport.x / fbScaleX, viewport.y / fbScaleY);
+            const ImVec2 p1((viewport.x + viewport.width) / fbScaleX, (viewport.y + viewport.height) / fbScaleY);
+            const bool flip = recorder.bottomLeftOrigin();
+            ImGui::GetBackgroundDrawList()->AddImage(static_cast<ImTextureID>(tex), p0, p1,
+                                                     ImVec2(0.0f, flip ? 1.0f : 0.0f), ImVec2(1.0f, flip ? 0.0f : 1.0f));
+        }
 
         // Cursor picking against the collision world (Jolt raycast).
         bool hasCursor = false;
@@ -511,6 +578,7 @@ int runGui(EngineContext& engine) {
         editorInput.cameraTarget[1] = camera.target.y;
         editorInput.cameraTarget[2] = camera.target.z;
 
+        const std::string recordingFileName = recorder.status(wallSeconds()).file.filename().string();
         std::vector<ui::ScriptView> scriptViews;
         for (const script::ScriptInfo& s : engine.scripts().scripts()) {
             scriptViews.push_back({s.name, s.source, s.ok, s.error});
@@ -559,6 +627,10 @@ int runGui(EngineContext& engine) {
             .framebufferWidth = fb.width,
             .framebufferHeight = fb.height,
             .logLines = logLines,
+            .recordingSupported = recorder.supported(),
+            .recording = recorder.active(),
+            .recordingSeconds = recorder.status(wallSeconds()).seconds,
+            .recordingFile = recordingFileName,
             .scripts = scriptViews,
             .scriptErrors = scriptErrorViews,
             .editor = &editorInput,
@@ -731,6 +803,19 @@ int runGui(EngineContext& engine) {
         if (req.quit) {
             running = false;
         }
+        if (req.toggleRecording) {
+            if (recorder.active()) {
+                recorder.stop();
+            } else if (const std::string error = startRecording({}, config.recordFps, 0.0); !error.empty()) {
+                log.warn("Recording: {}", error);
+            }
+        }
+        if (frameIndex == 2 && !config.recordPath.empty() && !recorder.active()) {
+            if (const std::string error = startRecording(config.recordPath, config.recordFps, config.recordSeconds);
+                !error.empty()) {
+                log.error("--record: {}", error);
+            }
+        }
         if (req.screenshot) {
             const auto file = engine.assets().resolve("../screenshots/crowdsim_" + timestamp() + ".png");
             std::filesystem::create_directories(file.parent_path());
@@ -744,7 +829,7 @@ int runGui(EngineContext& engine) {
             highlightId = selected;
             highlightVersion = simulation.staticVersion();
         }
-        sceneRenderer.extraLines = highlight;
+        sceneRenderer.extraLines = recorder.active() ? std::vector<render::DebugLine>{} : highlight;
         // Counting gates: amber line with a tick showing the "forward" side.
         for (const metrics::Gate& g : engine.metrics().gates()) {
             const glm::vec3 a(g.a.x, g.elevation + 0.08f, g.a.y);
@@ -757,7 +842,9 @@ int runGui(EngineContext& engine) {
         }
         if (const std::uint32_t agentId = shell.sceneEditor().selectedAgent();
             agentId != ui::SceneEditor::kNoAgentSelected) {
-            appendAgentHighlight(simulation, agentId, sceneRenderer.extraLines);
+            if (!recorder.active()) {
+                appendAgentHighlight(simulation, agentId, sceneRenderer.extraLines);
+            }
             if (shell.sceneEditor().followAgent) {
                 if (const auto info = simulation.agentDebug(agentId)) {
                     camera.target = glm::mix(camera.target, info->position, 0.15f);
@@ -768,17 +855,19 @@ int runGui(EngineContext& engine) {
         // --- Render -------------------------------------------------------------------
         const auto renderStart = Clock::now();
         renderer.beginFrame();
+        sceneRenderer.offscreen = recorder.target();
         const float alpha = control.playing ? clock.alpha() : 1.0f;
         sceneStats = sceneRenderer.render(
             snapshots.readSlot(), alpha, camera,
             render::ViewRect{static_cast<std::uint16_t>(viewport.x), static_cast<std::uint16_t>(viewport.y),
                              static_cast<std::uint16_t>(viewport.width), static_cast<std::uint16_t>(viewport.height)},
             static_cast<float>(dt) * (control.playing ? control.speed : 0.0f));
+        recorder.capture(wallSeconds());
         imguiRenderer.render(ImGui::GetDrawData());
         renderMs =
             0.9f * renderMs +
             0.1f * static_cast<float>(std::chrono::duration<double, std::milli>(Clock::now() - renderStart).count());
-        renderer.endFrame();
+        recorder.afterFrame(renderer.endFrame(), wallSeconds());
         // Deliver finished MCP screenshots (bgfx writes the PNG during a later frame).
         for (auto it = pendingShots.begin(); it != pendingShots.end();) {
             PendingShot& shot = **it;
@@ -815,6 +904,9 @@ int runGui(EngineContext& engine) {
         }
     }
 
+    if (recorder.active()) {
+        recorder.stop();
+    }
     const double totalMs = std::chrono::duration<double, std::milli>(Clock::now() - loopStart).count();
     log.info("Exiting after {} frames ({:.2f} ms/frame avg), {} sim steps, {} agents alive", frameIndex,
              frameIndex > 0 ? totalMs / static_cast<double>(frameIndex) : 0.0, simulation.stepIndex(),

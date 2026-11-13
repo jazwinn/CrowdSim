@@ -56,6 +56,7 @@ stderr, so stdout carries only protocol messages in stdio mode.
 | Analysis | `metrics_get`, `heatmap_get`, `gate_add`, `recording_start`, `recording_stop`, `recording_export`, `metrics_export` |
 | Logs | `log_tail`, `errors_get` |
 | Vision (editor only) | `screenshot` (PNG; optional camera `{target:[x,z], distance, yaw, pitch}`) |
+| Video (editor only) | `video_start` (`fps`, `seconds`, `name`), `video_stop`: the 3D view without UI as an MJPEG `.avi` in `content/recordings` (`recording_*` are the trajectory tools) |
 
 `tools/list` returns each tool's JSON Schema. Results are compact JSON: `agents_query` returns a
 count plus an evenly spaced sample (≤ 500), `scene_describe` caps lists at 100, `log_tail` at 300
@@ -104,3 +105,17 @@ Custom behaviour beyond the built-in nodes: `script_write` a Lua file that regis
 Everything an agent does is a command, so it lands in the command log. Save the log from the editor
 (*File → Save command log*) or with `crowdsim_headless --save-log`, and replay it with
 `crowdsim_headless --replay run.cmdlog.json` to get the identical state hash.
+
+## Recording videos
+
+The editor records the 3D view, without panels, overlays or selection outlines, to an MJPEG
+`.avi` (plays in VLC, browsers' players, Windows Media Player and video editors):
+
+- **People**: File → Record 3D view (F9) starts and stops; a REC timer shows in the viewport
+  (it is not part of the video). Files go to `content/recordings/video_<time>.avi`.
+- **AI agents** (MCP over HTTP): `video_start {fps?, seconds?, name?}` and `video_stop`.
+  Recording follows real time, so play the simulation (`sim_play`) while it records.
+- **Scripts / CI**: `crowdsim --record out.avi --record-seconds 20 [--record-fps 30]`.
+
+The video takes the viewport's size when recording starts. Backends that cannot read textures
+back (some OpenGL drivers) report that recording is unavailable.

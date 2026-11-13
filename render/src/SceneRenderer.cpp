@@ -381,10 +381,15 @@ void SceneRenderer::uploadStatic(const snapshot::StaticScene& scene) {
 }
 
 SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alpha, const Camera& camera,
-                                 const ViewRect& rect, float frameSeconds) {
+                                 const ViewRect& windowRect, float frameSeconds) {
     CS_PROFILE_ZONE();
     SceneStats stats;
     Resources& r = *res_;
+    // Recording: draw into the off-screen target, whole; otherwise into the window's viewport.
+    const bool offscreenTarget = offscreen.frameBuffer != 0xFFFF && offscreen.width > 0 && offscreen.height > 0;
+    const ViewRect rect = offscreenTarget ? ViewRect{0, 0, offscreen.width, offscreen.height} : windowRect;
+    bgfx::setViewFrameBuffer(kViewScene, offscreenTarget ? bgfx::FrameBufferHandle{offscreen.frameBuffer}
+                                                         : bgfx::FrameBufferHandle(BGFX_INVALID_HANDLE));
     if (!r.enabled || rect.width == 0 || rect.height == 0) {
         return stats;
     }

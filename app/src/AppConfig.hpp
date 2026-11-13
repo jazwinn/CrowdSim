@@ -48,6 +48,9 @@ struct AppConfig {
     std::string mcpToken;           ///< optional bearer token required by the HTTP transport
     std::uint64_t frames = 0;       ///< gui: exit after N frames (0 = run until closed)
     std::string screenshotPath;     ///< gui: save a PNG of the last frame before exit
+    std::string recordPath;         ///< gui: record the 3D view (no UI) to this .avi from the start
+    double recordSeconds = 0.0;     ///< gui: stop that recording after this long (0 = at exit)
+    double recordFps = 30.0;        ///< gui: frame rate of recordings
     std::string renderer = "auto";  ///< gui: auto | d3d11 | d3d12 | vulkan | metal | opengl | noop
     int width = 1600;
     int height = 900;

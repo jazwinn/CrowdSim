@@ -14,6 +14,7 @@
 #include <glm/vec3.hpp>
 
 #include "crowdsim/render/Camera.hpp"
+#include "crowdsim/render/SceneRecorder.hpp"
 
 namespace crowdsim::snapshot {
 struct RenderSnapshot;
@@ -110,6 +111,9 @@ public:
     HeatmapOverlay heatmap;
     /// Extra lines for this frame; the caller refills it every frame.
     std::vector<DebugLine> extraLines;
+    /// When set (recording), the scene renders into this target at its full size
+    /// instead of into the viewport rect of the window.
+    OffscreenTarget offscreen;
 
 private:
     void uploadStatic(const snapshot::StaticScene& scene);

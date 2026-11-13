@@ -400,6 +400,20 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
                         [&svc](const Json& args) { return svc.screenshot(args); }});
     }
 
+    if (svc.recordStart && svc.recordStop) {
+        server.addTool({"video_start",
+                        "Start recording the 3D view, without editor UI, to an MJPEG .avi in content/recordings "
+                        "(GUI mode only). Optional: fps (30), seconds (stop automatically; 0 = until "
+                        "video_stop), name (file name without extension). The video has the viewport's size and "
+                        "follows real time, so run the simulation (sim_play) while it records.",
+                        schema({{"fps", num("frames per second, 1..120")},
+                                {"seconds", num("stop after this long; 0 = until video_stop")},
+                                {"name", str("file name without extension")}}),
+                        [&svc](const Json& args) { return svc.recordStart(args); }});
+        server.addTool({"video_stop", "Stop the video recording and finish the file; returns its path and length.",
+                        schema({}), [&svc](const Json& args) { return svc.recordStop(args); }});
+    }
+
     // --- Resources ----------------------------------------------------------------------------
     server.setResources(
         {[&svc]() {

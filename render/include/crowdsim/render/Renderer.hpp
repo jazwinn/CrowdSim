@@ -21,6 +21,7 @@ namespace crowdsim::render {
 inline constexpr std::uint16_t kViewBackground = 0;  ///< full-framebuffer clear
 inline constexpr std::uint16_t kViewShadow = 1;      ///< directional-light shadow map (depth only)
 inline constexpr std::uint16_t kViewScene = 2;       ///< 3D scene, restricted to the viewport rect
+inline constexpr std::uint16_t kViewCapture = 3;     ///< copies of the scene for video recording
 inline constexpr std::uint16_t kViewImGui = 255;
 
 struct RendererConfig {
@@ -47,8 +48,8 @@ public:
     /// Prepare views for a new frame.
     void beginFrame();
 
-    /// Submit the frame to the GPU.
-    void endFrame();
+    /// Submit the frame to the GPU. Returns bgfx's frame number (for read-backs).
+    std::uint32_t endFrame();
 
     /// Save the next completed frame as a PNG at `path`.
     void requestScreenshot(const std::string& path);

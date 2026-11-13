@@ -127,6 +127,7 @@ Renderer::Renderer(spdlog::logger& log, const RendererConfig& config)
     bgfx::setViewName(kViewScene, "Scene");
     // Submission order matters for ground decals; opaque geometry relies on the depth buffer.
     bgfx::setViewMode(kViewScene, bgfx::ViewMode::Sequential);
+    bgfx::setViewName(kViewCapture, "Capture");
 }
 
 Renderer::~Renderer() {
@@ -148,8 +149,8 @@ void Renderer::beginFrame() {
     bgfx::touch(kViewScene);
 }
 
-void Renderer::endFrame() {
-    bgfx::frame();
+std::uint32_t Renderer::endFrame() {
+    return bgfx::frame();
 }
 
 void Renderer::requestScreenshot(const std::string& path) {

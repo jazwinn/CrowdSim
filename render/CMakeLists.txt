@@ -9,6 +9,7 @@ crowdsim_add_library(render
     src/SceneRenderer.cpp
     src/ShaderLibrary.cpp
     src/CrowdRenderer.cpp
+    src/SceneRecorder.cpp
   DEPS
     CrowdSim::core
     CrowdSim::snapshot

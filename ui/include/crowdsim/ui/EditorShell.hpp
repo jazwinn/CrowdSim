@@ -97,6 +97,11 @@ struct EditorFrameData {
     std::uint32_t framebufferHeight = 0;
     // Log lines, oldest first
     std::span<const std::string> logLines;
+    // Video recording of the 3D view (no UI)
+    bool recordingSupported = false;
+    bool recording = false;
+    double recordingSeconds = 0.0;
+    std::string_view recordingFile;
     // Scripts (Script tab)
     std::span<const ScriptView> scripts;
     std::span<const ScriptErrorView> scriptErrors;
@@ -122,6 +127,7 @@ struct EditorRequests {
     bool reset = false;
     bool quit = false;
     bool screenshot = false;
+    bool toggleRecording = false;  ///< start or stop recording the 3D view
     float simSpeed = 1.0f;
     /// Rebuild the scenario at `scenarioIndex` with `scenarioAgents` agents.
     bool rebuildScenario = false;
