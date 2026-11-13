@@ -1,9 +1,11 @@
 #include "crowdsim/ui/MetricsPanel.hpp"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <implot.h>
 
 #include <algorithm>
+#include <charconv>
 #include <cstdio>
 #include <string>
 
@@ -25,10 +27,10 @@ bool beginPlot(const char* id, const char* xLabel, const char* yLabel) {
         return false;
     }
     ImPlot::SetupAxes(xLabel, yLabel, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-    // Legend entries open a colour popup when clicked (see MetricsPanel::legendMenu),
-    // so they do not toggle visibility themselves.
-    ImPlot::SetupLegend(ImPlotLocation_North,
-                        ImPlotLegendFlags_Horizontal | ImPlotLegendFlags_Outside | ImPlotLegendFlags_NoButtons);
+    // Legend entries open a colour popup when clicked (see MetricsPanel::legendMenu).
+    // They stay buttons, because ImPlot only tracks legend hovering for buttons; the
+    // visibility they would toggle is re-applied from the panel every frame instead.
+    ImPlot::SetupLegend(ImPlotLocation_North, ImPlotLegendFlags_Horizontal | ImPlotLegendFlags_Outside);
     // ImPlot 1.0 looks up anti-aliased line UVs with the pre-1.93 ImGui atlas layout,
     // so its textured lines sample glyphs instead of the line ramp. Draw series without
     // anti-aliasing until ImPlot catches up; endPlot() restores the flag.
@@ -51,6 +53,92 @@ ImPlotSpec lineSpec() {
 }
 
 }  // namespace
+
+namespace {
+
+constexpr const char* kSettingsType = "CrowdSimCharts";
+
+}  // namespace
+
+// --- Persistence in imgui.ini ------------------------------------------------------------
+// [CrowdSimCharts][Series]
+// colour=0.247,0.698,0.498,1|speed/mean
+// hidden=crowd/arrived
+
+MetricsPanel::MetricsPanel() {
+    if (ImGui::GetCurrentContext() == nullptr) {
+        return;
+    }
+    ImGuiSettingsHandler h;
+    h.TypeName = kSettingsType;
+    h.TypeHash = ImHashStr(kSettingsType);
+    h.UserData = this;
+    h.ClearAllFn = [](ImGuiContext*, ImGuiSettingsHandler* handler) {
+        auto* self = static_cast<MetricsPanel*>(handler->UserData);
+        self->seriesColors_.clear();
+        self->hiddenSeries_.clear();
+    };
+    h.ReadOpenFn = [](ImGuiContext*, ImGuiSettingsHandler* handler, const char*) -> void* {
+        return handler->UserData;  // one section; any non-null entry pointer
+    };
+    h.ReadLineFn = [](ImGuiContext*, ImGuiSettingsHandler*, void* entry, const char* line) {
+        static_cast<MetricsPanel*>(entry)->readSetting(line);
+    };
+    h.WriteAllFn = [](ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf) {
+        const std::string body = static_cast<const MetricsPanel*>(handler->UserData)->writeSettings();
+        if (!body.empty()) {
+            buf->appendf("[%s][Series]\n%s\n", kSettingsType, body.c_str());
+        }
+    };
+    ImGui::AddSettingsHandler(&h);
+}
+
+MetricsPanel::~MetricsPanel() {
+    if (ImGui::GetCurrentContext() != nullptr) {
+        ImGui::RemoveSettingsHandler(kSettingsType);
+    }
+}
+
+void MetricsPanel::readSetting(const char* line) {
+    const std::string s(line);
+    if (s.starts_with("colour=")) {
+        const std::size_t bar = s.find('|');
+        if (bar == std::string::npos) {
+            return;
+        }
+        std::array<float, 4> c{0.0f, 0.0f, 0.0f, 1.0f};
+        const char* p = s.data() + 7;
+        const char* end = s.data() + bar;
+        for (float& v : c) {
+            const auto r = std::from_chars(p, end, v);
+            if (r.ec != std::errc{}) {
+                return;
+            }
+            p = r.ptr < end ? r.ptr + 1 : end;  // skip the comma
+        }
+        seriesColors_[s.substr(bar + 1)] = c;
+    } else if (s.starts_with("hidden=") && s.size() > 7) {
+        hiddenSeries_.insert(s.substr(7));
+    }
+}
+
+std::string MetricsPanel::writeSettings() const {
+    std::string out;
+    char buf[64];
+    for (const auto& [key, c] : seriesColors_) {
+        std::snprintf(buf, sizeof(buf), "colour=%.3f,%.3f,%.3f,%.3f|", static_cast<double>(c[0]),
+                      static_cast<double>(c[1]), static_cast<double>(c[2]), static_cast<double>(c[3]));
+        out += buf + key + "\n";
+    }
+    for (const std::string& key : hiddenSeries_) {
+        out += "hidden=" + key + "\n";
+    }
+    return out;
+}
+
+void MetricsPanel::settingsChanged() const {
+    ImGui::MarkIniSettingsDirty();
+}
 
 void MetricsPanel::line(const char* plot, const char* label, const double* x, const double* y, int n) {
     const std::string key = std::string(plot) + "/" + label;
@@ -82,6 +170,7 @@ void MetricsPanel::legendMenu(const char* plot, const char* label) {
                             ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview |
                                 ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayHex)) {
         seriesColors_[key] = {rgba[0], rgba[1], rgba[2], 1.0f};
+        settingsChanged();
     }
     bool shown = !hiddenSeries_.contains(key);
     if (ImGui::Checkbox("Show line", &shown)) {
@@ -90,11 +179,13 @@ void MetricsPanel::legendMenu(const char* plot, const char* label) {
         } else {
             hiddenSeries_.insert(key);
         }
+        settingsChanged();
     }
     ImGui::SameLine();
     ImGui::BeginDisabled(it == seriesColors_.end());
     if (ImGui::Button("Default colour")) {
         seriesColors_.erase(key);
+        settingsChanged();
     }
     ImGui::EndDisabled();
     ImPlot::EndLegendPopup();

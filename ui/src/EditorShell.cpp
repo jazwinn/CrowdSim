@@ -107,6 +107,14 @@ EditorShell::EditorShell(const OverlayToggles& initialOverlays) : overlays_(init
 }
 
 EditorShell::~EditorShell() {
+    // Panels keep settings in imgui.ini through handlers that go away with them, so
+    // save now, while they are registered, and skip ImGui's own save at shutdown
+    // (it would rewrite the file without those sections).
+    ImGuiIO& io = ImGui::GetIO();
+    if (io.IniFilename != nullptr) {
+        ImGui::SaveIniSettingsToDisk(io.IniFilename);
+        io.IniFilename = nullptr;
+    }
     ImPlot::DestroyContext();
 }
 
