@@ -2,7 +2,7 @@
   "format": "crowdsim.agent",
   "version": 1,
   "name": "escalator_walker_right",
-  "description": "Walks up escalators on the right. Behaviour tree: escalator_walk_right.",
+  "description": "Walks up escalators on the right. Heavier than the standers (85-100 kg vs 55-80 kg), so in a crowd they push past rather than wait. Behaviour tree: escalator_walk_right.",
   "behaviour": "escalator_walk_right",
   "radius": [
     0.22,
@@ -14,6 +14,10 @@
   ],
   "maxSpeedFactor": 1.35,
   "maxAcceleration": 3,
+  "mass": [
+    85,
+    100
+  ],
   "personalSpace": 0.03,
   "height": 1.75,
   "color": "#e8913a",

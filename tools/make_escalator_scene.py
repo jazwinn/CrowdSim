@@ -3,7 +3,8 @@
 Two identical halls side by side, each with one up escalator (13 m long, 7.5 m
 rise, 0.5 m/s) to an upper concourse, fed by the same arrival rate:
 
-  Hall A (west): "keep left, walk right" - 75% stand on the left, 25% walk on the right.
+  Hall A (west): "keep left, walk right" - 75% stand on the left, 25% walk on the right;
+                 walkers are heavier (85-100 kg vs 55-80 kg), so they push past standers.
   Hall B (east): "stand on both sides"   - everyone stands, on the side they are already on.
 
 Everything people decide - queue manners, side, standing or walking pace, boarding
