@@ -220,7 +220,21 @@ bool SceneEditor::editJson(const char* label, Json& value, Json& patch, const st
             value[i] = assets::roundFloat(v[i]);
         }
         done = finished();
-    } else if (value.is_array()) {  // tags
+    } else if (value.is_array() &&
+               !std::all_of(value.begin(), value.end(), [](const Json& x) { return x.is_string(); })) {
+        // Structured list (e.g. a spawner's agentMix of {type, weight}): edit each element;
+        // merge-patch replaces arrays, so any change sends the whole array.
+        if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_DefaultOpen, "%s (%zu)", label, value.size())) {
+            for (std::size_t i = 0; i < value.size(); ++i) {
+                Json ignored = Json::object();
+                const std::string item = std::format("[{}]", i);
+                if (editJson(item.c_str(), value[i], ignored, path + "/" + std::to_string(i))) {
+                    done = true;
+                }
+            }
+            ImGui::TreePop();
+        }
+    } else if (value.is_array()) {  // tags (all strings)
         std::string joined;
         for (const Json& t : value) {
             joined += (joined.empty() ? "" : ", ") + t.get<std::string>();
