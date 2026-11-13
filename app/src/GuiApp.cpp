@@ -38,6 +38,7 @@
 #include "crowdsim/snapshot/CharacterAsset.hpp"
 #include "crowdsim/snapshot/RenderSnapshot.hpp"
 #include "crowdsim/ui/EditorShell.hpp"
+#include "crowdsim/ui/Theme.hpp"
 
 namespace crowdsim::app {
 
@@ -61,12 +62,8 @@ public:
         ImGuiIO& io = ImGui::GetIO();
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_DockingEnable;
         io.IniFilename = "imgui.ini";
-        ImGui::StyleColorsDark();
-        ImGuiStyle& style = ImGui::GetStyle();
-        style.WindowRounding = 4.0f;
-        style.FrameRounding = 3.0f;
-        style.ScaleAllSizes(contentScale);
-        style.FontScaleDpi = contentScale;
+        ui::applyTheme(contentScale);
+        fonts_ = ui::loadFonts();
         ImGui_ImplSDL3_InitForOther(window);
     }
     ~ImGuiSession() {
@@ -76,8 +73,11 @@ public:
     ImGuiSession(const ImGuiSession&) = delete;
     ImGuiSession& operator=(const ImGuiSession&) = delete;
 
+    [[nodiscard]] const ui::ThemeFonts& fonts() const noexcept { return fonts_; }
+
 private:
     ImGuiContext* context_ = nullptr;
+    ui::ThemeFonts fonts_;
 };
 
 std::string timestamp() {
@@ -307,6 +307,7 @@ int runGui(EngineContext& engine) {
         }
     }
     ui::EditorShell shell(initialOverlays);
+    shell.setFonts(imguiSession.fonts());
     if (config.overlays.find("metrics") != std::string::npos) {
         shell.focusMetrics();
     }

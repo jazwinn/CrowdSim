@@ -9,6 +9,7 @@
 
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/metrics/Metrics.hpp"
+#include "crowdsim/ui/Theme.hpp"
 
 namespace crowdsim::ui {
 
@@ -63,7 +64,7 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
     }
 
     // --- Gates --------------------------------------------------------------------------
-    if (ImGui::CollapsingHeader("Gates", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (crowdsim::ui::sectionToggle("Gates", nullptr, true)) {
         if (ImGui::BeginTable("gates", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
             ImGui::TableSetupColumn("Gate");
             ImGui::TableSetupColumn("Total");

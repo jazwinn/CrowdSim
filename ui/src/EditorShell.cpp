@@ -7,9 +7,12 @@
 #include <algorithm>
 #include <cstdio>
 
+#include <format>
 #include <string>
+
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
+#include "crowdsim/ui/Theme.hpp"
 
 namespace crowdsim::ui {
 
@@ -100,6 +103,7 @@ void EditorShell::fileMenu(const EditorFrameData& data, EditorRequests& req) {
 
 EditorShell::EditorShell(const OverlayToggles& initialOverlays) : overlays_(initialOverlays) {
     ImPlot::CreateContext();
+    applyPlotTheme();
 }
 
 EditorShell::~EditorShell() {
@@ -206,17 +210,39 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         req.viewportHovered =
             ((insideRect && !io.WantCaptureMouse) || viewportDragging_) && !sceneEditor_.gizmoActive();
 
+        // Viewport HUD: a quiet status chip top-left, navigation help bottom-left.
         ImDrawList* dl = ImGui::GetBackgroundDrawList();
-        std::string overlay = std::to_string(data.agentsAlive) + " agents";
+        const float em = ImGui::GetFontSize();
+        const float pad = em * 0.5f;
+        auto chip = [&](ImVec2 at, const char* strong, const char* rest, bool alignBottom) {
+            const ImVec2 a = ImGui::CalcTextSize(strong);
+            const ImVec2 b = rest != nullptr ? ImGui::CalcTextSize(rest) : ImVec2(0, 0);
+            const float w = a.x + (rest != nullptr ? em * 0.6f + b.x : 0.0f) + pad * 2.0f;
+            const float h = a.y + pad * 1.2f;
+            if (alignBottom) {
+                at.y -= h;
+            }
+            dl->AddRectFilled(at, ImVec2(at.x + w, at.y + h), IM_COL32(18, 20, 23, 190), em * 0.35f);
+            dl->AddText(fonts_.strong, 0.0f, ImVec2(at.x + pad, at.y + pad * 0.6f), IM_COL32(235, 238, 241, 255),
+                        strong);
+            if (rest != nullptr) {
+                dl->AddText(ImVec2(at.x + pad + a.x + em * 0.6f, at.y + pad * 0.6f), IM_COL32(150, 158, 168, 255),
+                            rest);
+            }
+        };
+        const std::string agents = std::format("{} agents", data.agentsAlive);
+        std::string where;
         if (data.hasCursorWorld) {
-            char buf[96];
-            std::snprintf(buf, sizeof(buf), "   cursor (%.2f, %.2f, %.2f)", static_cast<double>(data.cursorWorld[0]),
-                          static_cast<double>(data.cursorWorld[1]), static_cast<double>(data.cursorWorld[2]));
-            overlay += buf;
+            where = std::format("x {:.1f}   y {:.1f}   z {:.1f}", data.cursorWorld[0], data.cursorWorld[1],
+                                data.cursorWorld[2]);
         }
-        dl->AddText(ImVec2(origin.x + 10.0f, origin.y + 8.0f), IM_COL32(230, 230, 230, 220), overlay.c_str());
-        dl->AddText(ImVec2(origin.x + 10.0f, origin.y + 8.0f + ImGui::GetTextLineHeightWithSpacing()),
-                    IM_COL32(160, 160, 160, 200), "LMB orbit   RMB/MMB pan   wheel zoom   F reset view");
+        chip(ImVec2(origin.x + pad * 1.5f, origin.y + pad * 1.5f), agents.c_str(),
+             where.empty() ? (data.playing ? nullptr : "paused") : where.c_str(), false);
+        // Mouse help, shown only while it fits inside the viewport.
+        constexpr const char* kNavHelp = "drag orbit    right drag pan    wheel zoom    F frame all";
+        if (ImGui::CalcTextSize(kNavHelp).x + em * 6.0f < central->Size.x) {
+            chip(ImVec2(origin.x + pad * 1.5f, origin.y + central->Size.y - pad * 1.5f), "Mouse", kNavHelp, true);
+        }
     }
     if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F, false)) {
         req.frameAll = true;
@@ -227,30 +253,36 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     }
 
     ImGui::Begin(kHierarchyWindow);
+    ImGui::PushFont(fonts_.strong, 0.0f);
     ImGui::Text("%.*s", static_cast<int>(data.sceneName.size()), data.sceneName.data());
-    ImGui::TextDisabled("Navmesh %u polys, %u tiles", data.navPolygons, data.navTiles);
-    if (ImGui::CollapsingHeader("Overlays")) {
+    ImGui::PopFont();
+    ImGui::TextDisabled("Navmesh: %u polygons in %u tiles", data.navPolygons, data.navTiles);
+    ImGui::Spacing();
+    if (sectionToggle("Overlays", fonts_.strong)) {
         ImGui::Checkbox("Reference grid", &overlays_.ground);
         ImGui::Checkbox("Spawner / goal areas", &overlays_.areas);
         ImGui::Checkbox("Navmesh + walls", &overlays_.navmesh);
         ImGui::Checkbox("Off-mesh links", &overlays_.links);
         ImGui::Checkbox("Velocities", &overlays_.velocities);
         ImGui::Checkbox("Flow field", &overlays_.flowField);
-        ImGui::SetNextItemWidth(120.0f);
-        ImGui::Combo("Heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0");
+        propertyLabel("Heatmap");
+        ImGui::Combo("##heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0");
         if (overlays_.flowField && data.goals > 1) {
-            ImGui::SliderInt("Goal", &overlays_.flowGoal, 0, static_cast<int>(data.goals) - 1);
+            propertyLabel("Flow goal");
+            ImGui::SliderInt("##flowgoal", &overlays_.flowGoal, 0, static_cast<int>(data.goals) - 1);
         }
         overlays_.flowGoal = std::clamp(overlays_.flowGoal, 0, std::max(0, static_cast<int>(data.goals) - 1));
     }
-    if (ImGui::CollapsingHeader("Rendering")) {
+    if (sectionToggle("Rendering", fonts_.strong)) {
         ImGui::Checkbox("Animated characters", &overlays_.animatedCharacters);
         ImGui::Checkbox("Shadows", &overlays_.shadows);
-        ImGui::SliderFloat("Full detail (m)", &overlays_.lodNearDistance, 5.0f, 150.0f, "%.0f");
-        ImGui::SliderFloat("Characters (m)", &overlays_.lodFarDistance, 10.0f, 400.0f, "%.0f");
+        propertyLabel("Full detail within");
+        ImGui::SliderFloat("##lodnear", &overlays_.lodNearDistance, 5.0f, 150.0f, "%.0f m");
+        propertyLabel("Characters within");
+        ImGui::SliderFloat("##lodfar", &overlays_.lodFarDistance, 10.0f, 400.0f, "%.0f m");
         overlays_.lodFarDistance = std::max(overlays_.lodFarDistance, overlays_.lodNearDistance);
     }
-    ImGui::Separator();
+    ImGui::Spacing();
     if (data.editor != nullptr) {
         sceneEditor_.drawHierarchy(*data.editor, req.commands);
     }
@@ -269,41 +301,71 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::End();
 
     ImGui::Begin(kSimWindow);
-    if (ImGui::Button(data.playing ? "Pause" : "Play", ImVec2(80, 0))) {
-        req.togglePlay = true;
+    {
+        // Transport: play/pause is the primary action, so it alone carries the accent.
+        const float gap = ImGui::GetStyle().ItemSpacing.x;
+        const float third = (ImGui::GetContentRegionAvail().x - gap * 2.0f) / 3.0f;
+        const ImVec4 accent = palette::accent();
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(accent.x, accent.y, accent.z, 0.85f));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, accent);
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(accent.x * 0.85f, accent.y * 0.85f, accent.z * 0.85f, 1));
+        ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.06f, 0.10f, 0.08f, 1.0f));
+        ImGui::PushFont(fonts_.strong, 0.0f);
+        if (ImGui::Button(data.playing ? "Pause" : "Play", ImVec2(third, 0))) {
+            req.togglePlay = true;
+        }
+        ImGui::PopFont();
+        ImGui::PopStyleColor(4);
+        ImGui::SetItemTooltip("Space");
+        ImGui::SameLine();
+        ImGui::BeginDisabled(data.playing);
+        if (ImGui::Button("Step", ImVec2(third, 0))) {
+            req.stepOnce = true;
+        }
+        ImGui::EndDisabled();
+        ImGui::SetItemTooltip("S, while paused");
+        ImGui::SameLine();
+        if (ImGui::Button("Reset", ImVec2(-1.0f, 0))) {
+            req.reset = true;
+        }
     }
-    ImGui::SameLine();
-    ImGui::BeginDisabled(data.playing);
-    if (ImGui::Button("Step", ImVec2(80, 0))) {
-        req.stepOnce = true;
-    }
-    ImGui::EndDisabled();
-    ImGui::SameLine();
-    if (ImGui::Button("Reset", ImVec2(80, 0))) {
-        req.reset = true;
-    }
-    ImGui::SliderFloat("Speed", &req.simSpeed, 0.0f, 8.0f, "%.2fx");
-    ImGui::Separator();
-    ImGui::Text("Step      %llu", static_cast<unsigned long long>(data.stepIndex));
-    ImGui::Text("Sim time  %.2f s", data.simTimeSeconds);
-    ImGui::Text("Rate      %.0f Hz", data.stepHz);
-    ImGui::Text("Seed      %llu", static_cast<unsigned long long>(data.seed));
-    ImGui::Text("Hash      %016llx", static_cast<unsigned long long>(data.stateHash));
+    propertyLabel("Speed");
+    ImGui::SliderFloat("##speed", &req.simSpeed, 0.0f, 8.0f, "%.2fx");
 
-    ImGui::SeparatorText("Crowd");
-    ImGui::Text("Alive     %u", data.agentsAlive);
-    ImGui::Text("Spawned   %llu", static_cast<unsigned long long>(data.agentsSpawned));
-    ImGui::Text("Arrived   %llu", static_cast<unsigned long long>(data.agentsArrived));
-    ImGui::Text("Avg speed %.2f m/s", data.averageSpeed);
+    sectionHeading("Clock", fonts_);
+    if (beginReadout("clock")) {
+        readout("Step", "%llu", static_cast<unsigned long long>(data.stepIndex));
+        readout("Sim time", "%.2f s", data.simTimeSeconds);
+        readout("Rate", "%.0f Hz", data.stepHz);
+        readout("Seed", "%llu", static_cast<unsigned long long>(data.seed));
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TextColored(palette::textDim(), "State hash");
+        ImGui::TableNextColumn();
+        ImGui::PushFont(fonts_.mono, ImGui::GetStyle().FontSizeBase * 0.9f);
+        ImGui::Text("%016llx", static_cast<unsigned long long>(data.stateHash));
+        ImGui::PopFont();
+        endReadout();
+    }
 
-    ImGui::SeparatorText("Scenario");
+    sectionHeading("Crowd", fonts_);
+    if (beginReadout("crowd")) {
+        readout("Alive", "%u", data.agentsAlive);
+        readout("Spawned", "%llu", static_cast<unsigned long long>(data.agentsSpawned));
+        readout("Arrived", "%llu", static_cast<unsigned long long>(data.agentsArrived));
+        readout("Average speed", "%.2f m/s", data.averageSpeed);
+        endReadout();
+    }
+
+    sectionHeading("Scenario", fonts_);
     if (pendingScenario_ < 0) {
         pendingScenario_ = data.scenarioIndex;
         pendingAgents_ = static_cast<int>(data.scenarioAgents);
     }
     if (!data.scenarioNames.empty()) {
         const std::string current(data.scenarioNames[static_cast<std::size_t>(pendingScenario_)]);
-        if (ImGui::BeginCombo("Scene", current.c_str())) {
+        propertyLabel("Scenario");
+        if (ImGui::BeginCombo("##scenario", current.c_str())) {
             for (std::size_t i = 0; i < data.scenarioNames.size(); ++i) {
                 const std::string name(data.scenarioNames[i]);
                 if (ImGui::Selectable(name.c_str(), static_cast<int>(i) == pendingScenario_)) {
@@ -313,9 +375,10 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
             ImGui::EndCombo();
         }
     }
-    ImGui::InputInt("Agents", &pendingAgents_, 500, 5000);
+    propertyLabel("Agents");
+    ImGui::InputInt("##agents", &pendingAgents_, 500, 5000);
     pendingAgents_ = std::clamp(pendingAgents_, 0, 200000);
-    if (ImGui::Button("Load scenario")) {
+    if (ImGui::Button("Load scenario", ImVec2(-1.0f, 0))) {
         req.rebuildScenario = true;
         req.scenarioIndex = pendingScenario_;
         req.scenarioAgents = static_cast<std::uint32_t>(pendingAgents_);
@@ -324,17 +387,32 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
 
     ImGui::Begin(kStatsWindow);
     const float fps = data.frameMs > 0.0f ? 1000.0f / data.frameMs : 0.0f;
-    ImGui::Text("Frame     %.2f ms (%.0f FPS)", data.frameMs, fps);
-    ImGui::Text("Sim step  %.3f ms", data.simStepMs);
-    ImGui::Text("Render    %.3f ms (CPU submit)", data.renderSubmitMs);
-    ImGui::Text("Renderer  %.*s", static_cast<int>(data.rendererName.size()), data.rendererName.data());
-    ImGui::Text("Drawn     %u agents, %u draws", data.agentsDrawn, data.drawCalls);
-    ImGui::Text("LOD       %u near, %u mid, %u far, %u culled", data.agentsNear, data.agentsMid, data.agentsFar,
-                data.agentsCulled);
-    ImGui::Text("Shadows   %u casters", data.shadowCasters);
-    ImGui::Text("Crowd     %.3f ms (cull + LOD + animate)", data.crowdPrepareMs);
-    ImGui::Text("Viewport  %u x %u", data.framebufferWidth, data.framebufferHeight);
-    ImGui::Text("Jobs      %u threads", data.jobThreads);
+    sectionHeading("Frame", fonts_);
+    if (beginReadout("frame")) {
+        readout("Frame", "%.2f ms  (%.0f FPS)", data.frameMs, fps);
+        readout("Sim step", "%.3f ms", data.simStepMs);
+        readout("Crowd prep", "%.3f ms", data.crowdPrepareMs);
+        readout("Render submit", "%.3f ms", data.renderSubmitMs);
+        endReadout();
+    }
+    sectionHeading("Rendering", fonts_);
+    if (beginReadout("rendering")) {
+        readout("Renderer", "%.*s", static_cast<int>(data.rendererName.size()), data.rendererName.data());
+        readout("Viewport", "%u x %u", data.framebufferWidth, data.framebufferHeight);
+        readout("Agents drawn", "%u", data.agentsDrawn);
+        readout("Draw calls", "%u", data.drawCalls);
+        readout("Full detail", "%u", data.agentsNear);
+        readout("Mid detail", "%u", data.agentsMid);
+        readout("Far detail", "%u", data.agentsFar);
+        readout("Culled", "%u", data.agentsCulled);
+        readout("Shadow casters", "%u", data.shadowCasters);
+        endReadout();
+    }
+    sectionHeading("Jobs", fonts_);
+    if (beginReadout("jobs")) {
+        readout("Worker threads", "%u", data.jobThreads);
+        endReadout();
+    }
     ImGui::End();
 
     ImGui::Begin(kLogWindow);
@@ -342,6 +420,7 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::Checkbox("Auto-scroll", &autoScrollLog_);
     ImGui::Separator();
     ImGui::BeginChild("LogLines", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::PushFont(fonts_.mono, 0.0f);
     ImGuiListClipper clipper;
     clipper.Begin(static_cast<int>(data.logLines.size()));
     while (clipper.Step()) {
@@ -353,6 +432,7 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     if (autoScrollLog_ && ImGui::GetScrollY() >= ImGui::GetScrollMaxY()) {
         ImGui::SetScrollHereY(1.0f);
     }
+    ImGui::PopFont();
     ImGui::EndChild();
     ImGui::End();
 
@@ -365,9 +445,10 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     const float inputHeight = ImGui::GetTextLineHeight() * 5.0f;
     ImGui::BeginChild("Transcript", ImVec2(0, -inputHeight - ImGui::GetFrameHeightWithSpacing() * 1.5f),
                       ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::PushFont(fonts_.mono, 0.0f);
     for (const ConsoleLine& line : consoleLines_) {
         if (line.error) {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.0f, 0.45f, 0.4f, 1.0f));
+            ImGui::PushStyleColor(ImGuiCol_Text, palette::error());
         }
         ImGui::TextUnformatted(line.text.c_str());
         if (line.error) {
@@ -378,16 +459,20 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::SetScrollHereY(1.0f);
         consoleScroll_ = false;
     }
+    ImGui::PopFont();
     ImGui::EndChild();
+    ImGui::PushFont(fonts_.mono, 0.0f);
     ImGui::InputTextMultiline("##lua", consoleInput_, sizeof(consoleInput_), ImVec2(-1.0f, inputHeight),
                               ImGuiInputTextFlags_AllowTabInput);
+    ImGui::PopFont();
     const bool ctrlEnter = ImGui::IsItemFocused() && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Enter);
-    if (ImGui::Button("Run (Ctrl+Enter)") || ctrlEnter) {
+    if (ImGui::Button("Run") || ctrlEnter) {
         const std::string source(consoleInput_);
         consoleLines_.push_back({"> " + source, false});
         consoleScroll_ = true;
         req.commands.push_back(commands::makeCommand("EvalLua", {{"source", source}}));
     }
+    ImGui::SetItemTooltip("Ctrl+Enter");
     ImGui::SameLine();
     if (ImGui::Button("Clear")) {
         consoleLines_.clear();

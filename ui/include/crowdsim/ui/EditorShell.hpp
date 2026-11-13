@@ -16,6 +16,7 @@
 #include "crowdsim/ui/BtEditor.hpp"
 #include "crowdsim/ui/MetricsPanel.hpp"
 #include "crowdsim/ui/SceneEditor.hpp"
+#include "crowdsim/ui/Theme.hpp"
 
 namespace crowdsim::ui {
 
@@ -138,6 +139,11 @@ public:
     void focusBehaviourEditor() noexcept { focusBehaviour_ = true; }
     /// Bring the Metrics panel to the front next frame.
     void focusMetrics() noexcept { focusMetrics_ = 3; }
+    /// Fonts for headings and code (from ui::loadFonts); also handed to the scene editor.
+    void setFonts(const ThemeFonts& fonts) noexcept {
+        fonts_ = fonts;
+        sceneEditor_.setFonts(fonts);
+    }
     /// Append a result / error to the Script console transcript.
     void consoleOutput(const std::string& text, bool error = false);
 
@@ -145,6 +151,7 @@ private:
     SceneEditor sceneEditor_;
     BtEditor btEditor_;
     MetricsPanel metricsPanel_;
+    ThemeFonts fonts_;
     char saveAsName_[128] = "my_scene";
 
     bool layoutBuilt_ = false;

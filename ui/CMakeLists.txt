@@ -7,6 +7,7 @@ crowdsim_add_library(ui
     src/MetricsPanel.cpp
     src/EditorShell.cpp
     src/SceneEditor.cpp
+    src/Theme.cpp
   DEPS
     CrowdSim::core
     imgui::imgui

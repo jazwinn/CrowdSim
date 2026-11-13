@@ -12,6 +12,7 @@
 #include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/sim/Simulation.hpp"
+#include "crowdsim/ui/Theme.hpp"
 
 namespace ed = ax::NodeEditor;
 
@@ -123,9 +124,16 @@ void BtEditor::draw(const sim::Simulation& sim, std::uint32_t selectedAgent, std
 }
 
 void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, std::vector<Json>& commands) {
-    // Open an existing tree.
-    ImGui::SetNextItemWidth(160.0f);
-    if (ImGui::BeginCombo("##open", "Open tree...")) {
+    // Name of the tree being edited first, then where trees come from, then actions.
+    const float em = ImGui::GetFontSize();
+    ImGui::SetNextItemWidth(em * 10.0f);
+    if (ImGui::InputTextWithHint("##name", "Tree name", nameBuffer_, sizeof(nameBuffer_))) {
+        graph_.name = nameBuffer_;
+    }
+    ImGui::SetItemTooltip("Name used by Apply and Save (behaviours/<name>.bt.json)");
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(em * 8.0f);
+    if (ImGui::BeginCombo("##open", "Open...")) {
         for (const sim::CompiledTree& t : sim.behaviorTrees()) {
             if (ImGui::Selectable(t.name.c_str())) {
                 commands.push_back(commands::makeCommand("GetBehaviorTree", {{"name", t.name}}));
@@ -136,21 +144,19 @@ void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, 
     ImGui::SameLine();
     const auto agent = selectedAgent != 0xFFFFFFFFu ? sim.agentDebug(selectedAgent) : std::nullopt;
     ImGui::BeginDisabled(!agent);
-    if (ImGui::Button("Agent's tree") && agent) {
+    if (ImGui::Button("Selected agent's") && agent) {
         commands.push_back(commands::makeCommand("GetBehaviorTree", {{"name", agent->treeName}}));
     }
     ImGui::EndDisabled();
+    ImGui::SetItemTooltip("Open the tree the selected agent is running");
     ImGui::SameLine();
     if (ImGui::Button("New")) {
         newGraph();
     }
     ImGui::SameLine();
-    ImGui::SetNextItemWidth(160.0f);
-    if (ImGui::InputText("Name", nameBuffer_, sizeof(nameBuffer_))) {
-        graph_.name = nameBuffer_;
-    }
+    ImGui::TextDisabled("|");
     ImGui::SameLine();
-    if (ImGui::Button("Layout")) {
+    if (ImGui::Button("Tidy layout")) {
         graph_.autoLayout();
         for (const assets::BtGraphNode& n : graph_.nodes) {
             needsPlacement_.insert(n.id);
@@ -186,10 +192,10 @@ void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, 
 
     if (!valid) {
         const std::string first = !issues.empty() ? issues.front().message : compileError;
-        ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.4f, 1.0f), "%zu problem%s: %s",
+        ImGui::TextColored(palette::error(), "%zu problem%s: %s",
                            std::max<std::size_t>(1, issues.size()), issues.size() > 1 ? "s" : "", first.c_str());
     } else if (!status_.empty()) {
-        ImGui::TextColored(statusError_ ? ImVec4(1.0f, 0.45f, 0.4f, 1.0f) : ImVec4(0.6f, 0.9f, 0.6f, 1.0f), "%s",
+        ImGui::TextColored(statusError_ ? palette::error() : palette::accent(), "%s",
                            status_.c_str());
     } else {
         ImGui::TextDisabled(
@@ -300,7 +306,7 @@ void BtEditor::canvas(const sim::Simulation& sim, std::uint32_t selectedAgent) {
         }
         for (const assets::BtGraphIssue& i : issues) {
             if (i.node == n.id) {
-                ImGui::TextColored(ImVec4(1.0f, 0.45f, 0.4f, 1.0f), "%s", i.message.c_str());
+                ImGui::TextColored(palette::error(), "%s", i.message.c_str());
             }
         }
         ImGui::PopID();

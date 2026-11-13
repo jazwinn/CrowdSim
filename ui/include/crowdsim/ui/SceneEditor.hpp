@@ -13,6 +13,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "crowdsim/ui/Theme.hpp"
+
 namespace crowdsim::sim {
 class Simulation;
 }
@@ -70,6 +72,8 @@ public:
     /// True while the gizmo is hovered or dragged (the app must not orbit/pick then).
     [[nodiscard]] bool gizmoActive() const noexcept { return gizmoActive_; }
 
+    void setFonts(const ThemeFonts& fonts) noexcept { fonts_ = fonts; }
+
     bool snap = true;
     float translateSnap = 0.25f;
     float rotateSnapDegrees = 15.0f;
@@ -78,7 +82,10 @@ private:
     void addMenu(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
     void drawAgentInspector(const SceneEditorInput& in);
     bool editJson(const char* label, nlohmann::json& value, nlohmann::json& patch, const std::string& path);
+    bool agentTypeCombo(const char* id, nlohmann::json& value, bool byIndex);
+    bool editAgentMix(nlohmann::json& value);
 
+    ThemeFonts fonts_;
     const sim::Simulation* inspectedSim_ = nullptr;  ///< set each frame by drawInspector (agent type lists)
 
     std::uint32_t selected_ = 0;
