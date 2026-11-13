@@ -112,9 +112,12 @@ void updateCamera(render::Camera& camera, bool viewportHovered) {
         camera.yaw += io.MouseDelta.x * kOrbitSpeed;
         camera.pitch = std::clamp(camera.pitch + io.MouseDelta.y * kOrbitSpeed, 0.05f, 1.55f);
     }
-    if (ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f) || ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f)) {
+    const bool rightPan = ImGui::IsMouseDragging(ImGuiMouseButton_Right, 0.0f);
+    const bool middlePan = ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f);
+    if (rightPan || middlePan) {
         // Pan in the ground plane, scaled with distance so it feels constant on screen.
-        const float k = camera.distance * 0.0015f;
+        // Middle-drag is inverted (drags the view instead of the scene).
+        const float k = camera.distance * 0.0015f * (middlePan && !rightPan ? -1.0f : 1.0f);
         const float s = std::sin(camera.yaw);
         const float c = std::cos(camera.yaw);
         camera.target.x += (-io.MouseDelta.x * c + io.MouseDelta.y * s) * k;
