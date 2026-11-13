@@ -5,6 +5,7 @@ add_executable(crowdsim_tests
   core/test_job_system.cpp
   core/test_logging.cpp
   core/test_triple_buffer.cpp
+  core/test_video_writer.cpp
   sim/test_determinism.cpp
   sim/test_spatial_hash.cpp
   sim/test_orca.cpp

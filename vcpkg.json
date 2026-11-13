@@ -17,6 +17,7 @@
     "cgltf",
     "luajit",
     "sol2",
+    "stb",
     { "name": "cpp-httplib", "default-features": false }
   ],
   "default-features": ["gui"],
