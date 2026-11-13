@@ -79,6 +79,8 @@ private:
     void drawAgentInspector(const SceneEditorInput& in);
     bool editJson(const char* label, nlohmann::json& value, nlohmann::json& patch, const std::string& path);
 
+    const sim::Simulation* inspectedSim_ = nullptr;  ///< set each frame by drawInspector (agent type lists)
+
     std::uint32_t selected_ = 0;
     std::uint32_t selectedAgent_ = kNoAgentSelected;
     bool gizmoActive_ = false;

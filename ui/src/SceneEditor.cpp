@@ -170,6 +170,38 @@ bool SceneEditor::editJson(const char* label, Json& value, Json& patch, const st
     auto finished = [&]() { return ImGui::IsItemDeactivatedAfterEdit(); };
     const std::string key = label;
 
+    // Agent types: a dropdown of the types defined right now (content files, Lua, MCP),
+    // read from the simulation every frame so new types appear immediately.
+    // `agentType` (spawner default parameters) stores an index, agentMix entries a name.
+    const bool typeIndex = key == "agentType" && value.is_number();
+    const bool typeName = key == "type" && value.is_string() && path.find("/agentMix/") != std::string::npos;
+    if (inspectedSim_ != nullptr && (typeIndex || typeName)) {
+        const auto& types = inspectedSim_->agentTypes();
+        auto describe = [&](std::size_t t) { return std::format("{}  ({})", types[t].name, types[t].behaviour); };
+        std::string preview = typeName ? value.get<std::string>() + "  (undefined)" : "(unknown type)";
+        for (std::size_t t = 0; t < types.size(); ++t) {
+            if ((typeIndex && value.get<std::size_t>() == t) ||
+                (typeName && value.get<std::string>() == types[t].name)) {
+                preview = describe(t);
+            }
+        }
+        if (ImGui::BeginCombo(label, preview.c_str())) {
+            for (std::size_t t = 0; t < types.size(); ++t) {
+                const bool selected = preview == describe(t);
+                if (ImGui::Selectable(describe(t).c_str(), selected) && !selected) {
+                    value = typeIndex ? Json(t) : Json(types[t].name);
+                    done = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        if (done) {
+            patch[key] = value;
+        }
+        ImGui::PopID();
+        return done;
+    }
+
     if (value.is_boolean()) {
         bool b = value.get<bool>();
         if (ImGui::Checkbox(label, &b)) {
@@ -293,6 +325,7 @@ bool SceneEditor::editJson(const char* label, Json& value, Json& patch, const st
 }
 
 void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& commands) {
+    inspectedSim_ = &in.sim;
     if (selectedAgent_ != kNoAgentSelected) {
         drawAgentInspector(in);
         return;
