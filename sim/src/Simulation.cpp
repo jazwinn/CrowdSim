@@ -754,6 +754,9 @@ void Simulation::computePreferredVelocities() {
             if (moving && agents_.linkActive[i] == 0 && !escalators_.empty()) {
                 pref = escalatorSteering(i, pref);
             }
+            if (moving && agents_.linkActive[i] == 0 && agents_.manners[i].gap > 0.0f) {
+                pref = applyQueueManners(i, pref);
+            }
             agents_.preferredVelocity[i] = pref;
         }
     });
@@ -809,7 +812,7 @@ void Simulation::computeAvoidance(float dt) {
             // where the steps meet the landing would otherwise pin anyone touching it.
             const float radius = agents_.radius[i] + agents_.personalSpace[i];
             std::uint32_t numWalls = 0;
-            if (useNav && (escalators_.empty() || !onEscalator(p, h))) {
+            if (useNav && (escalators_.empty() || !onEscalator(p, h, agents_.rider[i].clearLanding))) {
                 const float reach = radius + kWallQueryMargin;
                 navMesh_.queryWalls({p.x, h, p.y}, reach, [&](const WallSegment& w) {
                     if (std::abs(0.5f * (w.a.y + w.b.y) - h) > lp.levelSeparation) {

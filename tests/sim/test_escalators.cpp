@@ -48,7 +48,7 @@ struct World {
         sim::BtNodeDesc setStyle{"SetEscalatorStyle", "style", {}, {}};
         setStyle.params["side"].kind = sim::BtParamKind::Text;
         setStyle.params["side"].text = style.substr(dash + 1);
-        setStyle.params["walk"].number = style.starts_with("walk") ? 1.0f : 0.0f;
+        setStyle.params["walk"].number = style.starts_with("walk") ? 0.45f : 0.0f;
         sim::BtNodeDesc root{"Sequence", "root", {}, {setStyle, sim::BtNodeDesc{"MoveToGoal", "walk", {}, {}},
                                                       sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
         sim.setBehaviorTree(sim::compileBehaviorTree(root, style));
@@ -143,6 +143,88 @@ TEST_CASE("Walkers climb the moving steps faster than standers") {
     CHECK(walker.seconds < stander.seconds * 0.7f);
     CHECK(walker.meanLateral > 0.15f);
     CHECK(walker.maxGaitSpeed > 0.3f);
+}
+
+TEST_CASE("Queue manners: a follower stops behind the person ahead instead of pressing past") {
+    // A corridor; one person stands still at z = 0, another walks from z = -6 to a goal
+    // at z = 12 straight behind them. Polite: stops about `gap` behind. Not: goes round.
+    auto run = [](float gap) {
+        core::LogService logs{core::LogConfig{.console = false}};
+        core::JobSystem jobs{4};
+        sim::Simulation sim{{logs.logger(), jobs}, sim::SimConfig{}};
+        geometry::PrimitiveDesc floor;
+        floor.position = {0.0f, -0.2f, 3.0f};
+        floor.size = {4.0f, 0.2f, 24.0f};
+        sim.addStaticObject(sim::StaticObject{"floor", floor, {}, {}, {}});
+        sim::BtNodeDesc manners{"SetQueueManners", "m", {}, {}};
+        manners.params["gap"].number = gap;
+        sim.setBehaviorTree(sim::compileBehaviorTree(
+            sim::BtNodeDesc{"Sequence", "r", {}, {manners, sim::BtNodeDesc{"MoveToGoal", "g", {}, {}}}}, "follow"));
+        sim::BtNodeDesc wait{"Wait", "w", {}, {}};
+        wait.params["seconds"].number = 1000.0f;
+        sim.setBehaviorTree(sim::compileBehaviorTree(wait, "stand"));
+        for (const char* name : {"follow", "stand"}) {
+            sim::AgentType t;
+            t.name = name;
+            t.behaviour = name;
+            t.params.radiusMin = t.params.radiusMax = 0.25f;
+            t.params.preferredSpeedMin = t.params.preferredSpeedMax = 1.3f;
+            sim.defineAgentType(t);
+        }
+        sim::Goal goal;
+        goal.name = "end";
+        goal.area = {{0.0f, 13.0f}, {1.5f, 1.0f}, 0.0f};
+        const sim::SceneId goalId = sim.addGoal(goal);
+        auto spawn = [&](const char* type, float z) {
+            sim::Spawner s;
+            s.name = type;
+            s.area = {{0.0f, z}, {0.05f, 0.05f}, 0.0f};
+            s.rate = 30.0f;
+            s.total = 1;
+            s.goal = goalId;
+            s.agentMix = {{type, 1.0f}};
+            sim.addSpawner(s);
+        };
+        spawn("stand", 0.0f);
+        spawn("follow", -6.0f);
+        for (int step = 0; step < 30 * 15; ++step) {
+            sim.step();
+        }
+        const sim::AgentPool& a = sim.agents();
+        float followerZ = 99.0f;
+        float standerZ = 0.0f;
+        for (std::uint32_t i = 0; i < a.size(); ++i) {
+            (sim.agentTypes()[a.agentType[i]].name == "follow" ? followerZ : standerZ) = a.position[i].y;
+        }
+        return followerZ - standerZ;  // follower already arrived (despawned or past): large
+    };
+    const float polite = run(1.5f);
+    CHECK(polite < -1.2f);  // still behind, about a gap away
+    CHECK(polite > -1.9f);
+    CHECK(run(0.0f) > 0.5f);  // without manners: walked round and on
+}
+
+TEST_CASE("Behaviour nodes for escalators and queues compile with their parameters") {
+    sim::BtNodeDesc style{"SetEscalatorStyle", "s", {}, {}};
+    style.params["side"].kind = sim::BtParamKind::Text;
+    style.params["side"].text = "shorter";
+    style.params["walk"].number = 0.6f;
+    style.params["clear"].number = 3.0f;
+    sim::BtNodeDesc boarding{"SetEscalatorBoarding", "b", {}, {}};
+    boarding.params["gap"].number = 1.2f;
+    boarding.params["squeeze"].number = 0.0f;
+    sim::BtNodeDesc manners{"SetQueueManners", "m", {}, {}};
+    manners.params["gap"].number = 0.7f;
+    const sim::CompiledTree t =
+        sim::compileBehaviorTree(sim::BtNodeDesc{"Sequence", "r", {}, {style, boarding, manners}}, "ok");
+    CHECK(t.nodes[1].number[0] == doctest::Approx(0.6f));
+    CHECK(t.nodes[1].number[1] == doctest::Approx(3.0f));
+    CHECK(t.nodes[2].number[0] == doctest::Approx(1.2f));
+    CHECK(t.nodes[3].number[1] == doctest::Approx(0.5f));  // ease default
+
+    sim::BtNodeDesc negative{"SetQueueManners", "m", {}, {}};
+    negative.params["gap"].number = -1.0f;
+    CHECK_THROWS_AS((void)sim::compileBehaviorTree(negative, "bad"), std::invalid_argument);
 }
 
 TEST_CASE("SetEscalatorStyle rejects an unknown side") {

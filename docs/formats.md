@@ -40,13 +40,12 @@ diff and review it. All paths are relative to the **content root** (`content/` b
 - **Tags**: `walkable` (may become navmesh if flat enough), `obstacle` (never walkable, blocks).
   Other tags (`area:<name>`, `door`, ...) are preserved for scripts and metrics.
 - **Escalators**: a `stairs` or `ramp` object tagged `escalator` moves its riders from the low
-  edge to the high edge (`escalator:down` reverses it). `escalator:speed=<m/s>` is the step speed
-  along the slope (default 0.5), `escalator:walk=<factor>` the pace of people walking on the
-  steps as a fraction of their preferred speed (0.45), `escalator:gap=<m>` the spacing standers
-  wait for before stepping on (0.9). Two lanes fit when the object is at least 2.4 m wide (the
-  navmesh loses about 0.5 m per side). How each person rides is behaviour, set by the
-  `SetEscalatorStyle` tree node (below); agents that never run it walk on either side. See
-  `scenes/escalator_etiquette.scene.json` and `behaviours/escalator_*.bt.json`.
+  edge to the high edge (`escalator:down` reverses it); `escalator:speed=<m/s>` is the step speed
+  along the slope (default 0.5). Two lanes fit when the object is at least 2.4 m wide (the navmesh
+  loses about 0.5 m per side). Everything about how people ride is behaviour, set by tree nodes:
+  `SetEscalatorStyle` (side, walking pace, clearing the landing), `SetEscalatorBoarding` (gap,
+  squeezing on) and the general `SetQueueManners`. See `scenes/escalator_etiquette.scene.json`
+  and `behaviours/escalator_*.bt.json`.
 - **Ids** are stable and never reused (`nextId` keeps deleted ids retired). Spawners reference
   goals by id; commands also accept the goal's **name** (`"goal": "Exit"`).
 - Files are written in entity creation order with floats rounded to 6 significant digits, so
@@ -121,7 +120,9 @@ reloaded tree restart from its root. Scene files embed the trees they use under 
 | `AvoidArea` | action | 0 | `tag` | Steer around objects with `tag` from now on. |
 | `SetSpeed` | action | 0 | `multiplier` (1) | Scale walking speed. |
 | `SetState` | action | 0 | `name` ("walking") | Set the state label (debugger, metrics). |
-| `SetEscalatorStyle` | action | 0 | `side` ("either"), `walk` (0) | How to ride escalators from now on: `left`, `right` or `either` side; `walk` 1 to walk on the steps, 0 to stand. |
+| `SetQueueManners` | action | 0 | `gap` (0.6), `ease` (0.5) | From now on, slow to a stop `gap` m behind whoever is ahead in your line instead of pressing into them (0 = off, the default). |
+| `SetEscalatorStyle` | action | 0 | `side` ("either"), `walk` (0), `clear` (2) | How to ride escalators from now on: `side` `left`, `right`, `either` (your side; near the middle the shorter line) or `shorter`; `walk` = own pace on the steps × preferred speed (0 = stand); walk `clear` m straight off before turning. Without it: either side, pace 0.45. |
+| `SetEscalatorBoarding` | action | 0 | `gap` (0.9), `squeeze` (1) | How to step onto escalators: standers wait until the person ahead in their lane is `gap` m away; `squeeze` 1 = when pushed to the front on the wrong side, step on (or switch lanes) anyway. |
 | `Despawn` | action | 0 | – | Remove the agent. |
 | `IsNearGoal` | condition | 0 | `distance` (3), `goal` | Within `distance` of the goal area. |
 | `IsCrowded` | condition | 0 | `threshold` (6), `radius` (2) | At least `threshold` agents within `radius`. |

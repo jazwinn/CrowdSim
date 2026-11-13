@@ -15,11 +15,28 @@
         }
       },
       {
+        "type": "SetQueueManners",
+        "id": "manners",
+        "params": {
+          "gap": 0.6,
+          "ease": 0.5
+        }
+      },
+      {
         "type": "SetEscalatorStyle",
-        "id": "escalator",
+        "id": "style",
         "params": {
           "side": "right",
-          "walk": 1
+          "walk": 0.45,
+          "clear": 2.0
+        }
+      },
+      {
+        "type": "SetEscalatorBoarding",
+        "id": "boarding",
+        "params": {
+          "gap": 0.65,
+          "squeeze": 1
         }
       },
       {

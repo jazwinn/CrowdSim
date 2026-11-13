@@ -120,8 +120,8 @@ struct TaggedVolume {
 };
 
 /// A moving staircase or walkway, built from a stairs or ramp object tagged
-/// "escalator" (see docs/formats.md). Agents on it are carried at belt speed;
-/// agent-type tags decide who stands or walks and on which side.
+/// "escalator" (see docs/formats.md). Agents on it are carried at belt speed; how
+/// each one rides is behaviour (EscalatorRider, set from behaviour trees).
 struct Escalator {
     SceneId object = kNoSceneId;
     glm::vec2 entry{0.0f};       ///< centre of the boarding edge (x, z)
@@ -132,9 +132,7 @@ struct Escalator {
     float entryHeight = 0.0f;    ///< floor height at the boarding edge
     float exitHeight = 0.0f;     ///< floor height at the far edge
     float beltSpeed = 0.5f;      ///< horizontal component of the step speed, m/s
-    float walkFactor = 0.45f;    ///< walkers' own pace on the steps, x their preferred speed
     float laneOffset = 0.3f;     ///< lane centre distance from the middle, m
-    float standGap = 0.9f;       ///< m between standers in one lane (about two steps)
 };
 
 /// A piece of static environment geometry (ECS component). Either a parametric
@@ -300,11 +298,17 @@ private:
     void rebuildTreeLookups();
     void rebuildTaggedVolumes();
     void rebuildEscalators();
-    [[nodiscard]] static std::uint8_t escalatorStyleOf(std::string_view side, bool walks);
+    [[nodiscard]] static std::int8_t escalatorSideOf(std::string_view side);
     void assignEscalatorLanes();
     [[nodiscard]] glm::vec2 escalatorSteering(std::uint32_t agent, glm::vec2 pref) const;
     [[nodiscard]] glm::vec2 beltVelocityAt(glm::vec2 position, float height) const;
-    [[nodiscard]] bool onEscalator(glm::vec2 position, float height) const;  ///< on the steps or stepping off
+    /// On the steps, or within `clear` m of stepping off.
+    [[nodiscard]] bool onEscalator(glm::vec2 position, float height, float clear) const;
+    /// Queue manners (QueueManners): slow `pref` behind whoever is ahead in the agent's line.
+    [[nodiscard]] glm::vec2 applyQueueManners(std::uint32_t agent, glm::vec2 pref) const;
+    /// The escalator an agent is lining up for (holding a lane, before the steps), or null;
+    /// `atFoot` is set when it is inside the boarding window, where boarding rules apply.
+    [[nodiscard]] const Escalator* queueingFor(std::uint32_t agent, bool& atFoot) const;
     [[nodiscard]] std::uint16_t resolveTree(const std::string& name) const;
     [[nodiscard]] std::shared_ptr<const snapshot::StaticScene> buildStaticScene() const;
     SceneId claimId(SceneId requested);

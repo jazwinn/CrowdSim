@@ -32,6 +32,23 @@ inline constexpr std::uint32_t kCorridorCapacity = 16;
 inline constexpr std::uint32_t kNoAgent = 0xFFFFFFFFu;
 
 /// Everything needed to create one agent.
+/// How an agent rides escalators. Behaviour, set from its tree by SetEscalatorStyle and
+/// SetEscalatorBoarding; the defaults apply to agents that never run those nodes.
+struct EscalatorRider {
+    std::int8_t side = 0;       ///< -1 left, +1 right, 0 either (own side, then shorter line), 2 shorter line
+    float pace = 0.45f;         ///< own walking on the steps, x preferred speed; 0 = stand still
+    float clearLanding = 2.0f;  ///< m walked straight on after stepping off before turning
+    float boardGap = 0.9f;      ///< m standers leave to the person ahead before stepping on
+    bool squeeze = true;        ///< pushed to the front on the wrong side: step on (or switch lanes) anyway
+};
+
+/// Queue manners (SetQueueManners): slow to a stop `gap` m behind whoever is ahead in
+/// your line instead of pressing into them. gap 0 = off (the default).
+struct QueueManners {
+    float gap = 0.0f;   ///< m, centre to centre
+    float ease = 0.5f;  ///< m over which to slow down before that
+};
+
 struct AgentInit {
     std::uint32_t id = 0;
     glm::vec2 position{0.0f};
@@ -85,8 +102,9 @@ public:
     std::vector<std::uint32_t> linkEndPoly;
     // Escalator lane while boarding or riding: -1 left, +1 right, 0 none.
     std::vector<std::int8_t> escalatorLane;
-    // How the agent rides escalators (SetEscalatorStyle): bit 0 stands, bit 1 left, bit 2 right.
-    std::vector<std::uint8_t> escalatorStyle;
+    // Behaviour settings from the agent's tree (see EscalatorRider, QueueManners).
+    std::vector<EscalatorRider> rider;
+    std::vector<QueueManners> manners;
 
     // --- Decision layer ---
     std::vector<std::uint16_t> tree;
@@ -153,7 +171,8 @@ public:
         linkEnd.push_back(glm::vec3(0.0f));
         linkEndPoly.push_back(0);
         escalatorLane.push_back(0);
-        escalatorStyle.push_back(0);
+        rider.push_back(EscalatorRider{});
+        manners.push_back(QueueManners{});
 
         tree.push_back(a.tree);
         bt.push_back(BtState{});
@@ -227,7 +246,8 @@ private:
         f(linkEnd);
         f(linkEndPoly);
         f(escalatorLane);
-        f(escalatorStyle);
+        f(rider);
+        f(manners);
         f(tree);
         f(bt);
         f(rng);

@@ -6,8 +6,9 @@ rise, 0.5 m/s) to an upper concourse, fed by the same arrival rate:
   Hall A (west): "keep left, walk right" - 75% stand on the left, 25% walk on the right.
   Hall B (east): "stand on both sides"   - everyone stands, on the side they are already on.
 
-Riding style comes from behaviour trees (content/behaviours/escalator_*.bt.json, the
-SetEscalatorStyle node), not from the escalators or the agent types.
+Everything people decide - queue manners, side, standing or walking pace, boarding
+gap, squeezing on, clearing the landing - comes from their behaviour trees
+(content/behaviours/escalator_*.bt.json); the escalators only say that their steps move.
 
 The numbers follow CNA's report on SMRT's 2026 trial at City Hall: a standing
 ride of about 30 s, about 20 s for those who walk up.
@@ -90,7 +91,7 @@ for key, cx, title in halls:
         "id": eid, "name": f"{title} (escalator)", "type": "stairs",
         "position": [cx, 0.0, 0.0], "rotationY": 0.0,
         "size": [ESC_WIDTH, RISE, RUN], "steps": STEPS,
-        "tags": ["walkable", "escalator", "escalator:speed=0.5", "escalator:walk=0.45", "escalator:gap=0.5"],
+        "tags": ["walkable", "escalator", "escalator:speed=0.5"],
         "color": STEEL,
     })
     # Balustrades: a skirt panel up to the handrail line on each side.

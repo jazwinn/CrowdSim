@@ -1,19 +1,21 @@
 // Escalators: stairs or ramp objects tagged "escalator" become moving belts.
 //
+// This file is mechanics only: the steps carry their riders, there are two lanes,
+// people line up on a lane before stepping on, keep off the balustrade, move
+// across only into real space, and step inwards off the edge at the top. How a
+// person rides - which side, standing or walking and how fast, the gap they leave,
+// whether they squeeze on when pushed, how far they walk before turning - is
+// behaviour: AgentPool::rider, set from behaviour trees by SetEscalatorStyle and
+// SetEscalatorBoarding. Queue manners at the foot are the generic SetQueueManners
+// (QueueManners.cpp), which uses the lanes here to define who is in your line.
+//
 // Agents keep ground-frame velocities everywhere, so avoidance, metrics and the
-// rest of the step need no special cases: on the belt an agent's preferred
-// velocity is the belt velocity plus its own walking (zero for standers) plus a
-// small correction towards its lane. Before boarding, agents line up behind the
-// lane they chose, and standers wait for a gap of about two steps.
+// rest of the step need no special cases: on the belt an agent's preferred velocity
+// is the belt velocity plus its own walking plus a small correction towards its lane.
 //
 // Object tags (besides "escalator"):
 //   escalator:speed=<m/s>   step speed along the slope (default 0.5)
-//   escalator:walk=<factor> walkers' pace on the steps, x preferred speed (default 0.45)
-//   escalator:gap=<m>       spacing between standers in one lane (default 0.9)
 //   escalator:down          travel from the top edge to the bottom edge
-// How each agent rides (side, standing or walking) is behaviour, set from its
-// behaviour tree with the SetEscalatorStyle node; agents that never run it walk
-// on whichever side has the shorter line.
 
 #include <algorithm>
 #include <charconv>
@@ -32,20 +34,15 @@ namespace crowdsim::sim {
 namespace {
 
 constexpr float kApproachLength = 10.0f;  ///< m before the boarding edge where agents line up
-constexpr float kApproachWiden = 3.0f;   ///< extra half-width of the approach funnel, m
-constexpr float kLevelTolerance = 1.0f;  ///< m of height mismatch still counted as on the belt
-constexpr float kBoardWindow = 1.2f;     ///< m before the edge where standers wait for a gap
-constexpr float kExitClear = 2.0f;   ///< m people walk straight on after stepping off
-constexpr float kQueueLook = 1.6f;   ///< m ahead people look for someone to queue behind
-constexpr float kQueueFile = 0.45f;  ///< lateral offset within which someone counts as "in front"
-constexpr float kQueueGap = 0.6f;    ///< m (centre to centre) at which people stop behind someone
-constexpr float kQueueEase = 0.5f;   ///< m over which they slow down before that
+constexpr float kApproachWiden = 3.0f;    ///< extra half-width of the approach funnel, m
+constexpr float kLevelTolerance = 1.0f;   ///< m of height mismatch still counted as on the belt
+constexpr float kBoardWindow = 1.2f;      ///< m before the edge where boarding rules apply
 
-// Escalator style per agent (AgentPool::escalatorStyle): bit 0 = stands,
-// bits 1-2 = side (0 either, 1 left, 2 right).
-constexpr std::uint8_t kStands = 1;
-constexpr std::uint8_t kSideLeft = 2;
-constexpr std::uint8_t kSideRight = 4;
+// EscalatorRider::side values.
+constexpr std::int8_t kLeft = -1;
+constexpr std::int8_t kRight = 1;
+constexpr std::int8_t kEither = 0;
+constexpr std::int8_t kShorter = 2;
 
 /// Value of "escalator:<key>=<number>" among `tags`, or `fallback`.
 float tagNumber(const std::vector<std::string>& tags, std::string_view key, float fallback) {
@@ -81,8 +78,8 @@ bool onBelt(const Escalator& e, Local q, float height) {
     return q.s >= 0.0f && q.s <= e.length && std::abs(q.l) <= e.halfWidth &&
            std::abs(height - floorHeight(e, q.s)) < kLevelTolerance;
 }
-bool inExit(const Escalator& e, Local q, float height) {
-    return q.s > e.length && q.s <= e.length + kExitClear && std::abs(q.l) <= e.halfWidth + 0.5f &&
+bool inExit(const Escalator& e, Local q, float height, float clear) {
+    return q.s > e.length && q.s <= e.length + clear && std::abs(q.l) <= e.halfWidth + 0.5f &&
            std::abs(height - e.exitHeight) < kLevelTolerance;
 }
 bool inApproach(const Escalator& e, Local q, float height) {
@@ -92,14 +89,14 @@ bool inApproach(const Escalator& e, Local q, float height) {
 
 }  // namespace
 
-std::uint8_t Simulation::escalatorStyleOf(std::string_view side, bool walks) {
-    std::uint8_t style = walks ? 0 : kStands;
+std::int8_t Simulation::escalatorSideOf(std::string_view side) {
     if (side == "left") {
-        style |= kSideLeft;
-    } else if (side == "right") {
-        style |= kSideRight;
+        return kLeft;
     }
-    return style;
+    if (side == "right") {
+        return kRight;
+    }
+    return side == "shorter" ? kShorter : kEither;
 }
 
 void Simulation::rebuildEscalators() {
@@ -131,8 +128,6 @@ void Simulation::rebuildEscalators() {
         e.exitHeight = down ? p.position.y : p.position.y + p.size.y;
         const float slope = std::sqrt(p.size.z * p.size.z + p.size.y * p.size.y);
         e.beltSpeed = tagNumber(o.tags, "speed", 0.5f) * p.size.z / std::max(slope, 0.01f);
-        e.walkFactor = tagNumber(o.tags, "walk", 0.45f);
-        e.standGap = tagNumber(o.tags, "gap", 0.9f);
         // Keep both lanes inside the walkable strip: Recast erodes the navmesh by the
         // agent radius rounded up to whole cells plus about one more cell where the
         // surface is rasterised, and riders need their own radius from its edge too.
@@ -151,7 +146,7 @@ void Simulation::assignEscalatorLanes() {
     CS_PROFILE_ZONE();
 
     // Serial and in index order, so the choice of lane is deterministic. Agents
-    // already in a lane are counted first; newcomers then pick the shorter line.
+    // already in a lane are counted first; newcomers then pick their lane.
     std::vector<std::uint32_t> count(escalators_.size() * 2, 0);
     std::vector<std::int16_t> where(agents_.size(), -1);
     for (std::uint32_t i = 0; i < agents_.size(); ++i) {
@@ -173,22 +168,22 @@ void Simulation::assignEscalatorLanes() {
             continue;
         }
         const Escalator& e = escalators_[static_cast<std::size_t>(where[i])];
+        const EscalatorRider& r = agents_.rider[i];
+        const bool sided = r.side == kLeft || r.side == kRight;
         if (agents_.escalatorLane[i] != 0) {
-            // Either-side riders stuck at the foot on the other lane's line take that
-            // lane instead of cutting across the people waiting there.
-            const std::uint8_t r = agents_.escalatorStyle[i];
             const Local q = toLocal(e, agents_.position[i]);
-            const float laneL = static_cast<float>(agents_.escalatorLane[i]) * e.laneOffset;
-            const bool sided = (r & (kSideLeft | kSideRight)) != 0;
             if (sided && q.s < 0.0f) {
-                // The behaviour tree may set the style after a lane was picked (trees tick
+                // The behaviour tree may set the side after a lane was picked (trees tick
                 // at a low, staggered rate): until boarding, a chosen side always wins.
-                agents_.escalatorLane[i] = (r & kSideLeft) != 0 ? std::int8_t{-1} : std::int8_t{1};
+                agents_.escalatorLane[i] = r.side;
                 continue;
             }
+            // Riders without a fixed side who are stuck at the foot on the other lane's
+            // line take that lane, if they squeeze, instead of waiting to cross.
+            const float laneL = static_cast<float>(agents_.escalatorLane[i]) * e.laneOffset;
             const glm::vec2 v = agents_.velocity[i];
             const bool stuck = glm::dot(v, v) < 0.15f * 0.15f;
-            if (!sided && stuck && q.s < 0.0f && q.s > -kBoardWindow - 1.0f &&
+            if (!sided && r.squeeze && stuck && q.s < 0.0f && q.s > -kBoardWindow - 1.0f &&
                 std::abs(q.l - laneL) > e.laneOffset * 1.5f) {
                 agents_.escalatorLane[i] = static_cast<std::int8_t>(-agents_.escalatorLane[i]);
             }
@@ -199,24 +194,19 @@ void Simulation::assignEscalatorLanes() {
         if (glm::dot(want, want) > 1e-6f && glm::dot(want, e.forward) <= 0.2f * std::sqrt(glm::dot(want, want))) {
             continue;
         }
-        const std::uint8_t role = agents_.escalatorStyle[i];
         std::int8_t lane = 0;
-        if ((role & kSideLeft) != 0) {
-            lane = -1;
-        } else if ((role & kSideRight) != 0) {
-            lane = 1;
+        const std::uint32_t left = count[static_cast<std::size_t>(where[i]) * 2];
+        const std::uint32_t right = count[static_cast<std::size_t>(where[i]) * 2 + 1];
+        const float l = toLocal(e, agents_.position[i]).l;
+        const std::int8_t ownSide = l < 0.0f ? std::int8_t{-1} : std::int8_t{1};
+        if (sided) {
+            lane = r.side;
+        } else if (r.side == kShorter) {
+            lane = left != right ? (left < right ? std::int8_t{-1} : std::int8_t{1}) : ownSide;
+        } else if (std::abs(l) > e.laneOffset || left == right) {
+            lane = ownSide;  // either: keep to the side you are on
         } else {
-            const std::uint32_t left = count[static_cast<std::size_t>(where[i]) * 2];
-            const std::uint32_t right = count[static_cast<std::size_t>(where[i]) * 2 + 1];
-            // Keep to the side you are already on; near the middle, join the shorter line.
-            const float l = toLocal(e, agents_.position[i]).l;
-            if (std::abs(l) > e.laneOffset) {
-                lane = l < 0.0f ? std::int8_t{-1} : std::int8_t{1};
-            } else if (left != right) {
-                lane = left < right ? std::int8_t{-1} : std::int8_t{1};
-            } else {
-                lane = l < 0.0f ? std::int8_t{-1} : std::int8_t{1};
-            }
+            lane = left < right ? std::int8_t{-1} : std::int8_t{1};  // near the middle: shorter line
         }
         agents_.escalatorLane[i] = lane;
         ++count[static_cast<std::size_t>(where[i]) * 2 + (lane > 0 ? 1 : 0)];
@@ -226,12 +216,13 @@ void Simulation::assignEscalatorLanes() {
 glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
     const glm::vec2 pos = agents_.position[i];
     const float height = agents_.height[i];
+    const EscalatorRider& r = agents_.rider[i];
     for (const Escalator& e : escalators_) {
         const Local q = toLocal(e, pos);
-        if (inExit(e, q, height)) {
-            // Step off and clear the landing before turning towards your destination;
-            // turning on the last step pins people against the end of the balustrade.
-            // Someone at the edge steps inwards first, rather than along the edge.
+        if (inExit(e, q, height, r.clearLanding)) {
+            // Step off and clear the landing before turning towards your destination.
+            // Someone at the edge steps inwards first: the edge of the steps turns a
+            // corner onto the landing, where walking along it pins people.
             const float speed = agents_.preferredSpeed[i] * agents_.speedMultiplier[i];
             const float edge = std::clamp((std::abs(q.l) - 0.4f) / 0.3f, 0.0f, 0.8f);
             return e.forward * (speed * (1.0f - edge)) - e.right * std::clamp(q.l * 1.5f, -0.8f, 0.8f);
@@ -241,8 +232,7 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
             continue;
         }
         const std::int8_t lane = agents_.escalatorLane[i];
-        const std::uint8_t role = agents_.escalatorStyle[i];
-        const bool stands = (role & kStands) != 0;
+        const bool stands = r.pace <= 0.0f;
         const float speed = agents_.preferredSpeed[i] * agents_.speedMultiplier[i];
         const float laneL = static_cast<float>(lane) * e.laneOffset;
 
@@ -251,26 +241,25 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
             float sideways = lane != 0 ? std::clamp((laneL - q.l) * 2.0f, -0.4f, 0.4f) : 0.0f;
             if (stands && std::abs(q.l - laneL) > 0.15f) {
                 // Someone who stepped on in the other lane only moves across into a
-                // proper gap; otherwise they stay where they are.
+                // real space (one boarding gap); otherwise they stay where they are.
+                const float space = 0.75f * r.boardGap;
                 bool occupied = false;
-                hash_.queryPoints(pos, e.standGap + 0.5f, [&](std::uint32_t j, glm::vec2 other, float otherHeight) {
+                hash_.queryPoints(pos, space + 0.5f, [&](std::uint32_t j, glm::vec2 other, float otherHeight) {
                     if (j == i || occupied || std::abs(otherHeight - height) > 1.5f) {
                         return;
                     }
                     const Local o = toLocal(e, other);
-                    occupied = std::abs(o.l - laneL) < 0.2f && std::abs(o.s - q.s) < e.standGap;
+                    occupied = std::abs(o.l - laneL) < 0.2f && std::abs(o.s - q.s) < space;
                 });
                 if (occupied) {
                     sideways = 0.0f;
                 }
             }
             if (std::abs(q.l) > e.laneOffset + 0.1f) {
-                // Never ride pressed against the balustrade: the edge of the steps turns
-                // a corner at the top, where someone touching it would be pinned.
+                // Nobody rides pressed against the balustrade.
                 sideways = q.l > 0.0f ? -0.3f : 0.3f;
             }
-            const float own = stands ? 0.0f : speed * e.walkFactor;
-            return e.forward * (e.beltSpeed + own) + e.right * sideways;
+            return e.forward * (e.beltSpeed + speed * r.pace) + e.right * sideways;
         }
         if (lane == 0) {
             return pref;  // not boarding (e.g. walking past the foot of the escalator)
@@ -280,69 +269,60 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
         glm::vec2 to = aim - pos;
         const float dist = std::sqrt(glm::dot(to, to));
         to = dist > 1e-4f ? to / dist : e.forward;
-        glm::vec2 out = to * speed;
-        {
-            // Queue manners: one line per lane. Slow to a stop behind whoever is ahead
-            // in your lane's line, or directly in your path, instead of pressing into
-            // them; while waiting, side-step only slowly. Yielding only to people nearer
-            // the escalator keeps it free of cycles.
-            float ahead = kApproachLength;
-            hash_.queryPoints(pos, kQueueLook, [&](std::uint32_t j, glm::vec2 other, float otherHeight) {
-                if (j == i || std::abs(otherHeight - height) > 1.5f) {
+        if (q.s <= -kBoardWindow) {
+            return to * speed;
+        }
+        // At the foot: slow to about the step speed (so the belt does not carry people
+        // into the rider ahead), step on only when lined up with the lane (so nobody
+        // slips past a waiting stander into the other lane), and standers only once the
+        // person ahead in their lane is their boarding gap away.
+        glm::vec2 out = to * std::min(speed, e.beltSpeed + 0.35f);
+        const float sideways = std::clamp((laneL - q.l) * 2.0f, -0.4f, 0.4f);
+        const float offLane = std::abs(q.l - laneL);
+        // Squeezers pushed to the very front on the wrong side step on anyway and
+        // shuffle across on the steps; otherwise the two lines could lock each other.
+        const glm::vec2 v = agents_.velocity[i];
+        const bool pressed = r.squeeze && q.s > -0.6f && glm::dot(v, v) < 0.15f * 0.15f;
+        bool blocked = offLane > 0.3f && !pressed;
+        if (!blocked && offLane > 0.12f) {
+            out = e.right * sideways + e.forward * 0.15f;  // shuffle forward while side-stepping
+        }
+        if (stands && !blocked) {
+            hash_.queryPoints(pos, r.boardGap + 0.5f, [&](std::uint32_t j, glm::vec2 other, float otherHeight) {
+                if (j == i || blocked || std::abs(otherHeight - height) > 1.5f) {
                     return;
                 }
                 const Local o = toLocal(e, other);
-                const bool sameLine = agents_.escalatorLane[j] == lane;
-                if (o.s > q.s && (sameLine || std::abs(o.l - q.l) < kQueueFile)) {
-                    ahead = std::min(ahead, o.s - q.s);
-                }
+                blocked = std::abs(o.l - laneL) < 0.45f && o.s > q.s && o.s - q.s < r.boardGap;
             });
-            const float go = std::clamp((ahead - kQueueGap) / kQueueEase, 0.0f, 1.0f);
-            const float fwd = glm::dot(out, e.forward);
-            const glm::vec2 side = out - e.forward * fwd;
-            out = e.forward * (fwd > 0.0f ? fwd * go : fwd) + side * std::max(go, 0.35f);
         }
-        if (q.s > -kBoardWindow) {
-            // People slow to roughly the step speed as they step on, so they do not
-            // run into the rider in front once the belt takes over.
-            out = to * std::min(speed, e.beltSpeed + 0.35f);
-            // At the foot: step on only when lined up with the lane (so nobody slips
-            // past a waiting stander into the other lane), and standers only once the
-            // person ahead of them is a gap away.
-            const float sideways = std::clamp((laneL - q.l) * 2.0f, -0.4f, 0.4f);
-            const float offLane = std::abs(q.l - laneL);
-            // Someone pushed to the very front on the wrong side steps on anyway and
-            // shuffles across on the steps (blocking the other lane meanwhile, as CNA
-            // saw at City Hall); otherwise the two lines could lock each other.
-            const glm::vec2 v = agents_.velocity[i];
-            const bool pressed = q.s > -0.6f && glm::dot(v, v) < 0.15f * 0.15f;
-            bool blocked = offLane > 0.3f && !pressed;
-            if (!blocked && offLane > 0.12f) {
-                // Nearly lined up (or squeezing on): shuffle forward slowly while side-stepping.
-                out = e.right * sideways + e.forward * 0.15f;
-            }
-            if (stands && !blocked) {
-                hash_.queryPoints(pos, e.standGap + 0.5f, [&](std::uint32_t j, glm::vec2 other, float otherHeight) {
-                    if (j == i || blocked || std::abs(otherHeight - height) > 1.5f) {
-                        return;
-                    }
-                    const Local o = toLocal(e, other);
-                    blocked = std::abs(o.l - laneL) < 0.45f && o.s > q.s && o.s - q.s < e.standGap + 0.15f;
-                });
-            }
-            if (blocked) {
-                out = e.right * sideways;
-            }
+        if (blocked) {
+            out = e.right * sideways;
         }
         return out;
     }
     return pref;
 }
 
-bool Simulation::onEscalator(glm::vec2 position, float height) const {
+const Escalator* Simulation::queueingFor(std::uint32_t i, bool& atFoot) const {
+    atFoot = false;
+    if (agents_.escalatorLane[i] == 0) {
+        return nullptr;
+    }
+    for (const Escalator& e : escalators_) {
+        const Local q = toLocal(e, agents_.position[i]);
+        if (inApproach(e, q, agents_.height[i])) {
+            atFoot = q.s > -kBoardWindow;
+            return &e;
+        }
+    }
+    return nullptr;
+}
+
+bool Simulation::onEscalator(glm::vec2 position, float height, float clear) const {
     for (const Escalator& e : escalators_) {
         const Local q = toLocal(e, position);
-        if (onBelt(e, q, height) || inExit(e, q, height)) {
+        if (onBelt(e, q, height) || inExit(e, q, height, clear)) {
             return true;
         }
     }

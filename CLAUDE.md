@@ -10,10 +10,14 @@ Decide where a change belongs before writing it:
 
 | It describes... | It goes in | Examples |
 |---|---|---|
-| How the world physically works | engine, as a generic mechanism driven by data | navmesh, avoidance, moving escalator steps (`escalator` object tag), queues at goals with `capacity` |
-| What a person decides to do | a **behaviour tree node** with parameters, used from `content/behaviours/*.bt.json` | `MoveToGoal`, `Queue`, `AvoidArea`, `SetEscalatorStyle {side, walk}` |
+| How the world physically works | engine, as a generic mechanism driven by data | navmesh, avoidance, escalator steps that carry people in two lanes (`escalator` object tag), queues at goals with `capacity` |
+| What a person decides to do | a **behaviour tree node** with parameters, used from `content/behaviours/*.bt.json` | `MoveToGoal`, `Queue`, `SetQueueManners {gap, ease}`, `SetEscalatorStyle {side, walk, clear}`, `SetEscalatorBoarding {gap, squeeze}` |
 | A particular population | `content/agents/*.agent.json` (parameters + which tree) | `escalator_stander_left` = speed/radius + tree `escalator_stand_left` |
 | A particular place or study | `content/scenes/*.scene.json`, `content/scripts/*.lua`, `tools/make_*.py` | `escalator_etiquette` scene, `escalator_trial.lua` report |
+
+A useful test: if two people in the same place could reasonably act differently (stand or
+walk, wait or push, keep left or not, how much space they leave), it is behaviour and needs a
+node parameter, with a sensible default for agents whose trees do not set it.
 
 Do not:
 

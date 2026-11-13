@@ -708,8 +708,19 @@ BtStatus Simulation::tickNode(const CompiledTree& tree, std::uint16_t index, std
         case BtNodeType::SetState:
             agents_.stateId[i] = lookup.stateOf[n.text];
             return BtStatus::Success;
-        case BtNodeType::SetEscalatorStyle:
-            agents_.escalatorStyle[i] = escalatorStyleOf(tree.strings[n.text], n.number[0] > 0.5f);
+        case BtNodeType::SetEscalatorStyle: {
+            EscalatorRider& r = agents_.rider[i];
+            r.side = escalatorSideOf(tree.strings[n.text]);
+            r.pace = n.number[0];
+            r.clearLanding = n.number[1];
+            return BtStatus::Success;
+        }
+        case BtNodeType::SetEscalatorBoarding:
+            agents_.rider[i].boardGap = n.number[0];
+            agents_.rider[i].squeeze = n.number[1] > 0.5f;
+            return BtStatus::Success;
+        case BtNodeType::SetQueueManners:
+            agents_.manners[i] = QueueManners{n.number[0], std::max(0.05f, n.number[1])};
             return BtStatus::Success;
         case BtNodeType::Despawn:
             agents_.despawnRequested[i] = 1;

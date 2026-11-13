@@ -2,7 +2,7 @@
   "format": "crowdsim.bt",
   "version": 1,
   "name": "escalator_stand_either",
-  "description": "Walk to the goal; on escalators stand on whichever side has the shorter line.",
+  "description": "Walk to the goal; on escalators stand on the side you are on.",
   "root": {
     "type": "Sequence",
     "id": "root",
@@ -15,11 +15,28 @@
         }
       },
       {
+        "type": "SetQueueManners",
+        "id": "manners",
+        "params": {
+          "gap": 0.6,
+          "ease": 0.5
+        }
+      },
+      {
         "type": "SetEscalatorStyle",
-        "id": "escalator",
+        "id": "style",
         "params": {
           "side": "either",
-          "walk": 0
+          "walk": 0.0,
+          "clear": 2.0
+        }
+      },
+      {
+        "type": "SetEscalatorBoarding",
+        "id": "boarding",
+        "params": {
+          "gap": 0.65,
+          "squeeze": 1
         }
       },
       {

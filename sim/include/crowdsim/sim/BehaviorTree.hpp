@@ -46,6 +46,8 @@ enum class BtNodeType : std::uint8_t {
     SetSpeed,
     SetState,
     SetEscalatorStyle,
+    SetEscalatorBoarding,
+    SetQueueManners,
     Despawn,
     // Conditions
     IsNearGoal,

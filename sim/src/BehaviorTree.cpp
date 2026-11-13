@@ -15,7 +15,7 @@ constexpr BtParamSpec kNone{"", K::Number, 0.0f, "", ""};
 // Composite children limit: kBtMaxNodes bounds the tree anyway.
 constexpr std::uint8_t kMany = 32;
 
-constexpr std::array<BtNodeTypeInfo, 27> kNodeTypes = {{
+constexpr std::array<BtNodeTypeInfo, 29> kNodeTypes = {{
     {BtNodeType::Sequence,
      "Sequence",
      BtCategory::Composite,
@@ -184,10 +184,32 @@ constexpr std::array<BtNodeTypeInfo, 27> kNodeTypes = {{
      BtCategory::Action,
      0,
      0,
-     2,
-     {BtParamSpec{"side", K::Text, 0.0f, "either", "lane to ride in: left, right or either (the shorter line)"},
-      BtParamSpec{"walk", K::Number, 0.0f, "", "1 = walk on the moving steps, 0 = stand still"}, kNone},
+     3,
+     {BtParamSpec{"side", K::Text, 0.0f, "either",
+                  "left, right, either (stay on your side; near the middle the shorter line) or shorter"},
+      BtParamSpec{"walk", K::Number, 0.0f, "", "own pace on the steps, x preferred speed; 0 = stand still"},
+      BtParamSpec{"clear", K::Number, 2.0f, "", "m to walk straight on after stepping off before turning"}},
      "Choose how the agent rides escalators from now on: which side, standing or walking."},
+    {BtNodeType::SetEscalatorBoarding,
+     "SetEscalatorBoarding",
+     BtCategory::Action,
+     0,
+     0,
+     2,
+     {BtParamSpec{"gap", K::Number, 0.9f, "", "m standers leave to the person ahead before stepping on"},
+      BtParamSpec{"squeeze", K::Number, 1.0f, "",
+                  "1 = when pushed to the front on the wrong side, step on (or switch lanes) anyway"},
+      kNone},
+     "Choose how the agent steps onto escalators from now on."},
+    {BtNodeType::SetQueueManners,
+     "SetQueueManners",
+     BtCategory::Action,
+     0,
+     0,
+     2,
+     {BtParamSpec{"gap", K::Number, 0.6f, "", "m (centre to centre) to stop behind the person ahead; 0 = off"},
+      BtParamSpec{"ease", K::Number, 0.5f, "", "m over which to slow down before that"}, kNone},
+     "From now on, slow to a stop behind whoever is ahead in your line instead of pressing into them."},
     {BtNodeType::Despawn,
      "Despawn",
      BtCategory::Action,
@@ -353,10 +375,15 @@ public:
         }
         if (node.type == BtNodeType::SetEscalatorStyle) {
             const std::string& side = t_.strings[node.text];
-            if (side != "left" && side != "right" && side != "either") {
-                throw std::invalid_argument(
-                    std::format("{}: SetEscalatorStyle side must be left, right or either, got '{}'", path, side));
+            if (side != "left" && side != "right" && side != "either" && side != "shorter") {
+                throw std::invalid_argument(std::format(
+                    "{}: SetEscalatorStyle side must be left, right, either or shorter, got '{}'", path, side));
             }
+        }
+        if ((node.type == BtNodeType::SetEscalatorStyle || node.type == BtNodeType::SetEscalatorBoarding ||
+             node.type == BtNodeType::SetQueueManners) &&
+            (node.number[0] < 0.0f || node.number[1] < 0.0f)) {
+            throw std::invalid_argument(std::format("{}: {} parameters must not be negative", path, info->name));
         }
         // Script nodes: leaves whose parameters are checked against the registered spec
         // and stored (with defaults filled in) for the script to read.
