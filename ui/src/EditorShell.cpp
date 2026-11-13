@@ -395,6 +395,34 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
             req.reset = true;
         }
     }
+    {
+        // Record the 3D view (no UI) to video; red while recording, showing the time.
+        const auto total = static_cast<int>(data.recordingSeconds);
+        const std::string label = data.recording ? std::format("Stop recording   {}:{:02}###record", total / 60, total % 60)
+                                                 : std::string("Record video###record");
+        if (data.recording) {
+            const ImVec4 red = palette::error();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(red.x, red.y, red.z, 0.75f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, red);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(red.x * 0.85f, red.y * 0.85f, red.z * 0.85f, 1.0f));
+        }
+        ImGui::BeginDisabled(!data.recordingSupported && !data.recording);
+        if (ImGui::Button(label.c_str(), ImVec2(-1.0f, 0))) {
+            req.toggleRecording = true;
+        }
+        ImGui::EndDisabled();
+        if (data.recording) {
+            ImGui::PopStyleColor(3);
+        }
+        if (!data.recordingSupported && !data.recording) {
+            ImGui::SetItemTooltip("This graphics backend cannot read frames back; try --renderer d3d11 or vulkan");
+        } else if (data.recording) {
+            ImGui::SetItemTooltip("Saving to content/recordings/%.*s (F9)", static_cast<int>(data.recordingFile.size()),
+                                  data.recordingFile.data());
+        } else {
+            ImGui::SetItemTooltip("Record the 3D view, without the editor UI, to content/recordings (F9)");
+        }
+    }
     propertyLabel("Speed");
     ImGui::SliderFloat("##speed", &req.simSpeed, 0.0f, 8.0f, "%.2fx");
 
