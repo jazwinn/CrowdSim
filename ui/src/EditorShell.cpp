@@ -246,10 +246,38 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         }
         chip(ImVec2(origin.x + pad * 1.5f, origin.y + pad * 1.5f), agents.c_str(),
              where.empty() ? (data.playing ? nullptr : "paused") : where.c_str(), false);
-        // Mouse help, shown only while it fits inside the viewport.
-        constexpr const char* kNavHelp = "drag orbit    right drag pan    wheel zoom    F frame all";
-        if (ImGui::CalcTextSize(kNavHelp).x + em * 6.0f < central->Size.x) {
-            chip(ImVec2(origin.x + pad * 1.5f, origin.y + central->Size.y - pad * 1.5f), "Mouse", kNavHelp, true);
+        // Camera controls: each input in a key cap followed by what it does. Shown only
+        // while it fits inside the viewport; it is a hint, not a control.
+        struct Hint {
+            const char* input;
+            const char* action;
+        };
+        constexpr Hint kHints[] = {{"Drag", "Orbit"}, {"Right drag", "Pan"}, {"Wheel", "Zoom"}, {"F", "Frame all"}};
+        const float capPad = em * 0.35f;
+        const float inner = em * 0.4f;  // between a cap and its action
+        const float between = em * 1.1f;  // between pairs
+        float width = pad * 2.0f;
+        for (const Hint& h : kHints) {
+            width += ImGui::CalcTextSize(h.input).x + capPad * 2.0f + inner + ImGui::CalcTextSize(h.action).x;
+        }
+        width += between * static_cast<float>(std::size(kHints) - 1);
+        if (width + em * 2.0f < central->Size.x) {
+            const float height = em + pad * 1.4f;
+            const ImVec2 p0(origin.x + pad * 1.5f, origin.y + central->Size.y - pad * 1.5f - height);
+            dl->AddRectFilled(p0, ImVec2(p0.x + width, p0.y + height), IM_COL32(18, 20, 23, 190), em * 0.35f);
+            float x = p0.x + pad;
+            const float textY = p0.y + (height - em) * 0.5f;
+            for (const Hint& h : kHints) {
+                const float capW = ImGui::CalcTextSize(h.input).x + capPad * 2.0f;
+                const ImVec2 c0(x, textY - em * 0.12f);
+                const ImVec2 c1(x + capW, textY + em * 1.12f);
+                dl->AddRectFilled(c0, c1, IM_COL32(52, 57, 65, 255), em * 0.25f);
+                dl->AddRect(c0, c1, IM_COL32(78, 85, 95, 255), em * 0.25f);
+                dl->AddText(fonts_.strong, 0.0f, ImVec2(x + capPad, textY), IM_COL32(235, 238, 241, 255), h.input);
+                x += capW + inner;
+                dl->AddText(ImVec2(x, textY), IM_COL32(160, 168, 178, 255), h.action);
+                x += ImGui::CalcTextSize(h.action).x + between;
+            }
         }
     }
     if (!ImGui::GetIO().WantTextInput && ImGui::IsKeyPressed(ImGuiKey_F, false)) {
