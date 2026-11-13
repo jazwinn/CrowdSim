@@ -252,17 +252,49 @@ bool SceneEditor::editJson(const char* label, Json& value, Json& patch, const st
             value[i] = assets::roundFloat(v[i]);
         }
         done = finished();
-    } else if (value.is_array() &&
-               !std::all_of(value.begin(), value.end(), [](const Json& x) { return x.is_string(); })) {
-        // Structured list (e.g. a spawner's agentMix of {type, weight}): edit each element;
-        // merge-patch replaces arrays, so any change sends the whole array.
+    } else if (value.is_array() && (key == "agentMix" || !std::all_of(value.begin(), value.end(),
+                                                                      [](const Json& x) { return x.is_string(); }))) {
+        // Structured list (e.g. a spawner's agentMix of {type, weight}): edit, add and remove
+        // elements; merge-patch replaces arrays, so any change sends the whole array.
         if (ImGui::TreeNodeEx(label, ImGuiTreeNodeFlags_DefaultOpen, "%s (%zu)", label, value.size())) {
+            if (key == "agentMix") {
+                ImGui::TextDisabled(value.empty() ? "Empty: every agent uses the 'agent' settings above."
+                                                  : "Each spawned agent picks a type with probability weight / total.");
+            }
+            std::size_t remove = value.size();
             for (std::size_t i = 0; i < value.size(); ++i) {
+                ImGui::PushID(static_cast<int>(i));
+                if (ImGui::SmallButton("x")) {
+                    remove = i;
+                }
+                ImGui::SameLine();
+                ImGui::PopID();
+                std::string item = std::format("[{}]", i);
+                if (value[i].is_object() && value[i].contains("type")) {
+                    item += std::format(" {} x {}",
+                                        value[i]["type"].is_string() ? value[i]["type"].get<std::string>() : "?",
+                                        value[i].value("weight", Json(1.0)).dump());
+                }
+                item += "###element";  // stable ImGui id while the summary text changes
                 Json ignored = Json::object();
-                const std::string item = std::format("[{}]", i);
                 if (editJson(item.c_str(), value[i], ignored, path + "/" + std::to_string(i))) {
                     done = true;
                 }
+            }
+            if (remove < value.size()) {
+                value.erase(value.begin() + static_cast<std::ptrdiff_t>(remove));
+                done = true;
+            }
+            if (ImGui::SmallButton("+ Add")) {
+                if (key == "agentMix") {
+                    const auto& types =
+                        inspectedSim_ != nullptr ? inspectedSim_->agentTypes() : std::vector<sim::AgentType>{};
+                    value.push_back(
+                        Json{{"type", types.empty() ? std::string("default") : types.front().name}, {"weight", 1.0}});
+                } else if (!value.empty()) {
+                    value.push_back(value.back());
+                }
+                done = true;
             }
             ImGui::TreePop();
         }
@@ -342,7 +374,18 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
     ImGui::Text("%s #%u", buffer_.value("kind", std::string("?")).c_str(), selected_);
     ImGui::Separator();
     Json patch = Json::object();
+    // Fields in alphabetical order (the JSON order), except the name, which comes first.
+    std::vector<std::string> keys;
+    if (buffer_.contains("name")) {
+        keys.push_back("name");
+    }
     for (auto it = buffer_.begin(); it != buffer_.end(); ++it) {
+        if (it.key() != "name") {
+            keys.push_back(it.key());
+        }
+    }
+    for (const std::string& key : keys) {
+        const auto it = buffer_.find(key);
         if (it.key() == "id" || it.key() == "kind" || it.key() == "asset") {
             continue;
         }
