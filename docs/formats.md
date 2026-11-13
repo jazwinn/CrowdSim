@@ -43,8 +43,8 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   edge to the high edge (`escalator:down` reverses it). `escalator:speed=<m/s>` is the step speed
   along the slope (default 0.5), `escalator:walk=<factor>` the pace of people walking on the
   steps as a fraction of their preferred speed (0.45), `escalator:gap=<m>` the spacing standers
-  wait for before stepping on (0.9). Two lanes fit when the object is at least 2 m wide (the
-  navmesh loses 0.4 m per side). Agent-type tags pick the behaviour: `escalator:stand-left`,
+  wait for before stepping on (0.9). Two lanes fit when the object is at least 2.4 m wide (the
+  navmesh loses about 0.5 m per side). Agent-type tags pick the behaviour: `escalator:stand-left`,
   `stand-right`, `stand-either`, `walk-left`, `walk-right`, `walk-either` (the default). See
   `scenes/escalator_etiquette.scene.json` and `scripts/escalator_trial.lua`.
 - **Ids** are stable and never reused (`nextId` keeps deleted ids retired). Spawners reference

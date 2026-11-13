@@ -18,7 +18,7 @@ from pathlib import Path
 RISE = 7.5          # m, floor to floor
 RUN = 13.0          # m, horizontal length of the escalator (30 degrees)
 STEPS = 38
-ESC_WIDTH = 2.0     # m between balustrades; the navmesh loses 0.4 m per side, leaving two 0.6 m lanes
+ESC_WIDTH = 2.4     # m between balustrades; the navmesh loses ~0.5 m per side, leaving two 0.7 m lanes
 HALL_HALF = 7.0     # m, half width of each hall (halls span 0..14 m either side of the divider)
 LOW_Z0, LOW_Z1 = -25.0, -RUN / 2      # lower concourse
 UP_Z0, UP_Z1 = RUN / 2, 20.0          # upper concourse
@@ -73,9 +73,11 @@ for key, cx, title in halls:
     box(f"{key} wall right of escalator", cx + half + 0.15, cx + HALL_HALF, 0, RISE - 0.2,
         LOW_Z1 - WALL, LOW_Z1, ["obstacle"], WALLC)
     # Railing along the upper edge, open where the escalator arrives.
-    box(f"{key} railing left", cx - HALL_HALF, cx - half - 0.15, RISE, RISE + 1.1,
+    # The landing opening is wider than the escalator so people stepping off at the
+    # sides do not catch the railing ends.
+    box(f"{key} railing left", cx - HALL_HALF, cx - half - 0.6, RISE, RISE + 1.1,
         UP_Z0, UP_Z0 + 0.15, ["obstacle"], RAIL)
-    box(f"{key} railing right", cx + half + 0.15, cx + HALL_HALF, RISE, RISE + 1.1,
+    box(f"{key} railing right", cx + half + 0.6, cx + HALL_HALF, RISE, RISE + 1.1,
         UP_Z0, UP_Z0 + 0.15, ["obstacle"], RAIL)
 
     # The escalator: stairs that move (see sim/src/Escalators.cpp for the tags).

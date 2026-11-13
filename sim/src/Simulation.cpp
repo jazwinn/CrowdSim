@@ -804,10 +804,12 @@ void Simulation::computeAvoidance(float dt) {
                                                  agents_.radius[j] + agents_.personalSpace[j], j};
             });
 
-            // Nearby navmesh boundary edges on this level, nearest first.
+            // Nearby navmesh boundary edges on this level, nearest first. Escalator riders
+            // skip them: the steps' edges are already kept by the navmesh, and the corner
+            // where the steps meet the landing would otherwise pin anyone touching it.
             const float radius = agents_.radius[i] + agents_.personalSpace[i];
             std::uint32_t numWalls = 0;
-            if (useNav) {
+            if (useNav && (escalators_.empty() || !onEscalator(p, h))) {
                 const float reach = radius + kWallQueryMargin;
                 navMesh_.queryWalls({p.x, h, p.y}, reach, [&](const WallSegment& w) {
                     if (std::abs(0.5f * (w.a.y + w.b.y) - h) > lp.levelSeparation) {

@@ -37,7 +37,7 @@ struct World {
         box({0.0f, kRise - 0.2f, kRun / 2 + 6.0f}, {8.0f, 0.2f, 12.0f});  // upper landing
         geometry::PrimitiveDesc esc;
         esc.kind = geometry::PrimitiveKind::Stairs;
-        esc.size = {2.0f, kRise, kRun};
+        esc.size = {2.4f, kRise, kRun};
         esc.steps = 30;
         sim.addStaticObject(sim::StaticObject{"escalator", esc, {}, {}, {"escalator", "escalator:speed=0.5"}});
 

@@ -292,13 +292,13 @@
       "name": "A wall left of escalator",
       "type": "box",
       "position": [
-        -11.075,
+        -11.175,
         0,
         -6.65
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.65,
         7.3,
         0.3
       ],
@@ -312,13 +312,13 @@
       "name": "A wall right of escalator",
       "type": "box",
       "position": [
-        -2.925,
+        -2.825,
         0,
         -6.65
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.65,
         7.3,
         0.3
       ],
@@ -332,13 +332,13 @@
       "name": "A railing left",
       "type": "box",
       "position": [
-        -11.075,
+        -11.4,
         7.5,
         6.575
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.2,
         1.1,
         0.15
       ],
@@ -352,13 +352,13 @@
       "name": "A railing right",
       "type": "box",
       "position": [
-        -2.925,
+        -2.6,
         7.5,
         6.575
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.2,
         1.1,
         0.15
       ],
@@ -378,7 +378,7 @@
       ],
       "rotationY": 0.0,
       "size": [
-        2.0,
+        2.4,
         7.5,
         13.0
       ],
@@ -397,7 +397,7 @@
       "name": "A balustrade left (base)",
       "type": "box",
       "position": [
-        -8.08,
+        -8.28,
         0,
         0.0
       ],
@@ -417,7 +417,7 @@
       "name": "A balustrade left",
       "type": "ramp",
       "position": [
-        -8.08,
+        -8.28,
         1.0,
         0.0
       ],
@@ -437,7 +437,7 @@
       "name": "A balustrade right (base)",
       "type": "box",
       "position": [
-        -5.92,
+        -5.72,
         0,
         0.0
       ],
@@ -457,7 +457,7 @@
       "name": "A balustrade right",
       "type": "ramp",
       "position": [
-        -5.92,
+        -5.72,
         1.0,
         0.0
       ],
@@ -477,13 +477,13 @@
       "name": "B wall left of escalator",
       "type": "box",
       "position": [
-        2.925,
+        2.825,
         0,
         -6.65
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.65,
         7.3,
         0.3
       ],
@@ -497,13 +497,13 @@
       "name": "B wall right of escalator",
       "type": "box",
       "position": [
-        11.075,
+        11.175,
         0,
         -6.65
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.65,
         7.3,
         0.3
       ],
@@ -517,13 +517,13 @@
       "name": "B railing left",
       "type": "box",
       "position": [
-        2.925,
+        2.6,
         7.5,
         6.575
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.2,
         1.1,
         0.15
       ],
@@ -537,13 +537,13 @@
       "name": "B railing right",
       "type": "box",
       "position": [
-        11.075,
+        11.4,
         7.5,
         6.575
       ],
       "rotationY": 0.0,
       "size": [
-        5.85,
+        5.2,
         1.1,
         0.15
       ],
@@ -563,7 +563,7 @@
       ],
       "rotationY": 0.0,
       "size": [
-        2.0,
+        2.4,
         7.5,
         13.0
       ],
@@ -582,7 +582,7 @@
       "name": "B balustrade left (base)",
       "type": "box",
       "position": [
-        5.92,
+        5.72,
         0,
         0.0
       ],
@@ -602,7 +602,7 @@
       "name": "B balustrade left",
       "type": "ramp",
       "position": [
-        5.92,
+        5.72,
         1.0,
         0.0
       ],
@@ -622,7 +622,7 @@
       "name": "B balustrade right (base)",
       "type": "box",
       "position": [
-        8.08,
+        8.28,
         0,
         0.0
       ],
@@ -642,7 +642,7 @@
       "name": "B balustrade right",
       "type": "ramp",
       "position": [
-        8.08,
+        8.28,
         1.0,
         0.0
       ],

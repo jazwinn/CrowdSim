@@ -303,6 +303,7 @@ private:
     void assignEscalatorLanes();
     [[nodiscard]] glm::vec2 escalatorSteering(std::uint32_t agent, glm::vec2 pref) const;
     [[nodiscard]] glm::vec2 beltVelocityAt(glm::vec2 position, float height) const;
+    [[nodiscard]] bool onEscalator(glm::vec2 position, float height) const;  ///< on the steps or stepping off
     [[nodiscard]] std::uint16_t resolveTree(const std::string& name) const;
     [[nodiscard]] std::shared_ptr<const snapshot::StaticScene> buildStaticScene() const;
     SceneId claimId(SceneId requested);

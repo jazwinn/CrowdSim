@@ -35,6 +35,11 @@ constexpr float kApproachLength = 10.0f;  ///< m before the boarding edge where 
 constexpr float kApproachWiden = 3.0f;   ///< extra half-width of the approach funnel, m
 constexpr float kLevelTolerance = 1.0f;  ///< m of height mismatch still counted as on the belt
 constexpr float kBoardWindow = 1.2f;     ///< m before the edge where standers wait for a gap
+constexpr float kExitClear = 2.0f;   ///< m people walk straight on after stepping off
+constexpr float kQueueLook = 1.6f;   ///< m ahead people look for someone to queue behind
+constexpr float kQueueFile = 0.45f;  ///< lateral offset within which someone counts as "in front"
+constexpr float kQueueGap = 0.6f;    ///< m (centre to centre) at which people stop behind someone
+constexpr float kQueueEase = 0.5f;   ///< m over which they slow down before that
 
 // Escalator role per agent type: bit 0 = stands, bits 1-2 = side (0 either, 1 left, 2 right).
 constexpr std::uint8_t kStands = 1;
@@ -95,6 +100,10 @@ bool onBelt(const Escalator& e, Local q, float height) {
     return q.s >= 0.0f && q.s <= e.length && std::abs(q.l) <= e.halfWidth &&
            std::abs(height - floorHeight(e, q.s)) < kLevelTolerance;
 }
+bool inExit(const Escalator& e, Local q, float height) {
+    return q.s > e.length && q.s <= e.length + kExitClear && std::abs(q.l) <= e.halfWidth + 0.5f &&
+           std::abs(height - e.exitHeight) < kLevelTolerance;
+}
 bool inApproach(const Escalator& e, Local q, float height) {
     return q.s < 0.0f && q.s >= -kApproachLength && std::abs(q.l) <= e.halfWidth + kApproachWiden &&
            std::abs(height - e.entryHeight) < kLevelTolerance;
@@ -134,9 +143,10 @@ void Simulation::rebuildEscalators() {
         e.walkFactor = tagNumber(o.tags, "walk", 0.45f);
         e.standGap = tagNumber(o.tags, "gap", 0.9f);
         // Keep both lanes inside the walkable strip: Recast erodes the navmesh by the
-        // agent radius rounded up to whole cells, and riders need their own radius too.
+        // agent radius rounded up to whole cells plus about one more cell where the
+        // surface is rasterised, and riders need their own radius from its edge too.
         const NavBuildSettings& nav = config_.navigation;
-        const float eroded = std::ceil(nav.agentRadius / nav.cellSize) * nav.cellSize;
+        const float eroded = std::ceil(nav.agentRadius / nav.cellSize) * nav.cellSize + nav.cellSize;
         const float usable = std::max(0.0f, e.halfWidth - eroded - 0.25f);
         e.laneOffset = std::min(0.3f, usable);
         escalators_.push_back(e);
@@ -229,6 +239,14 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
     const float height = agents_.height[i];
     for (const Escalator& e : escalators_) {
         const Local q = toLocal(e, pos);
+        if (inExit(e, q, height)) {
+            // Step off and clear the landing before turning towards your destination;
+            // turning on the last step pins people against the end of the balustrade.
+            // Someone at the edge steps inwards first, rather than along the edge.
+            const float speed = agents_.preferredSpeed[i] * agents_.speedMultiplier[i];
+            const float edge = std::clamp((std::abs(q.l) - 0.4f) / 0.3f, 0.0f, 0.8f);
+            return e.forward * (speed * (1.0f - edge)) - e.right * std::clamp(q.l * 1.5f, -0.8f, 0.8f);
+        }
         const bool riding = onBelt(e, q, height);
         if (!riding && !inApproach(e, q, height)) {
             continue;
@@ -259,6 +277,11 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
                     sideways = 0.0f;
                 }
             }
+            if (std::abs(q.l) > e.laneOffset + 0.1f) {
+                // Never ride pressed against the balustrade: the edge of the steps turns
+                // a corner at the top, where someone touching it would be pinned.
+                sideways = q.l > 0.0f ? -0.3f : 0.3f;
+            }
             const float own = stands ? 0.0f : speed * e.walkFactor;
             return e.forward * (e.beltSpeed + own) + e.right * sideways;
         }
@@ -271,6 +294,27 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
         const float dist = std::sqrt(glm::dot(to, to));
         to = dist > 1e-4f ? to / dist : e.forward;
         glm::vec2 out = to * speed;
+        {
+            // Queue manners: one line per lane. Slow to a stop behind whoever is ahead
+            // in your lane's line, or directly in your path, instead of pressing into
+            // them; while waiting, side-step only slowly. Yielding only to people nearer
+            // the escalator keeps it free of cycles.
+            float ahead = kApproachLength;
+            hash_.queryPoints(pos, kQueueLook, [&](std::uint32_t j, glm::vec2 other, float otherHeight) {
+                if (j == i || std::abs(otherHeight - height) > 1.5f) {
+                    return;
+                }
+                const Local o = toLocal(e, other);
+                const bool sameLine = agents_.escalatorLane[j] == lane;
+                if (o.s > q.s && (sameLine || std::abs(o.l - q.l) < kQueueFile)) {
+                    ahead = std::min(ahead, o.s - q.s);
+                }
+            });
+            const float go = std::clamp((ahead - kQueueGap) / kQueueEase, 0.0f, 1.0f);
+            const float fwd = glm::dot(out, e.forward);
+            const glm::vec2 side = out - e.forward * fwd;
+            out = e.forward * (fwd > 0.0f ? fwd * go : fwd) + side * std::max(go, 0.35f);
+        }
         if (q.s > -kBoardWindow) {
             // People slow to roughly the step speed as they step on, so they do not
             // run into the rider in front once the belt takes over.
@@ -306,6 +350,16 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
         return out;
     }
     return pref;
+}
+
+bool Simulation::onEscalator(glm::vec2 position, float height) const {
+    for (const Escalator& e : escalators_) {
+        const Local q = toLocal(e, position);
+        if (onBelt(e, q, height) || inExit(e, q, height)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 glm::vec2 Simulation::beltVelocityAt(glm::vec2 position, float height) const {
