@@ -1,245 +1,288 @@
 {
-  "format": "crowdsim.scene",
-  "version": 1,
-  "name": "escalator_etiquette",
-  "behaviours": [
-    {
-      "format": "crowdsim.bt",
-      "version": 1,
-      "name": "escalator_stand_left",
-      "description": "Walk to the goal; on escalators stand on the left (keep the right clear).",
-      "root": {
-        "type": "Sequence",
-        "id": "root",
-        "children": [
-          {
-            "type": "SetState",
-            "id": "label",
-            "params": {
-              "name": "walking"
-            }
-          },
-          {
-            "type": "SetQueueManners",
-            "id": "manners",
-            "params": {
-              "gap": 0.6,
-              "ease": 0.5
-            }
-          },
-          {
-            "type": "SetEscalatorStyle",
-            "id": "style",
-            "params": {
-              "side": "left",
-              "walk": 0.0,
-              "clear": 2.0
-            }
-          },
-          {
-            "type": "SetEscalatorBoarding",
-            "id": "boarding",
-            "params": {
-              "gap": 0.65,
-              "squeeze": 1
-            }
-          },
-          {
-            "type": "MoveToGoal",
-            "id": "walk"
-          },
-          {
-            "type": "Despawn",
-            "id": "leave"
-          }
-        ]
-      }
-    },
-    {
-      "format": "crowdsim.bt",
-      "version": 1,
-      "name": "escalator_walk_right",
-      "description": "Walk to the goal; on escalators walk up on the right.",
-      "root": {
-        "type": "Sequence",
-        "id": "root",
-        "children": [
-          {
-            "type": "SetState",
-            "id": "label",
-            "params": {
-              "name": "walking"
-            }
-          },
-          {
-            "type": "SetQueueManners",
-            "id": "manners",
-            "params": {
-              "gap": 0.6,
-              "ease": 0.5
-            }
-          },
-          {
-            "type": "SetEscalatorStyle",
-            "id": "style",
-            "params": {
-              "side": "right",
-              "walk": 0.45,
-              "clear": 2.0
-            }
-          },
-          {
-            "type": "SetEscalatorBoarding",
-            "id": "boarding",
-            "params": {
-              "gap": 0.65,
-              "squeeze": 1
-            }
-          },
-          {
-            "type": "MoveToGoal",
-            "id": "walk"
-          },
-          {
-            "type": "Despawn",
-            "id": "leave"
-          }
-        ]
-      }
-    },
-    {
-      "format": "crowdsim.bt",
-      "version": 1,
-      "name": "escalator_stand_either",
-      "description": "Walk to the goal; on escalators stand on the side you are on.",
-      "root": {
-        "type": "Sequence",
-        "id": "root",
-        "children": [
-          {
-            "type": "SetState",
-            "id": "label",
-            "params": {
-              "name": "walking"
-            }
-          },
-          {
-            "type": "SetQueueManners",
-            "id": "manners",
-            "params": {
-              "gap": 0.6,
-              "ease": 0.5
-            }
-          },
-          {
-            "type": "SetEscalatorStyle",
-            "id": "style",
-            "params": {
-              "side": "either",
-              "walk": 0.0,
-              "clear": 2.0
-            }
-          },
-          {
-            "type": "SetEscalatorBoarding",
-            "id": "boarding",
-            "params": {
-              "gap": 0.65,
-              "squeeze": 1
-            }
-          },
-          {
-            "type": "MoveToGoal",
-            "id": "walk"
-          },
-          {
-            "type": "Despawn",
-            "id": "leave"
-          }
-        ]
-      }
-    }
-  ],
   "agentTypes": [
     {
-      "format": "crowdsim.agent",
-      "version": 1,
-      "name": "escalator_stander_left",
-      "description": "Stands on the left of escalators (keeps the right clear). Behaviour tree: escalator_stand_left.",
-      "behaviour": "escalator_stand_left",
-      "radius": [
-        0.22,
-        0.26
+      "behaviour": "escalator_stand_either",
+      "color": "#45b39d",
+      "colorJitter": 0.08,
+      "height": 1.75,
+      "mass": [
+        55.0,
+        80.0
       ],
+      "maxAcceleration": 3.0,
+      "maxSpeedFactor": 1.35,
+      "name": "escalator_stander_either",
+      "personalSpace": 0.03,
       "preferredSpeed": [
         1.1,
         1.45
       ],
-      "maxSpeedFactor": 1.35,
-      "maxAcceleration": 3,
-      "mass": [
-        55,
-        80
-      ],
-      "personalSpace": 0.03,
-      "height": 1.75,
-      "color": "#4a90d9",
-      "colorJitter": 0.08,
-      "tags": []
-    },
-    {
-      "format": "crowdsim.agent",
-      "version": 1,
-      "name": "escalator_walker_right",
-      "description": "Walks up escalators on the right. Heavier than the standers (85-100 kg vs 55-80 kg), so in a crowd they push past rather than wait. Behaviour tree: escalator_walk_right.",
-      "behaviour": "escalator_walk_right",
       "radius": [
         0.22,
         0.26
       ],
+      "tags": []
+    },
+    {
+      "behaviour": "escalator_stand_left",
+      "color": "#4a90d9",
+      "colorJitter": 0.08,
+      "height": 1.75,
+      "mass": [
+        55.0,
+        80.0
+      ],
+      "maxAcceleration": 3.0,
+      "maxSpeedFactor": 1.35,
+      "name": "escalator_stander_left",
+      "personalSpace": 0.03,
+      "preferredSpeed": [
+        1.1,
+        1.45
+      ],
+      "radius": [
+        0.22,
+        0.26
+      ],
+      "tags": []
+    },
+    {
+      "behaviour": "escalator_walk_right",
+      "color": "#e8913a",
+      "colorJitter": 0.08,
+      "height": 1.75,
+      "mass": [
+        85.0,
+        100.0
+      ],
+      "maxAcceleration": 3.0,
+      "maxSpeedFactor": 1.35,
+      "name": "escalator_walker_right",
+      "personalSpace": 0.03,
       "preferredSpeed": [
         1.3,
         1.7
       ],
-      "maxSpeedFactor": 1.35,
-      "maxAcceleration": 3,
-      "mass": [
-        85,
-        100
-      ],
-      "personalSpace": 0.03,
-      "height": 1.75,
-      "color": "#e8913a",
-      "colorJitter": 0.08,
-      "tags": []
-    },
-    {
-      "format": "crowdsim.agent",
-      "version": 1,
-      "name": "escalator_stander_either",
-      "description": "Stands on whichever side of the escalator has the shorter line. Behaviour tree: escalator_stand_either.",
-      "behaviour": "escalator_stand_either",
       "radius": [
         0.22,
         0.26
       ],
-      "preferredSpeed": [
-        1.1,
-        1.45
-      ],
-      "maxSpeedFactor": 1.35,
-      "maxAcceleration": 3,
-      "mass": [
-        55,
-        80
-      ],
-      "personalSpace": 0.03,
-      "height": 1.75,
-      "color": "#45b39d",
-      "colorJitter": 0.08,
       "tags": []
     }
   ],
+  "behaviours": [
+    {
+      "format": "crowdsim.bt",
+      "name": "escalator_stand_either",
+      "root": {
+        "children": [
+          {
+            "id": "label",
+            "params": {
+              "name": "walking"
+            },
+            "type": "SetState"
+          },
+          {
+            "id": "manners",
+            "params": {
+              "ease": 0.5,
+              "gap": 0.6
+            },
+            "type": "SetQueueManners"
+          },
+          {
+            "id": "style",
+            "params": {
+              "clear": 2.0,
+              "side": "either",
+              "walk": 0.0
+            },
+            "type": "SetEscalatorStyle"
+          },
+          {
+            "id": "boarding",
+            "params": {
+              "gap": 0.65,
+              "squeeze": 1.0
+            },
+            "type": "SetEscalatorBoarding"
+          },
+          {
+            "id": "walk",
+            "params": {
+              "goal": ""
+            },
+            "type": "MoveToGoal"
+          },
+          {
+            "id": "leave",
+            "type": "Despawn"
+          }
+        ],
+        "id": "root",
+        "type": "Sequence"
+      },
+      "version": 1
+    },
+    {
+      "format": "crowdsim.bt",
+      "name": "escalator_stand_left",
+      "root": {
+        "children": [
+          {
+            "id": "label",
+            "params": {
+              "name": "walking"
+            },
+            "type": "SetState"
+          },
+          {
+            "id": "manners",
+            "params": {
+              "ease": 0.5,
+              "gap": 0.6
+            },
+            "type": "SetQueueManners"
+          },
+          {
+            "id": "style",
+            "params": {
+              "clear": 2.0,
+              "side": "left",
+              "walk": 0.0
+            },
+            "type": "SetEscalatorStyle"
+          },
+          {
+            "id": "boarding",
+            "params": {
+              "gap": 0.65,
+              "squeeze": 1.0
+            },
+            "type": "SetEscalatorBoarding"
+          },
+          {
+            "id": "walk",
+            "params": {
+              "goal": ""
+            },
+            "type": "MoveToGoal"
+          },
+          {
+            "id": "leave",
+            "type": "Despawn"
+          }
+        ],
+        "id": "root",
+        "type": "Sequence"
+      },
+      "version": 1
+    },
+    {
+      "format": "crowdsim.bt",
+      "name": "escalator_walk_right",
+      "root": {
+        "children": [
+          {
+            "id": "label",
+            "params": {
+              "name": "walking"
+            },
+            "type": "SetState"
+          },
+          {
+            "id": "manners",
+            "params": {
+              "ease": 0.5,
+              "gap": 0.6
+            },
+            "type": "SetQueueManners"
+          },
+          {
+            "id": "style",
+            "params": {
+              "clear": 2.0,
+              "side": "right",
+              "walk": 0.45
+            },
+            "type": "SetEscalatorStyle"
+          },
+          {
+            "id": "boarding",
+            "params": {
+              "gap": 0.65,
+              "squeeze": 1.0
+            },
+            "type": "SetEscalatorBoarding"
+          },
+          {
+            "id": "walk",
+            "params": {
+              "goal": ""
+            },
+            "type": "MoveToGoal"
+          },
+          {
+            "id": "leave",
+            "type": "Despawn"
+          }
+        ],
+        "id": "root",
+        "type": "Sequence"
+      },
+      "version": 1
+    }
+  ],
+  "format": "crowdsim.scene",
+  "goals": [
+    {
+      "area": {
+        "center": [
+          -7.0,
+          17.5
+        ],
+        "elevation": 7.5,
+        "halfExtents": [
+          6.0,
+          1.5
+        ]
+      },
+      "capacity": 0,
+      "id": 29,
+      "name": "A exit (upper)",
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "serviceTime": 0.0
+    },
+    {
+      "area": {
+        "center": [
+          7.0,
+          17.5
+        ],
+        "elevation": 7.5,
+        "halfExtents": [
+          6.0,
+          1.5
+        ]
+      },
+      "capacity": 0,
+      "id": 31,
+      "name": "B exit (upper)",
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "serviceTime": 0.0
+    }
+  ],
+  "links": [],
+  "name": "escalator_etiquette",
   "navigation": {
     "agentHeight": 1.9,
     "agentMaxClimb": 0.45,
@@ -252,9 +295,9 @@
   "nextId": 33,
   "objects": [
     {
+      "color": "#5c626a",
       "id": 1,
       "name": "Lower concourse",
-      "type": "box",
       "position": [
         0.0,
         -0.2,
@@ -262,19 +305,19 @@
       ],
       "rotationY": 0.0,
       "size": [
-        28,
+        28.0,
         0.2,
         18.5
       ],
       "tags": [
         "walkable"
       ],
-      "color": "#5c626a"
+      "type": "box"
     },
     {
+      "color": "#5c626a",
       "id": 2,
       "name": "Upper concourse",
-      "type": "box",
       "position": [
         0.0,
         7.3,
@@ -282,22 +325,22 @@
       ],
       "rotationY": 0.0,
       "size": [
-        28,
+        28.0,
         0.2,
         13.5
       ],
       "tags": [
         "walkable"
       ],
-      "color": "#5c626a"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 3,
       "name": "Wall south",
-      "type": "box",
       "position": [
         0.0,
-        0,
+        0.0,
         -25.15
       ],
       "rotationY": 0.0,
@@ -309,15 +352,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 4,
       "name": "Wall west (lower)",
-      "type": "box",
       "position": [
         -14.15,
-        0,
+        0.0,
         -15.75
       ],
       "rotationY": 0.0,
@@ -329,15 +372,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 5,
       "name": "Wall east (lower)",
-      "type": "box",
       "position": [
         14.15,
-        0,
+        0.0,
         -15.75
       ],
       "rotationY": 0.0,
@@ -349,15 +392,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 6,
       "name": "Divider (lower)",
-      "type": "box",
       "position": [
         0.0,
-        0,
+        0.0,
         -15.75
       ],
       "rotationY": 0.0,
@@ -369,12 +412,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 7,
       "name": "Wall north",
-      "type": "box",
       "position": [
         0.0,
         7.5,
@@ -389,12 +432,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 8,
       "name": "Wall west (upper)",
-      "type": "box",
       "position": [
         -14.15,
         7.5,
@@ -409,12 +452,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 9,
       "name": "Wall east (upper)",
-      "type": "box",
       "position": [
         14.15,
         7.5,
@@ -429,12 +472,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 10,
       "name": "Divider (upper)",
-      "type": "box",
       "position": [
         0.0,
         7.5,
@@ -449,15 +492,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 11,
       "name": "A wall left of escalator",
-      "type": "box",
       "position": [
         -11.175,
-        0,
+        0.0,
         -6.65
       ],
       "rotationY": 0.0,
@@ -469,15 +512,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 12,
       "name": "A wall right of escalator",
-      "type": "box",
       "position": [
         -2.825,
-        0,
+        0.0,
         -6.65
       ],
       "rotationY": 0.0,
@@ -489,12 +532,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#7d858f",
       "id": 13,
       "name": "A railing left",
-      "type": "box",
       "position": [
         -11.4,
         7.5,
@@ -509,12 +552,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#7d858f"
+      "type": "box"
     },
     {
+      "color": "#7d858f",
       "id": 14,
       "name": "A railing right",
-      "type": "box",
       "position": [
         -2.6,
         7.5,
@@ -529,12 +572,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#7d858f"
+      "type": "box"
     },
     {
+      "color": "#3d4249",
       "id": 15,
       "name": "Hall A: keep left, walk right (escalator)",
-      "type": "stairs",
       "position": [
         -7.0,
         0.0,
@@ -552,15 +595,15 @@
         "escalator",
         "escalator:speed=0.5"
       ],
-      "color": "#3d4249"
+      "type": "stairs"
     },
     {
+      "color": "#6f8796",
       "id": 16,
       "name": "A balustrade left (base)",
-      "type": "box",
       "position": [
         -8.28,
-        0,
+        0.0,
         0.0
       ],
       "rotationY": 0.0,
@@ -572,12 +615,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
+      "type": "box"
     },
     {
+      "color": "#6f8796",
       "id": 17,
       "name": "A balustrade left",
-      "type": "ramp",
       "position": [
         -8.28,
         1.0,
@@ -592,15 +635,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
+      "type": "ramp"
     },
     {
+      "color": "#6f8796",
       "id": 18,
       "name": "A balustrade right (base)",
-      "type": "box",
       "position": [
         -5.72,
-        0,
+        0.0,
         0.0
       ],
       "rotationY": 0.0,
@@ -612,12 +655,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
+      "type": "box"
     },
     {
+      "color": "#6f8796",
       "id": 19,
       "name": "A balustrade right",
-      "type": "ramp",
       "position": [
         -5.72,
         1.0,
@@ -632,15 +675,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
+      "type": "ramp"
     },
     {
+      "color": "#9aa1a9",
       "id": 20,
       "name": "B wall left of escalator",
-      "type": "box",
       "position": [
         2.825,
-        0,
+        0.0,
         -6.65
       ],
       "rotationY": 0.0,
@@ -652,15 +695,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#9aa1a9",
       "id": 21,
       "name": "B wall right of escalator",
-      "type": "box",
       "position": [
         11.175,
-        0,
+        0.0,
         -6.65
       ],
       "rotationY": 0.0,
@@ -672,12 +715,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#9aa1a9"
+      "type": "box"
     },
     {
+      "color": "#7d858f",
       "id": 22,
       "name": "B railing left",
-      "type": "box",
       "position": [
         2.6,
         7.5,
@@ -692,12 +735,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#7d858f"
+      "type": "box"
     },
     {
+      "color": "#7d858f",
       "id": 23,
       "name": "B railing right",
-      "type": "box",
       "position": [
         11.4,
         7.5,
@@ -712,12 +755,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#7d858f"
+      "type": "box"
     },
     {
+      "color": "#3d4249",
       "id": 24,
       "name": "Hall B: stand on both sides (escalator)",
-      "type": "stairs",
       "position": [
         7.0,
         0.0,
@@ -735,15 +778,15 @@
         "escalator",
         "escalator:speed=0.5"
       ],
-      "color": "#3d4249"
+      "type": "stairs"
     },
     {
+      "color": "#6f8796",
       "id": 25,
       "name": "B balustrade left (base)",
-      "type": "box",
       "position": [
         5.72,
-        0,
+        0.0,
         0.0
       ],
       "rotationY": 0.0,
@@ -755,12 +798,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
+      "type": "box"
     },
     {
+      "color": "#6f8796",
       "id": 26,
       "name": "B balustrade left",
-      "type": "ramp",
       "position": [
         5.72,
         1.0,
@@ -775,15 +818,15 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
+      "type": "ramp"
     },
     {
+      "color": "#6f8796",
       "id": 27,
       "name": "B balustrade right (base)",
-      "type": "box",
       "position": [
         8.28,
-        0,
+        0.0,
         0.0
       ],
       "rotationY": 0.0,
@@ -795,12 +838,12 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
+      "type": "box"
     },
     {
+      "color": "#6f8796",
       "id": 28,
       "name": "B balustrade right",
-      "type": "ramp",
       "position": [
         8.28,
         1.0,
@@ -815,83 +858,19 @@
       "tags": [
         "obstacle"
       ],
-      "color": "#6f8796"
-    }
-  ],
-  "goals": [
-    {
-      "id": 29,
-      "name": "A exit (upper)",
-      "area": {
-        "center": [
-          -7.0,
-          17.5
-        ],
-        "halfExtents": [
-          6.0,
-          1.5
-        ],
-        "elevation": 7.5
-      },
-      "capacity": 0,
-      "serviceTime": 0.0,
-      "queueDirection": [
-        0.0,
-        -1.0
-      ],
-      "queueSpacing": 0.8
-    },
-    {
-      "id": 31,
-      "name": "B exit (upper)",
-      "area": {
-        "center": [
-          7.0,
-          17.5
-        ],
-        "halfExtents": [
-          6.0,
-          1.5
-        ],
-        "elevation": 7.5
-      },
-      "capacity": 0,
-      "serviceTime": 0.0,
-      "queueDirection": [
-        0.0,
-        -1.0
-      ],
-      "queueSpacing": 0.8
+      "type": "ramp"
     }
   ],
   "spawners": [
     {
-      "id": 30,
-      "name": "A arrivals",
-      "area": {
-        "center": [
-          -7.0,
-          -22.0
-        ],
-        "halfExtents": [
-          6.0,
-          2.0
-        ],
-        "elevation": 0.0
-      },
-      "rate": 1.2,
-      "total": 360,
-      "startTime": 0.0,
-      "stopTime": null,
-      "goal": 29,
-      "groupSize": [
-        1,
-        1
-      ],
       "agent": {
         "agentType": 0,
         "color": "#d98c40",
         "colorJitter": 0.1,
+        "mass": [
+          75.0,
+          75.0
+        ],
         "maxAcceleration": 3.0,
         "maxSpeedFactor": 1.35,
         "preferredSpeed": [
@@ -912,35 +891,39 @@
           "type": "escalator_walker_right",
           "weight": 0.25
         }
-      ]
-    },
-    {
-      "id": 32,
-      "name": "B arrivals",
+      ],
       "area": {
         "center": [
-          7.0,
+          -7.0,
           -22.0
         ],
+        "elevation": 0.0,
         "halfExtents": [
           6.0,
           2.0
-        ],
-        "elevation": 0.0
+        ]
       },
-      "rate": 1.2,
-      "total": 360,
-      "startTime": 0.0,
-      "stopTime": null,
-      "goal": 31,
+      "goal": 29,
       "groupSize": [
         1,
         1
       ],
+      "id": 30,
+      "name": "A arrivals",
+      "rate": 1.2,
+      "startTime": 0.0,
+      "stopTime": null,
+      "total": 360
+    },
+    {
       "agent": {
         "agentType": 0,
         "color": "#d98c40",
         "colorJitter": 0.1,
+        "mass": [
+          75.0,
+          75.0
+        ],
         "maxAcceleration": 3.0,
         "maxSpeedFactor": 1.35,
         "preferredSpeed": [
@@ -957,8 +940,30 @@
           "type": "escalator_stander_either",
           "weight": 1.0
         }
-      ]
+      ],
+      "area": {
+        "center": [
+          7.0,
+          -22.0
+        ],
+        "elevation": 0.0,
+        "halfExtents": [
+          6.0,
+          2.0
+        ]
+      },
+      "goal": 31,
+      "groupSize": [
+        1,
+        1
+      ],
+      "id": 32,
+      "name": "B arrivals",
+      "rate": 1.2,
+      "startTime": 0.0,
+      "stopTime": null,
+      "total": 360
     }
   ],
-  "links": []
+  "version": 1
 }
