@@ -25,7 +25,10 @@ bool beginPlot(const char* id, const char* xLabel, const char* yLabel) {
         return false;
     }
     ImPlot::SetupAxes(xLabel, yLabel, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-    ImPlot::SetupLegend(ImPlotLocation_North, ImPlotLegendFlags_Horizontal | ImPlotLegendFlags_Outside);
+    // Legend entries open a colour popup when clicked (see MetricsPanel::legendMenu),
+    // so they do not toggle visibility themselves.
+    ImPlot::SetupLegend(ImPlotLocation_North,
+                        ImPlotLegendFlags_Horizontal | ImPlotLegendFlags_Outside | ImPlotLegendFlags_NoButtons);
     // ImPlot 1.0 looks up anti-aliased line UVs with the pre-1.93 ImGui atlas layout,
     // so its textured lines sample glyphs instead of the line ramp. Draw series without
     // anti-aliasing until ImPlot catches up; endPlot() restores the flag.
@@ -48,6 +51,54 @@ ImPlotSpec lineSpec() {
 }
 
 }  // namespace
+
+void MetricsPanel::line(const char* plot, const char* label, const double* x, const double* y, int n) {
+    const std::string key = std::string(plot) + "/" + label;
+    ImPlotSpec spec = lineSpec();
+    if (const auto it = seriesColors_.find(key); it != seriesColors_.end()) {
+        spec.LineColor = ImVec4(it->second[0], it->second[1], it->second[2], it->second[3]);
+    }
+    ImPlot::HideNextItem(hiddenSeries_.contains(key), ImPlotCond_Always);
+    ImPlot::PlotLine(label, x, y, n, spec);
+    legendMenu(plot, label);
+}
+
+void MetricsPanel::legendMenu(const char* plot, const char* label) {
+    const std::string key = std::string(plot) + "/" + label;
+    if (ImPlot::IsLegendEntryHovered(label)) {
+        ImGui::SetTooltip("Click to change the colour or hide '%s'", label);
+    }
+    if (!ImPlot::BeginLegendPopup(label, ImGuiMouseButton_Left)) {
+        return;
+    }
+    ImGui::TextUnformatted(label);
+    ImGui::Separator();
+    const auto it = seriesColors_.find(key);
+    const ImVec4 current = it != seriesColors_.end()
+                               ? ImVec4(it->second[0], it->second[1], it->second[2], it->second[3])
+                               : ImPlot::GetLastItemColor();
+    float rgba[4] = {current.x, current.y, current.z, current.w};
+    if (ImGui::ColorPicker4("##colour", rgba,
+                            ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_NoSidePreview |
+                                ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_DisplayHex)) {
+        seriesColors_[key] = {rgba[0], rgba[1], rgba[2], 1.0f};
+    }
+    bool shown = !hiddenSeries_.contains(key);
+    if (ImGui::Checkbox("Show line", &shown)) {
+        if (shown) {
+            hiddenSeries_.erase(key);
+        } else {
+            hiddenSeries_.insert(key);
+        }
+    }
+    ImGui::SameLine();
+    ImGui::BeginDisabled(it == seriesColors_.end());
+    if (ImGui::Button("Default colour")) {
+        seriesColors_.erase(key);
+    }
+    ImGui::EndDisabled();
+    ImPlot::EndLegendPopup();
+}
 
 void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoint[2], const ThemeFonts& fonts,
                         std::vector<Json>& commands) {
@@ -100,8 +151,8 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
 
         sectionHeading("Crowd", fonts);
         if (beginPlot("##crowd", "time (s)", "agents")) {
-            ImPlot::PlotLine("alive", t.data(), alive.data(), n, lineSpec());
-            ImPlot::PlotLine("arrived", t.data(), arrived.data(), n, lineSpec());
+            line("crowd", "alive", t.data(), alive.data(), n);
+            line("crowd", "arrived", t.data(), arrived.data(), n);
             endPlot();
         }
 
@@ -109,10 +160,10 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
         sectionHeading("Speed and density", fonts);
         if (beginPlot("##speed", "time (s)", "m/s")) {
             ImPlot::SetupAxis(ImAxis_Y2, "peak agents/m2", ImPlotAxisFlags_AuxDefault | ImPlotAxisFlags_AutoFit);
-            ImPlot::PlotLine("mean", t.data(), mean.data(), n, lineSpec());
-            ImPlot::PlotLine("p90", t.data(), p90.data(), n, lineSpec());
+            line("speed", "mean", t.data(), mean.data(), n);
+            line("speed", "p90", t.data(), p90.data(), n);
             ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
-            ImPlot::PlotLine("density", t.data(), peak.data(), n, lineSpec());
+            line("speed", "density", t.data(), peak.data(), n);
             endPlot();
         }
 
@@ -125,7 +176,7 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
                         totals[i] =
                             g < series[i].gateTotals.size() ? static_cast<double>(series[i].gateTotals[g]) : 0.0;
                     }
-                    ImPlot::PlotLine(m.gates()[g].name.c_str(), t.data(), totals.data(), n, lineSpec());
+                    line("gates", m.gates()[g].name.c_str(), t.data(), totals.data(), n);
                 }
                 endPlot();
             }
@@ -135,7 +186,15 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
     if (!ttgValues.empty()) {
         sectionHeading("Time to goal", fonts);
         if (beginPlot("##ttg", "seconds", "agents")) {
-            ImPlot::PlotHistogram("arrivals", ttgValues.data(), static_cast<int>(ttgValues.size()), 20);
+            ImPlotSpec spec;
+            if (const auto it = seriesColors_.find("ttg/arrivals"); it != seriesColors_.end()) {
+                spec.FillColor = ImVec4(it->second[0], it->second[1], it->second[2], it->second[3]);
+                spec.LineColor = spec.FillColor;
+            }
+            ImPlot::HideNextItem(hiddenSeries_.contains("ttg/arrivals"), ImPlotCond_Always);
+            ImPlot::PlotHistogram("arrivals", ttgValues.data(), static_cast<int>(ttgValues.size()), 20, 1.0,
+                                  ImPlotRange(), spec);
+            legendMenu("ttg", "arrivals");
             endPlot();
         }
     }
