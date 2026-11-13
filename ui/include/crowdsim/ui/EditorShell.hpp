@@ -35,6 +35,7 @@ struct OverlayToggles {
     float lodNearDistance = 30.0f;
     float lodFarDistance = 90.0f;
     int heatmap = 0;  ///< 0 off, 1 density, 2 speed
+    bool routes = true;  ///< spawner-to-goal arcs (one colour per goal)
 };
 
 /// Read-only data the shell displays this frame.

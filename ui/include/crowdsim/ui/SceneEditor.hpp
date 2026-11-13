@@ -48,6 +48,9 @@ public:
     void drawInspector(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
     /// Draw the History panel contents into the current window.
     void drawHistory(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
+    /// Draw an arc from every spawner to its goal over the viewport, one colour per
+    /// goal, with both areas outlined and labelled (call once per frame, outside windows).
+    void drawRoutes(const SceneEditorInput& in) const;
     /// Draw the transform gizmo over the viewport (call once per frame, outside windows).
     void drawGizmo(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
 

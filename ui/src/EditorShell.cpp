@@ -249,6 +249,9 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     }
 
     if (data.editor != nullptr) {
+        if (overlays_.routes && overlays_.areas) {
+            sceneEditor_.drawRoutes(*data.editor);
+        }
         sceneEditor_.drawGizmo(*data.editor, req.commands);
     }
 
@@ -263,6 +266,8 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::Checkbox("Spawner / goal areas", &overlays_.areas);
         ImGui::Checkbox("Navmesh + walls", &overlays_.navmesh);
         ImGui::Checkbox("Off-mesh links", &overlays_.links);
+        ImGui::Checkbox("Spawner routes", &overlays_.routes);
+        ImGui::SetItemTooltip("An arc from each spawner to its goal, one colour per goal");
         ImGui::Checkbox("Velocities", &overlays_.velocities);
         ImGui::Checkbox("Flow field", &overlays_.flowField);
         propertyLabel("Heatmap");

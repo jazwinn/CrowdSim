@@ -5,6 +5,7 @@
 /// panels share (property rows, read-outs, section headings) so every panel
 /// lines up the same way.
 
+#include <cstddef>
 #include <string>
 #include <string_view>
 
@@ -27,6 +28,8 @@ ImVec4 textDim();
 ImVec4 accent();
 ImVec4 warning();
 ImVec4 error();
+/// Categorical colour `i` (wraps): plot series, spawner-to-goal routes.
+ImVec4 series(std::size_t i);
 }  // namespace palette
 
 /// Style ImGui (and ImPlot, when its context exists) for the editor; `dpiScale`

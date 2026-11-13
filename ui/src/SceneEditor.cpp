@@ -5,11 +5,13 @@
 #include <ImGuizmo.h>
 
 #include <algorithm>
+#include <array>
 #include <charconv>
 #include <cmath>
 
 #include <cstdio>
 #include <format>
+#include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
 #include <string>
 
@@ -567,6 +569,128 @@ void SceneEditor::handleShortcuts(const SceneEditorInput& in, std::vector<Json>&
     if (ImGui::IsKeyPressed(ImGuiKey_E, false)) {
         gizmoTranslate_ = false;
     }
+}
+
+void SceneEditor::drawRoutes(const SceneEditorInput& in) const {
+    if (in.view == nullptr || in.proj == nullptr || in.viewportW <= 0.0f || in.viewportH <= 0.0f) {
+        return;
+    }
+    // World -> viewport (ImGui) coordinates; bx matrices are for row vectors.
+    auto project = [&](glm::vec3 p, ImVec2& out) {
+        const float* v = in.view;
+        const float* m = in.proj;
+        const float x = p.x * v[0] + p.y * v[4] + p.z * v[8] + v[12];
+        const float y = p.x * v[1] + p.y * v[5] + p.z * v[9] + v[13];
+        const float z = p.x * v[2] + p.y * v[6] + p.z * v[10] + v[14];
+        const float cx = x * m[0] + y * m[4] + z * m[8] + m[12];
+        const float cy = x * m[1] + y * m[5] + z * m[9] + m[13];
+        const float cw = x * m[3] + y * m[7] + z * m[11] + m[15];
+        if (cw < 0.05f) {
+            return false;  // behind the camera
+        }
+        out = ImVec2(in.viewportX + (cx / cw * 0.5f + 0.5f) * in.viewportW,
+                     in.viewportY + (0.5f - cy / cw * 0.5f) * in.viewportH);
+        return true;
+    };
+    auto withAlpha = [](ImVec4 c, float a) { return ImGui::GetColorU32(ImVec4(c.x, c.y, c.z, c.w * a)); };
+
+    ImDrawList* dl = ImGui::GetBackgroundDrawList();
+    dl->PushClipRect(ImVec2(in.viewportX, in.viewportY),
+                     ImVec2(in.viewportX + in.viewportW, in.viewportY + in.viewportH), true);
+    const float scale = ImGui::GetStyle().FontScaleDpi;
+    const auto goalIds = in.sim.goalIds();
+    const auto spawnerIds = in.sim.spawnerIds();
+    const bool focus = std::find(goalIds.begin(), goalIds.end(), selected_) != goalIds.end() ||
+                       std::find(spawnerIds.begin(), spawnerIds.end(), selected_) != spawnerIds.end();
+
+    auto outline = [&](const sim::Area& a, ImU32 fill, ImU32 edge, float thickness) {
+        const float y = a.elevation + 0.06f;
+        const glm::vec3 corners[4] = {{a.center.x - a.halfExtents.x, y, a.center.y - a.halfExtents.y},
+                                      {a.center.x + a.halfExtents.x, y, a.center.y - a.halfExtents.y},
+                                      {a.center.x + a.halfExtents.x, y, a.center.y + a.halfExtents.y},
+                                      {a.center.x - a.halfExtents.x, y, a.center.y + a.halfExtents.y}};
+        ImVec2 pts[4];
+        for (int k = 0; k < 4; ++k) {
+            if (!project(corners[k], pts[k])) {
+                return;
+            }
+        }
+        dl->AddConvexPolyFilled(pts, 4, fill);
+        dl->AddPolyline(pts, 4, edge, ImDrawFlags_Closed, thickness);
+    };
+
+    // Goals first (outlined once in their colour), then one arc per spawner.
+    for (std::size_t g = 0; g < goalIds.size(); ++g) {
+        const sim::Goal* goal = in.sim.findGoal(goalIds[g]);
+        const bool lit = !focus || selected_ == goalIds[g];
+        const ImVec4 c = palette::series(g);
+        outline(goal->area, withAlpha(c, lit ? 0.18f : 0.06f), withAlpha(c, lit ? 0.95f : 0.35f), 2.0f * scale);
+    }
+    const bool labels = spawnerIds.size() <= 6;
+    for (const sim::SceneId sid : spawnerIds) {
+        const sim::Spawner* s = in.sim.findSpawner(sid);
+        const auto gi = std::find(goalIds.begin(), goalIds.end(), s->goal);
+        if (gi == goalIds.end()) {
+            continue;
+        }
+        const std::size_t g = static_cast<std::size_t>(gi - goalIds.begin());
+        const sim::Goal* goal = in.sim.findGoal(s->goal);
+        const bool lit = !focus || selected_ == sid || selected_ == s->goal;
+        const ImVec4 c = palette::series(g);
+        const ImU32 col = withAlpha(c, lit ? 1.0f : 0.3f);
+        outline(s->area, withAlpha(c, lit ? 0.12f : 0.04f), col, 1.5f * scale);
+
+        // Arc from the spawner to the goal, lifted so it reads above walls and floors.
+        const glm::vec3 a(s->area.center.x, s->area.elevation + 0.1f, s->area.center.y);
+        const glm::vec3 b(goal->area.center.x, goal->area.elevation + 0.1f, goal->area.center.y);
+        const float lift = std::max(2.5f, 0.3f * glm::length(glm::vec2(b.x - a.x, b.z - a.z)));
+        glm::vec3 mid = 0.5f * (a + b);
+        mid.y = std::max(a.y, b.y) + lift;
+        constexpr int kSegments = 40;
+        std::array<ImVec2, kSegments + 1> pts{};
+        int count = 0;
+        for (int k = 0; k <= kSegments; ++k) {
+            const float t = static_cast<float>(k) / kSegments;
+            const glm::vec3 p = (1 - t) * (1 - t) * a + 2 * (1 - t) * t * mid + t * t * b;
+            if (project(p, pts[static_cast<std::size_t>(count)])) {
+                ++count;
+            }
+        }
+        if (count < 2) {
+            continue;
+        }
+        const float thickness = (selected_ == sid ? 4.0f : 2.5f) * scale;
+        dl->AddPolyline(pts.data(), count, col, ImDrawFlags_None, thickness);
+        dl->AddCircleFilled(pts[0], 4.0f * scale, col);
+        // Arrowhead at the goal end.
+        const ImVec2 tip = pts[static_cast<std::size_t>(count - 1)];
+        const ImVec2 prev = pts[static_cast<std::size_t>(std::max(0, count - 4))];
+        const float dx = tip.x - prev.x;
+        const float dy = tip.y - prev.y;
+        const float len = std::sqrt(dx * dx + dy * dy);
+        if (len > 1e-3f) {
+            const float ux = dx / len;
+            const float uy = dy / len;
+            const float sz = 11.0f * scale;
+            dl->AddTriangleFilled(tip, ImVec2(tip.x - ux * sz - uy * sz * 0.55f, tip.y - uy * sz + ux * sz * 0.55f),
+                                  ImVec2(tip.x - ux * sz + uy * sz * 0.55f, tip.y - uy * sz - ux * sz * 0.55f), col);
+        }
+        // Label at the top of the arc: "spawner -> goal".
+        if (labels || selected_ == sid) {
+            const std::string text = s->name + "  \xE2\x86\x92  " + goal->name;
+            const ImVec2 at = pts[static_cast<std::size_t>(count / 2)];
+            const ImVec2 size = ImGui::CalcTextSize(text.c_str());
+            const float pad = 4.0f * scale;
+            const ImVec2 p0(at.x - size.x * 0.5f - pad, at.y - size.y - pad * 3.0f);
+            dl->AddRectFilled(p0, ImVec2(p0.x + size.x + pad * 2.0f, p0.y + size.y + pad * 1.4f),
+                              IM_COL32(18, 20, 23, lit ? 210 : 110), 4.0f * scale);
+            dl->AddRectFilled(p0, ImVec2(p0.x + 3.0f * scale, p0.y + size.y + pad * 1.4f), col, 4.0f * scale,
+                              ImDrawFlags_RoundCornersLeft);
+            dl->AddText(ImVec2(p0.x + pad + 1.0f * scale, p0.y + pad * 0.7f),
+                        IM_COL32(235, 238, 241, lit ? 255 : 130), text.c_str());
+        }
+    }
+    dl->PopClipRect();
 }
 
 void SceneEditor::drawGizmo(const SceneEditorInput& in, std::vector<Json>& commands) {

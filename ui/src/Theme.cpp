@@ -34,6 +34,11 @@ constexpr ImVec4 kAccentHover = rgb(63, 178, 127, 0.34f);
 constexpr ImVec4 kWarning = rgb(224, 163, 58);
 constexpr ImVec4 kError = rgb(229, 100, 90);
 
+// Categorical colours: the accent first, then hues that stay apart on the dark panels.
+constexpr ImVec4 kSeries[] = {kAccent,           rgb(98, 151, 219),  kWarning,
+                              rgb(176, 132, 214), kError,             rgb(120, 200, 205),
+                              rgb(214, 196, 92),  rgb(222, 126, 176)};
+
 constexpr float kBaseFontSize = 15.0f;
 
 ImFont* tryLoad(std::initializer_list<const char*> candidates, float size) {
@@ -68,6 +73,9 @@ ImVec4 warning() {
 }
 ImVec4 error() {
     return kError;
+}
+ImVec4 series(std::size_t i) {
+    return kSeries[i % std::size(kSeries)];
 }
 }  // namespace palette
 
@@ -188,9 +196,6 @@ void applyPlotTheme() {
     p.Colors[ImPlotCol_AxisText] = kTextDim;
     p.Colors[ImPlotCol_AxisGrid] = rgb(255, 255, 255, 0.06f);
     p.Colors[ImPlotCol_AxisTick] = rgb(255, 255, 255, 0.10f);
-    // Series colours: the accent first, then hues that stay apart on the dark plot well.
-    static constexpr ImVec4 kSeries[] = {kAccent, rgb(98, 151, 219), kWarning, rgb(176, 132, 214), kError,
-                                         rgb(120, 200, 205)};
     p.Colormap = ImPlot::AddColormap("CrowdSim", kSeries, static_cast<int>(std::size(kSeries)));
     p.PlotPadding = ImVec2(6, 6);
     p.LegendPadding = ImVec2(6, 4);
