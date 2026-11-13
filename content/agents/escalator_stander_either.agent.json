@@ -1,0 +1,16 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "escalator_stander_either",
+  "description": "Stands on whichever side of the escalator has the shorter line.",
+  "behaviour": "commuter",
+  "radius": [0.22, 0.26],
+  "preferredSpeed": [1.1, 1.45],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.03,
+  "height": 1.75,
+  "color": "#45b39d",
+  "colorJitter": 0.08,
+  "tags": ["escalator:stand-either"]
+}

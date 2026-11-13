@@ -1,0 +1,16 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "escalator_walker_right",
+  "description": "Walks up escalators on the right.",
+  "behaviour": "commuter",
+  "radius": [0.22, 0.26],
+  "preferredSpeed": [1.3, 1.7],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.03,
+  "height": 1.75,
+  "color": "#e8913a",
+  "colorJitter": 0.08,
+  "tags": ["escalator:walk-right"]
+}
