@@ -9,6 +9,8 @@
 
 #include <nlohmann/json.hpp>
 
+#include "crowdsim/ui/Theme.hpp"
+
 namespace crowdsim::metrics {
 class MetricsCollector;
 }
@@ -18,7 +20,7 @@ namespace crowdsim::ui {
 class MetricsPanel {
 public:
     /// Draw into the current window. `gatePoint` = where a new gate is centred (x, z).
-    void draw(const metrics::MetricsCollector& metrics, const float gatePoint[2],
+    void draw(const metrics::MetricsCollector& metrics, const float gatePoint[2], const ThemeFonts& fonts,
               std::vector<nlohmann::json>& commands);
 
 private:

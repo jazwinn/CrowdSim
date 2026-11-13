@@ -9,162 +9,232 @@
 
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/metrics/Metrics.hpp"
-#include "crowdsim/ui/Theme.hpp"
 
 namespace crowdsim::ui {
 
 using Json = nlohmann::json;
 using commands::makeCommand;
 
-void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoint[2], std::vector<Json>& commands) {
+namespace {
+
+/// Plot with the panel's conventions: no ImPlot title (a section heading names it),
+/// legend in a row above the plot, both axes fitted to the data.
+bool beginPlot(const char* id, const char* xLabel, const char* yLabel) {
+    const ImVec2 size(-1.0f, ImGui::GetFontSize() * 10.0f);
+    if (!ImPlot::BeginPlot(id, size, ImPlotFlags_NoTitle | ImPlotFlags_NoMenus | ImPlotFlags_NoBoxSelect)) {
+        return false;
+    }
+    ImPlot::SetupAxes(xLabel, yLabel, ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
+    ImPlot::SetupLegend(ImPlotLocation_North, ImPlotLegendFlags_Horizontal | ImPlotLegendFlags_Outside);
+    // ImPlot 1.0 looks up anti-aliased line UVs with the pre-1.93 ImGui atlas layout,
+    // so its textured lines sample glyphs instead of the line ramp. Draw series without
+    // anti-aliasing until ImPlot catches up; endPlot() restores the flag.
+    ImPlot::GetPlotDrawList()->Flags &= ~ImDrawListFlags_AntiAliasedLines;
+    return true;
+}
+
+void endPlot() {
+    if (ImGui::GetStyle().AntiAliasedLines) {
+        ImPlot::GetPlotDrawList()->Flags |= ImDrawListFlags_AntiAliasedLines;
+    }
+    ImPlot::EndPlot();
+}
+
+/// Series lines 2 px wide (1 px disappears against the plot well on high-DPI screens).
+ImPlotSpec lineSpec() {
+    ImPlotSpec spec;
+    spec.LineWeight = 2.0f * ImGui::GetStyle().FontScaleDpi;
+    return spec;
+}
+
+}  // namespace
+
+void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoint[2], const ThemeFonts& fonts,
+                        std::vector<Json>& commands) {
     const Json s = m.summary();
-
-    // --- Summary ------------------------------------------------------------------------
-    if (s.contains("alive")) {
-        ImGui::Text("Alive %u   arrived %llu   stuck %zu", s["alive"].get<unsigned>(),
-                    static_cast<unsigned long long>(s["arrived"].get<std::uint64_t>()),
-                    s["stuck"]["count"].get<std::size_t>());
-        ImGui::Text("Speed mean %.2f  p90 %.2f m/s   density peak %.1f  p90 %.1f /m2", s["speed"]["mean"].get<double>(),
-                    s["speed"]["p90"].get<double>(), s["density"]["peak"].get<double>(),
-                    s["density"]["p90"].get<double>());
-    } else {
-        ImGui::TextDisabled("No samples yet (one every 0.5 s of simulated time).");
-    }
     const Json& ttg = s["timeToGoal"];
-    if (ttg["count"].get<std::size_t>() > 0) {
-        ImGui::Text("Time to goal: %zu arrivals, mean %.1f s, p50 %.1f, p90 %.1f, max %.1f",
-                    ttg["count"].get<std::size_t>(), ttg["mean"].get<double>(), ttg["p50"].get<double>(),
-                    ttg["p90"].get<double>(), ttg["max"].get<double>());
-    }
 
-    // --- Recording / export -------------------------------------------------------------
-    const bool recording = s["recording"]["active"].get<bool>();
-    if (ImGui::Button(recording ? "Stop recording" : "Record trajectories")) {
-        commands.push_back(recording ? makeCommand("StopRecording")
-                                     : makeCommand("StartRecording", {{"hz", recordHz_}}));
-    }
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(70.0f);
-    ImGui::DragFloat("Hz", &recordHz_, 0.5f, 0.5f, 30.0f, "%.1f");
-    ImGui::SameLine();
-    ImGui::TextDisabled("%zu rows", s["recording"]["rows"].get<std::size_t>());
-    ImGui::SetNextItemWidth(220.0f);
-    ImGui::InputText("##export", exportPath_, sizeof(exportPath_));
-    ImGui::SameLine();
-    if (ImGui::Button("Export CSV")) {
-        commands.push_back(makeCommand("ExportRecording", {{"path", std::string(exportPath_)}}));
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Export metrics")) {
-        commands.push_back(makeCommand("ExportMetrics"));
-    }
-    ImGui::SameLine();
-    if (ImGui::Button("Reset")) {
-        commands.push_back(makeCommand("ResetMetrics"));
-    }
-
-    // --- Gates --------------------------------------------------------------------------
-    if (crowdsim::ui::sectionToggle("Gates", nullptr, true)) {
-        if (ImGui::BeginTable("gates", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
-            ImGui::TableSetupColumn("Gate");
-            ImGui::TableSetupColumn("Total");
-            ImGui::TableSetupColumn("/s");
-            ImGui::TableSetupColumn("/m/s");
-            ImGui::TableSetupColumn("");
-            ImGui::TableHeadersRow();
-            for (const Json& g : s["gates"]) {
-                ImGui::TableNextRow();
-                ImGui::TableNextColumn();
-                ImGui::TextUnformatted(g["name"].get<std::string>().c_str());
-                ImGui::TableNextColumn();
-                ImGui::Text("%llu", static_cast<unsigned long long>(g["total"].get<std::uint64_t>()));
-                ImGui::TableNextColumn();
-                ImGui::Text("%.2f", g["flowPerSecond"].get<double>());
-                ImGui::TableNextColumn();
-                ImGui::Text("%.2f", g["flowPerMetrePerSecond"].get<double>());
-                ImGui::TableNextColumn();
-                ImGui::PushID(g["name"].get<std::string>().c_str());
-                if (ImGui::SmallButton("x")) {
-                    commands.push_back(makeCommand("RemoveGate", {{"name", g["name"]}}));
-                }
-                ImGui::PopID();
-            }
-            ImGui::EndTable();
+    // --- Now: the latest sample -----------------------------------------------------------
+    sectionHeading("Now", fonts);
+    if (!s.contains("alive")) {
+        ImGui::TextDisabled("No samples yet. One is taken every 0.5 s of simulated time.");
+    } else if (beginReadout("now")) {
+        readout("Alive", "%u", s["alive"].get<unsigned>());
+        readout("Arrived", "%llu", static_cast<unsigned long long>(s["arrived"].get<std::uint64_t>()));
+        const std::size_t stuck = s["stuck"]["count"].get<std::size_t>();
+        ImGui::TableNextRow();
+        ImGui::TableNextColumn();
+        ImGui::TextColored(palette::textDim(), "Stuck");
+        ImGui::SetItemTooltip("Agents that have barely moved for several seconds");
+        ImGui::TableNextColumn();
+        ImGui::TextColored(stuck > 0 ? palette::warning() : palette::text(), "%zu", stuck);
+        readout("Mean speed", "%.2f m/s", s["speed"]["mean"].get<double>());
+        readout("Speed, p90", "%.2f m/s", s["speed"]["p90"].get<double>());
+        readout("Peak density", "%.1f /m2", s["density"]["peak"].get<double>());
+        readout("Density, p90", "%.1f /m2", s["density"]["p90"].get<double>());
+        if (ttg["count"].get<std::size_t>() > 0) {
+            readout("Time to goal", "%.1f s mean", ttg["mean"].get<double>());
+            readout("Time to goal, p90", "%.1f s", ttg["p90"].get<double>());
         }
-        ImGui::SetNextItemWidth(90.0f);
+        endReadout();
+    }
+
+    // --- Charts ---------------------------------------------------------------------------
+    const auto& series = m.series();
+    if (!series.empty()) {
+        std::vector<double> t(series.size());
+        std::vector<double> alive(series.size());
+        std::vector<double> arrived(series.size());
+        std::vector<double> mean(series.size());
+        std::vector<double> p90(series.size());
+        std::vector<double> peak(series.size());
+        for (std::size_t i = 0; i < series.size(); ++i) {
+            t[i] = series[i].time;
+            alive[i] = series[i].alive;
+            arrived[i] = static_cast<double>(series[i].arrived);
+            mean[i] = series[i].meanSpeed;
+            p90[i] = series[i].p90Speed;
+            peak[i] = series[i].peakDensity;
+        }
+        const int n = static_cast<int>(series.size());
+
+        sectionHeading("Crowd", fonts);
+        if (beginPlot("##crowd", "time (s)", "agents")) {
+            ImPlot::PlotLine("alive", t.data(), alive.data(), n, lineSpec());
+            ImPlot::PlotLine("arrived", t.data(), arrived.data(), n, lineSpec());
+            endPlot();
+        }
+
+        // Speed and density have different units, so density gets its own (right) axis.
+        sectionHeading("Speed and density", fonts);
+        if (beginPlot("##speed", "time (s)", "m/s")) {
+            ImPlot::SetupAxis(ImAxis_Y2, "peak agents/m2", ImPlotAxisFlags_AuxDefault | ImPlotAxisFlags_AutoFit);
+            ImPlot::PlotLine("mean", t.data(), mean.data(), n, lineSpec());
+            ImPlot::PlotLine("p90", t.data(), p90.data(), n, lineSpec());
+            ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
+            ImPlot::PlotLine("density", t.data(), peak.data(), n, lineSpec());
+            endPlot();
+        }
+
+        if (!m.gates().empty()) {
+            sectionHeading("Gate crossings", fonts);
+            if (beginPlot("##gates", "time (s)", "crossings")) {
+                std::vector<double> totals(series.size());
+                for (std::size_t g = 0; g < m.gates().size(); ++g) {
+                    for (std::size_t i = 0; i < series.size(); ++i) {
+                        totals[i] =
+                            g < series[i].gateTotals.size() ? static_cast<double>(series[i].gateTotals[g]) : 0.0;
+                    }
+                    ImPlot::PlotLine(m.gates()[g].name.c_str(), t.data(), totals.data(), n, lineSpec());
+                }
+                endPlot();
+            }
+        }
+    }
+    const auto& ttgValues = m.timeToGoal();
+    if (!ttgValues.empty()) {
+        sectionHeading("Time to goal", fonts);
+        if (beginPlot("##ttg", "seconds", "agents")) {
+            ImPlot::PlotHistogram("arrivals", ttgValues.data(), static_cast<int>(ttgValues.size()), 20);
+            endPlot();
+        }
+    }
+
+    // --- Gates: counting lines ------------------------------------------------------------
+    sectionHeading("Gates", fonts);
+    ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
+    ImGui::TextWrapped("A gate counts agents crossing the line from A to B, in total and per second.");
+    ImGui::PopStyleColor();
+    if (!s["gates"].empty() &&
+        ImGui::BeginTable("gates", 5, ImGuiTableFlags_RowBg | ImGuiTableFlags_SizingStretchProp)) {
+        ImGui::TableSetupColumn("Gate", ImGuiTableColumnFlags_WidthStretch, 1.6f);
+        ImGui::TableSetupColumn("Total", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Per s", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("Per m", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+        ImGui::TableSetupColumn("##remove", ImGuiTableColumnFlags_WidthFixed, ImGui::GetFrameHeight());
+        ImGui::TableHeadersRow();
+        for (const Json& g : s["gates"]) {
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::AlignTextToFramePadding();
+            ImGui::TextUnformatted(g["name"].get<std::string>().c_str());
+            ImGui::TableNextColumn();
+            ImGui::Text("%llu", static_cast<unsigned long long>(g["total"].get<std::uint64_t>()));
+            ImGui::TableNextColumn();
+            ImGui::Text("%.2f", g["flowPerSecond"].get<double>());
+            ImGui::SetItemTooltip("Crossings per second");
+            ImGui::TableNextColumn();
+            ImGui::Text("%.2f", g["flowPerMetrePerSecond"].get<double>());
+            ImGui::SetItemTooltip("Crossings per second, per metre of gate width");
+            ImGui::TableNextColumn();
+            ImGui::PushID(g["name"].get<std::string>().c_str());
+            if (ImGui::Button("x", ImVec2(ImGui::GetFrameHeight(), 0))) {
+                commands.push_back(makeCommand("RemoveGate", {{"name", g["name"]}}));
+            }
+            ImGui::SetItemTooltip("Remove this gate");
+            ImGui::PopID();
+        }
+        ImGui::EndTable();
+    }
+    if (sectionToggle("New gate", nullptr, s["gates"].empty())) {
+        propertyLabel("Name");
         ImGui::InputText("##gname", gateName_, sizeof(gateName_));
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(110.0f);
-        ImGui::DragFloat2("A##g", gateA_, 0.25f);
-        ImGui::SameLine();
-        ImGui::SetNextItemWidth(110.0f);
-        ImGui::DragFloat2("B##g", gateB_, 0.25f);
-        ImGui::SameLine();
-        if (ImGui::Button("At view")) {
+        propertyLabel("End A (x, z)");
+        ImGui::DragFloat2("##ga", gateA_, 0.25f, 0.0f, 0.0f, "%.2f");
+        propertyLabel("End B (x, z)");
+        ImGui::DragFloat2("##gb", gateB_, 0.25f, 0.0f, 0.0f, "%.2f");
+        const float half = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+        if (ImGui::Button("Centre on view", ImVec2(half, 0))) {
             gateA_[0] = gatePoint[0];
             gateA_[1] = gatePoint[1] - 3.0f;
             gateB_[0] = gatePoint[0];
             gateB_[1] = gatePoint[1] + 3.0f;
         }
+        ImGui::SetItemTooltip("Place a 6 m gate across the point the camera looks at");
         ImGui::SameLine();
-        if (ImGui::Button("Add gate")) {
+        if (ImGui::Button("Add gate", ImVec2(-1.0f, 0))) {
             commands.push_back(makeCommand(
                 "AddGate",
                 {{"name", std::string(gateName_)}, {"a", {gateA_[0], gateA_[1]}}, {"b", {gateB_[0], gateB_[1]}}}));
         }
     }
 
-    // --- Plots --------------------------------------------------------------------------
-    const auto& series = m.series();
-    if (series.empty()) {
-        return;
+    // --- Recording and export -------------------------------------------------------------
+    sectionHeading("Recording", fonts);
+    const bool recording = s["recording"]["active"].get<bool>();
+    const std::size_t rows = s["recording"]["rows"].get<std::size_t>();
+    propertyLabel("Sample rate");
+    ImGui::BeginDisabled(recording);
+    ImGui::DragFloat("##hz", &recordHz_, 0.5f, 0.5f, 30.0f, "%.1f Hz");
+    ImGui::EndDisabled();
+    if (recording) {
+        ImGui::TextColored(palette::accent(), "Recording trajectories: %zu rows", rows);
+    } else {
+        ImGui::TextDisabled(rows > 0 ? "Stopped: %zu rows kept" : "Not recording", rows);
     }
-    std::vector<double> t(series.size());
-    std::vector<double> alive(series.size());
-    std::vector<double> arrived(series.size());
-    std::vector<double> mean(series.size());
-    std::vector<double> p90(series.size());
-    std::vector<double> peak(series.size());
-    for (std::size_t i = 0; i < series.size(); ++i) {
-        t[i] = series[i].time;
-        alive[i] = series[i].alive;
-        arrived[i] = static_cast<double>(series[i].arrived);
-        mean[i] = series[i].meanSpeed;
-        p90[i] = series[i].p90Speed;
-        peak[i] = series[i].peakDensity;
+    if (ImGui::Button(recording ? "Stop recording" : "Record trajectories", ImVec2(-1.0f, 0))) {
+        commands.push_back(recording ? makeCommand("StopRecording")
+                                     : makeCommand("StartRecording", {{"hz", recordHz_}}));
     }
-    const int n = static_cast<int>(series.size());
-    const ImVec2 size(-1.0f, 150.0f);
-    if (ImPlot::BeginPlot("Crowd", size)) {
-        ImPlot::SetupAxes("time (s)", "agents", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-        ImPlot::PlotLine("alive", t.data(), alive.data(), n);
-        ImPlot::PlotLine("arrived", t.data(), arrived.data(), n);
-        ImPlot::EndPlot();
+    propertyLabel("CSV file");
+    ImGui::InputText("##export", exportPath_, sizeof(exportPath_));
+    const float third = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 2.0f) / 3.0f;
+    ImGui::BeginDisabled(rows == 0);
+    if (ImGui::Button("Export CSV", ImVec2(third, 0))) {
+        commands.push_back(makeCommand("ExportRecording", {{"path", std::string(exportPath_)}}));
     }
-    if (ImPlot::BeginPlot("Speed and density", size)) {
-        ImPlot::SetupAxes("time (s)", "m/s | agents/m2", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-        ImPlot::PlotLine("mean speed", t.data(), mean.data(), n);
-        ImPlot::PlotLine("p90 speed", t.data(), p90.data(), n);
-        ImPlot::PlotLine("peak density", t.data(), peak.data(), n);
-        ImPlot::EndPlot();
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("Write the recorded trajectories to the CSV file");
+    ImGui::SameLine();
+    if (ImGui::Button("Export series", ImVec2(third, 0))) {
+        commands.push_back(makeCommand("ExportMetrics"));
     }
-    if (!m.gates().empty() && ImPlot::BeginPlot("Gate crossings", size)) {
-        ImPlot::SetupAxes("time (s)", "crossings", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-        std::vector<double> totals(series.size());
-        for (std::size_t g = 0; g < m.gates().size(); ++g) {
-            for (std::size_t i = 0; i < series.size(); ++i) {
-                totals[i] = g < series[i].gateTotals.size() ? static_cast<double>(series[i].gateTotals[g]) : 0.0;
-            }
-            ImPlot::PlotLine(m.gates()[g].name.c_str(), t.data(), totals.data(), n);
-        }
-        ImPlot::EndPlot();
+    ImGui::SetItemTooltip("Write the metrics time series to recordings/metrics.csv");
+    ImGui::SameLine();
+    if (ImGui::Button("Clear", ImVec2(-1.0f, 0))) {
+        commands.push_back(makeCommand("ResetMetrics"));
     }
-    const auto& ttgValues = m.timeToGoal();
-    if (!ttgValues.empty() && ImPlot::BeginPlot("Time to goal", size)) {
-        ImPlot::SetupAxes("seconds", "agents", ImPlotAxisFlags_AutoFit, ImPlotAxisFlags_AutoFit);
-        ImPlot::PlotHistogram("arrivals", ttgValues.data(), static_cast<int>(ttgValues.size()), 20);
-        ImPlot::EndPlot();
-    }
+    ImGui::SetItemTooltip("Discard samples, heatmaps, gate counts and recorded rows (gates stay)");
 }
 
 }  // namespace crowdsim::ui

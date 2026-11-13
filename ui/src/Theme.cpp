@@ -188,6 +188,10 @@ void applyPlotTheme() {
     p.Colors[ImPlotCol_AxisText] = kTextDim;
     p.Colors[ImPlotCol_AxisGrid] = rgb(255, 255, 255, 0.06f);
     p.Colors[ImPlotCol_AxisTick] = rgb(255, 255, 255, 0.10f);
+    // Series colours: the accent first, then hues that stay apart on the dark plot well.
+    static constexpr ImVec4 kSeries[] = {kAccent, rgb(98, 151, 219), kWarning, rgb(176, 132, 214), kError,
+                                         rgb(120, 200, 205)};
+    p.Colormap = ImPlot::AddColormap("CrowdSim", kSeries, static_cast<int>(std::size(kSeries)));
     p.PlotPadding = ImVec2(6, 6);
     p.LegendPadding = ImVec2(6, 4);
     p.LegendInnerPadding = ImVec2(4, 2);

@@ -40,7 +40,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
 
     ImGuiID center = dockspaceId;
     const ImGuiID left = ImGui::DockBuilderSplitNode(center, ImGuiDir_Left, 0.18f, nullptr, &center);
-    const ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.24f, nullptr, &center);
+    const ImGuiID right = ImGui::DockBuilderSplitNode(center, ImGuiDir_Right, 0.30f, nullptr, &center);
     const ImGuiID bottom = ImGui::DockBuilderSplitNode(center, ImGuiDir_Down, 0.25f, nullptr, &center);
     ImGuiID rightBottom = 0;
     const ImGuiID rightTop = ImGui::DockBuilderSplitNode(right, ImGuiDir_Up, 0.5f, nullptr, &rightBottom);
@@ -494,7 +494,7 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     if (data.metrics != nullptr) {
         const float gatePoint[2] = {data.editor != nullptr ? data.editor->cameraTarget[0] : 0.0f,
                                     data.editor != nullptr ? data.editor->cameraTarget[2] : 0.0f};
-        metricsPanel_.draw(*data.metrics, gatePoint, req.commands);
+        metricsPanel_.draw(*data.metrics, gatePoint, fonts_, req.commands);
     }
     ImGui::End();
 
