@@ -66,6 +66,27 @@ TEST_CASE("Gates count directional crossings; time to goal matches arrivals; hea
     CHECK(e.metrics().gates()[0].forward + e.metrics().gates()[0].backward == 0);
 }
 
+TEST_CASE("Removing a gate keeps the other gates' history") {
+    app::EngineContext e(quiet(200));
+    REQUIRE(e.execute(makeCommand("AddGate", {{"name", "early"}, {"a", {-30, -40}}, {"b", {30, -40}}})).ok);
+    REQUIRE(e.execute(makeCommand("AddGate", {{"name", "late"}, {"a", {-30, 0}}, {"b", {30, 0}}})).ok);
+    run(e, 60);
+    std::vector<std::uint64_t> lateBefore;
+    for (const metrics::Sample& s : e.metrics().series()) {
+        lateBefore.push_back(s.gateTotals.at(1));
+    }
+    REQUIRE(lateBefore.back() > 0);
+    REQUIRE(e.metrics().series().back().gateTotals[0] != lateBefore.back());  // the two differ
+
+    REQUIRE(e.execute(makeCommand("RemoveGate", {{"name", "early"}})).ok);
+    const auto& series = e.metrics().series();
+    REQUIRE(series.size() == lateBefore.size());
+    for (std::size_t i = 0; i < series.size(); ++i) {
+        REQUIRE(series[i].gateTotals.size() == 1);
+        CHECK(series[i].gateTotals[0] == lateBefore[i]);
+    }
+}
+
 TEST_CASE("Agents that cannot reach their goal are reported as stuck") {
     app::EngineContext e(quiet());
     // Two separate floors: the spawner on one, the goal on the other (no path).

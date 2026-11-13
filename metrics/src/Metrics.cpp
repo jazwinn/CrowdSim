@@ -85,7 +85,20 @@ void MetricsCollector::addGate(Gate gate) {
 }
 
 bool MetricsCollector::removeGate(const std::string& name) {
-    return std::erase_if(gates_, [&](const Gate& g) { return g.name == name; }) > 0;
+    const auto it = std::find_if(gates_.begin(), gates_.end(), [&](const Gate& g) { return g.name == name; });
+    if (it == gates_.end()) {
+        return false;
+    }
+    // Samples store gate totals by position in gates_, so drop this gate's column too;
+    // otherwise every later gate's history (charts, flow rate, CSV) shifts onto its neighbour.
+    const auto index = static_cast<std::size_t>(it - gates_.begin());
+    for (Sample& s : series_) {
+        if (index < s.gateTotals.size()) {
+            s.gateTotals.erase(s.gateTotals.begin() + static_cast<std::ptrdiff_t>(index));
+        }
+    }
+    gates_.erase(it);
+    return true;
 }
 
 void MetricsCollector::startRecording(double hz) {
