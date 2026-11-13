@@ -83,6 +83,8 @@ public:
     std::vector<glm::vec3> linkStart;
     std::vector<glm::vec3> linkEnd;
     std::vector<std::uint32_t> linkEndPoly;
+    // Escalator lane while boarding or riding: -1 left, +1 right, 0 none.
+    std::vector<std::int8_t> escalatorLane;
 
     // --- Decision layer ---
     std::vector<std::uint16_t> tree;
@@ -148,6 +150,7 @@ public:
         linkStart.push_back(glm::vec3(0.0f));
         linkEnd.push_back(glm::vec3(0.0f));
         linkEndPoly.push_back(0);
+        escalatorLane.push_back(0);
 
         tree.push_back(a.tree);
         bt.push_back(BtState{});
@@ -220,6 +223,7 @@ private:
         f(linkStart);
         f(linkEnd);
         f(linkEndPoly);
+        f(escalatorLane);
         f(tree);
         f(bt);
         f(rng);

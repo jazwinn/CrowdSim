@@ -11,6 +11,7 @@ crowdsim_add_library(sim
     src/Scenarios.cpp
     src/BehaviorTree.cpp
     src/Decisions.cpp
+    src/Escalators.cpp
   DEPS
     CrowdSim::core
     CrowdSim::geometry

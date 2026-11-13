@@ -404,6 +404,7 @@ bool Simulation::updateNavigation() {
             agents_.corridorStatus[i] = 0;
         }
         rebuildTaggedVolumes();
+        rebuildEscalators();
         navDirty_ = false;
         flowDirty_ = true;
         changed = true;
@@ -470,6 +471,7 @@ void Simulation::step() {
     lap(profile_.decisions);
     resolveDecisions();  // serial: queues, arrivals (deterministic shared state)
     lap(profile_.resolve);
+    assignEscalatorLanes();
     computePreferredVelocities();
     lap(profile_.preferred);
     computeAvoidance(dt);
@@ -749,6 +751,9 @@ void Simulation::computePreferredVelocities() {
                     }
                 }
             }
+            if (moving && agents_.linkActive[i] == 0 && !escalators_.empty()) {
+                pref = escalatorSteering(i, pref);
+            }
             agents_.preferredVelocity[i] = pref;
         }
     });
@@ -880,6 +885,19 @@ void Simulation::integrate(float dt) {
                 }
                 glm::vec2 v = agents_.velocity[i] + dv;
                 const glm::vec2 start2 = agents_.position[i];
+                if (!escalators_.empty()) {
+                    // Escalator steps carry their riders whatever avoidance says: never
+                    // slower than the belt in its direction of travel.
+                    const glm::vec2 belt = beltVelocityAt(start2, agents_.height[i]);
+                    const float beltSpeed = std::sqrt(glm::dot(belt, belt));
+                    if (beltSpeed > 0.0f) {
+                        const glm::vec2 dir = belt / beltSpeed;
+                        const float along = glm::dot(v, dir);
+                        if (along < beltSpeed) {
+                            v += dir * (beltSpeed - along);
+                        }
+                    }
+                }
                 glm::vec2 end2 = start2 + v * dt;
 
                 if (useNav && agents_.navPoly[i] != 0) {
@@ -1040,7 +1058,9 @@ void Simulation::writeSnapshot(snapshot::RenderSnapshot& out) const {
             a.color = agents_.color[i];
             a.radius = agents_.radius[i];
             a.velocity = v;
-            a.speed = std::sqrt(glm::dot(v, v));
+            // Gait follows the feet: riders on an escalator are carried, not walking.
+            const glm::vec2 own = escalators_.empty() ? v : v - beltVelocityAt(cur, agents_.height[i]);
+            a.speed = std::sqrt(glm::dot(own, own));
             float turn = agents_.heading[i] - agents_.prevHeading[i];
             turn -= 6.2831853f * std::floor((turn + 3.14159265f) / 6.2831853f);
             a.turnRate = turn * static_cast<float>(config_.stepHz);

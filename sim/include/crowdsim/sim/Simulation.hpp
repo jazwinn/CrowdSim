@@ -119,6 +119,24 @@ struct TaggedVolume {
     glm::vec3 max{0.0f};
 };
 
+/// A moving staircase or walkway, built from a stairs or ramp object tagged
+/// "escalator" (see docs/formats.md). Agents on it are carried at belt speed;
+/// agent-type tags decide who stands or walks and on which side.
+struct Escalator {
+    SceneId object = kNoSceneId;
+    glm::vec2 entry{0.0f};       ///< centre of the boarding edge (x, z)
+    glm::vec2 forward{0.0f};     ///< unit direction of travel (x, z)
+    glm::vec2 right{0.0f};       ///< unit right-hand side when facing `forward`
+    float length = 0.0f;         ///< horizontal length, m
+    float halfWidth = 0.0f;      ///< m
+    float entryHeight = 0.0f;    ///< floor height at the boarding edge
+    float exitHeight = 0.0f;     ///< floor height at the far edge
+    float beltSpeed = 0.5f;      ///< horizontal component of the step speed, m/s
+    float walkFactor = 0.45f;    ///< walkers' own pace on the steps, x their preferred speed
+    float laneOffset = 0.3f;     ///< lane centre distance from the middle, m
+    float standGap = 0.9f;       ///< m between standers in one lane (about two steps)
+};
+
 /// A piece of static environment geometry (ECS component). Either a parametric
 /// primitive, or (primitive.kind == Mesh) an imported mesh placed by
 /// primitive.position / rotationY with uniform scale primitive.size.x.
@@ -186,6 +204,8 @@ public:
     std::uint16_t defineAgentType(const AgentType& type);
     [[nodiscard]] const AgentType* findAgentType(std::string_view name) const;
     [[nodiscard]] const std::vector<AgentType>& agentTypes() const noexcept { return agentTypes_; }
+    /// Escalators found in the scene (objects tagged "escalator"), rebuilt with the navmesh.
+    [[nodiscard]] const std::vector<Escalator>& escalators() const noexcept { return escalators_; }
     [[nodiscard]] const std::vector<std::string>& stateNames() const noexcept { return stateNames_; }
 
     // --- Scripting hooks (see ScriptHooks.hpp) ------------------------------------------
@@ -279,6 +299,10 @@ private:
     [[nodiscard]] std::uint16_t internName(std::vector<std::string>& table, std::string_view name);
     void rebuildTreeLookups();
     void rebuildTaggedVolumes();
+    void rebuildEscalators();
+    void assignEscalatorLanes();
+    [[nodiscard]] glm::vec2 escalatorSteering(std::uint32_t agent, glm::vec2 pref) const;
+    [[nodiscard]] glm::vec2 beltVelocityAt(glm::vec2 position, float height) const;
     [[nodiscard]] std::uint16_t resolveTree(const std::string& name) const;
     [[nodiscard]] std::shared_ptr<const snapshot::StaticScene> buildStaticScene() const;
     SceneId claimId(SceneId requested);
@@ -346,6 +370,8 @@ private:
     StepProfile profile_;
     std::vector<std::string> tagNames_{""};
     std::vector<TaggedVolume> taggedVolumes_;
+    std::vector<Escalator> escalators_;
+    std::vector<std::uint8_t> escalatorRoles_;  ///< per agent type, see Escalators.cpp
 };
 
 }  // namespace crowdsim::sim
