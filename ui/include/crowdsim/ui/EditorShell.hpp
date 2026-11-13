@@ -38,6 +38,21 @@ struct OverlayToggles {
     bool routes = true;  ///< spawner-to-goal arcs (one colour per goal)
 };
 
+/// A loaded Lua script, as the Script tab lists it.
+struct ScriptView {
+    std::string_view name;
+    std::string_view source;
+    bool ok = true;
+    std::string_view error;
+};
+
+/// A recent Lua error (load, node tick, entity callback, event handler).
+struct ScriptErrorView {
+    std::string_view where;
+    std::string_view message;
+    std::uint64_t step = 0;
+};
+
 /// Read-only data the shell displays this frame.
 struct EditorFrameData {
     // Simulation
@@ -82,6 +97,9 @@ struct EditorFrameData {
     std::uint32_t framebufferHeight = 0;
     // Log lines, oldest first
     std::span<const std::string> logLines;
+    // Scripts (Script tab)
+    std::span<const ScriptView> scripts;
+    std::span<const ScriptErrorView> scriptErrors;
     // Scene editing
     const SceneEditorInput* editor = nullptr;  ///< null disables editing panels
     std::span<const std::string> sceneFiles;   ///< content-relative *.scene.json files
@@ -132,6 +150,11 @@ public:
 private:
     void buildDefaultLayout(unsigned int dockspaceId);
     void fileMenu(const EditorFrameData& data, EditorRequests& req);
+    void drawScriptPanel(const EditorFrameData& data, EditorRequests& req);
+    void drawScriptList(const EditorFrameData& data, EditorRequests& req);
+    void drawConsole(EditorRequests& req);
+    void drawScriptEditor(const EditorFrameData& data, EditorRequests& req);
+    void openScript(const ScriptView& script);
 
 public:
     [[nodiscard]] SceneEditor& sceneEditor() noexcept { return sceneEditor_; }
@@ -144,6 +167,11 @@ public:
     void setFonts(const ThemeFonts& fonts) noexcept {
         fonts_ = fonts;
         sceneEditor_.setFonts(fonts);
+    }
+    /// Result of a script load / save / reload, shown in the Script tab.
+    void scriptStatus(const std::string& text, bool error = false) {
+        scriptStatus_ = text;
+        scriptStatusError_ = error;
     }
     /// Append a result / error to the Script console transcript.
     void consoleOutput(const std::string& text, bool error = false);
@@ -165,6 +193,16 @@ private:
     };
     std::vector<ConsoleLine> consoleLines_;
     bool consoleScroll_ = false;
+    // Script tab: the open script's working copy and the list's inputs.
+    std::string openScript_;
+    std::string scriptBuffer_;
+    std::string scriptLoaded_;  ///< source the buffer was opened from (to notice reloads)
+    bool scriptDirty_ = false;
+    bool selectScriptTab_ = false;
+    char newScriptName_[64] = "";
+    char loadScriptPath_[256] = "scripts/";
+    std::string scriptStatus_;
+    bool scriptStatusError_ = false;
     bool focusBehaviour_ = false;
     int focusMetrics_ = 0;  ///< frames left to keep the Metrics tab in front (docking settles first)
     OverlayToggles overlays_;

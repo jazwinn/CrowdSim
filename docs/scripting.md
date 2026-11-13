@@ -9,8 +9,13 @@ and act on the simulation only through the same **commands** as the editor, MCP 
   its previous version registered (nodes, entity types and event handlers, matched by name).
 - `content/scenarios/*.lua` are scenario scripts. Run one with `--script scenarios/<file>.lua`
   (GUI or headless), or from the console with `scene.command("LoadScript", {path = ...})`.
-- The editor's **Script** panel evaluates Lua (Ctrl+Enter). Errors appear there, in the Log
-  panel and through the `ScriptErrors` command; they never stop the simulation.
+- The editor's **Script** panel lists the loaded scripts (a red dot marks one that failed;
+  hover for the error). Click one to open it in a tab: **Save** (Ctrl+S) writes the file and runs
+  it, **Run without saving** tries the text without touching the file, **Revert** drops edits,
+  **Reload from file** re-reads it. **New script** creates `content/scripts/<name>.lua`; **Load a
+  file** runs any other script by path. The **Console** tab evaluates snippets (Ctrl+Enter).
+  Errors appear there, in the Log panel and through the `ScriptErrors` command; they never stop
+  the simulation.
 
 ## Sandbox and limits
 
@@ -139,6 +144,7 @@ Keep per-agent state in a Lua table keyed by `ctx:id(a)`, and clear it on comple
 |---|---|---|
 | `LoadScript {name, source \| path}` | yes (with source) | Run / hot-reload a script. |
 | `ReloadScript {name}` | yes (as `LoadScript`) | Re-run `content/scripts/<name>.lua`. |
+| `SaveScript {name, source}` | yes (as `LoadScript`) | Write `content/scripts/<name>.lua` and run it (nothing is written while replaying). |
 | `EvalLua {source}` | yes | Evaluate a snippet; returns `{output, value}`. |
 | `SpawnEntity {type, position, rotationY?, name?}` | yes, undoable | Place a scripted entity. |
 | `ListScripts`, `GetScript {name}`, `ScriptErrors`, `ListEntityTypes` | no | Queries. |

@@ -511,6 +511,16 @@ int runGui(EngineContext& engine) {
         editorInput.cameraTarget[1] = camera.target.y;
         editorInput.cameraTarget[2] = camera.target.z;
 
+        std::vector<ui::ScriptView> scriptViews;
+        for (const script::ScriptInfo& s : engine.scripts().scripts()) {
+            scriptViews.push_back({s.name, s.source, s.ok, s.error});
+        }
+        const std::vector<script::ScriptError> scriptErrors = engine.scripts().errors();
+        std::vector<ui::ScriptErrorView> scriptErrorViews;
+        for (const script::ScriptError& e : scriptErrors) {
+            scriptErrorViews.push_back({e.where, e.message, e.step});
+        }
+
         const sim::NavMesh& nav = simulation.navMesh();
         ui::EditorRequests req = shell.draw(ui::EditorFrameData{
             .playing = control.playing,
@@ -549,6 +559,8 @@ int runGui(EngineContext& engine) {
             .framebufferWidth = fb.width,
             .framebufferHeight = fb.height,
             .logLines = logLines,
+            .scripts = scriptViews,
+            .scriptErrors = scriptErrorViews,
             .editor = &editorInput,
             .sceneFiles = sceneFiles,
             .sceneName = engine.sceneName(),
@@ -613,6 +625,18 @@ int runGui(EngineContext& engine) {
                     o.ok ? "Saved " + o.result.value("path", std::string()) : "Save failed: " + o.error, !o.ok);
             } else if (o.command == "SetBehaviorTree" && !o.ok) {
                 shell.behaviourEditor().setStatus("Apply failed: " + o.error, true);
+            }
+            if (o.command == "LoadScript" || o.command == "ReloadScript" || o.command == "SaveScript") {
+                const std::string name = o.ok ? o.result.value("name", std::string()) : std::string();
+                if (!o.ok) {
+                    shell.scriptStatus(o.error, true);
+                } else if (!o.result.value("ok", true)) {
+                    shell.scriptStatus("Ran with an error: " + o.result.value("error", std::string()), true);
+                } else if (o.command == "SaveScript") {
+                    shell.scriptStatus("Saved " + o.result.value("path", std::string()) + " and ran it");
+                } else {
+                    shell.scriptStatus("Ran '" + (name.empty() ? std::string("script") : name) + "'");
+                }
             }
             if (o.command == "EvalLua") {
                 if (o.ok) {

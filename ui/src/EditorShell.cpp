@@ -483,41 +483,7 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::SetNextWindowDockID(logDock, ImGuiCond_FirstUseEver);
     }
     ImGui::Begin(kScriptWindow);
-    const float inputHeight = ImGui::GetTextLineHeight() * 5.0f;
-    ImGui::BeginChild("Transcript", ImVec2(0, -inputHeight - ImGui::GetFrameHeightWithSpacing() * 1.5f),
-                      ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar);
-    ImGui::PushFont(fonts_.mono, 0.0f);
-    for (const ConsoleLine& line : consoleLines_) {
-        if (line.error) {
-            ImGui::PushStyleColor(ImGuiCol_Text, palette::error());
-        }
-        ImGui::TextUnformatted(line.text.c_str());
-        if (line.error) {
-            ImGui::PopStyleColor();
-        }
-    }
-    if (consoleScroll_) {
-        ImGui::SetScrollHereY(1.0f);
-        consoleScroll_ = false;
-    }
-    ImGui::PopFont();
-    ImGui::EndChild();
-    ImGui::PushFont(fonts_.mono, 0.0f);
-    ImGui::InputTextMultiline("##lua", consoleInput_, sizeof(consoleInput_), ImVec2(-1.0f, inputHeight),
-                              ImGuiInputTextFlags_AllowTabInput);
-    ImGui::PopFont();
-    const bool ctrlEnter = ImGui::IsItemFocused() && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Enter);
-    if (ImGui::Button("Run") || ctrlEnter) {
-        const std::string source(consoleInput_);
-        consoleLines_.push_back({"> " + source, false});
-        consoleScroll_ = true;
-        req.commands.push_back(commands::makeCommand("EvalLua", {{"source", source}}));
-    }
-    ImGui::SetItemTooltip("Ctrl+Enter");
-    ImGui::SameLine();
-    if (ImGui::Button("Clear")) {
-        consoleLines_.clear();
-    }
+    drawScriptPanel(data, req);
     ImGui::End();
 
     // Metrics: plots, gates, recording. Docks with Simulation / Stats in older layouts.
@@ -563,6 +529,227 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::ShowDemoWindow(&showDemo_);
     }
     return req;
+}
+
+namespace {
+
+/// std::string-backed multiline input (ImGui writes into the string's buffer).
+int resizeString(ImGuiInputTextCallbackData* d) {
+    if (d->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+        auto* text = static_cast<std::string*>(d->UserData);
+        text->resize(static_cast<std::size_t>(d->BufTextLen));
+        d->Buf = text->data();
+    }
+    return 0;
+}
+
+constexpr const char* kNewScriptTemplate =
+    "-- Loaded when CrowdSim starts and again whenever this file is saved.\n"
+    "-- API: docs/scripting.md (scene, entities, bt, agents, sim, metrics, events, log).\n\n";
+
+}  // namespace
+
+void EditorShell::openScript(const ScriptView& script) {
+    openScript_ = std::string(script.name);
+    scriptBuffer_ = std::string(script.source);
+    scriptLoaded_ = scriptBuffer_;
+    scriptDirty_ = false;
+    selectScriptTab_ = true;
+}
+
+void EditorShell::drawScriptPanel(const EditorFrameData& data, EditorRequests& req) {
+    // Script list on the left; the console and the open script as tabs on the right.
+    const float listWidth = ImGui::GetFontSize() * 13.0f;
+    ImGui::BeginChild("ScriptList", ImVec2(listWidth, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_ResizeX);
+    drawScriptList(data, req);
+    ImGui::EndChild();
+    ImGui::SameLine();
+    ImGui::BeginGroup();
+    if (ImGui::BeginTabBar("ScriptTabs")) {
+        if (ImGui::BeginTabItem("Console")) {
+            drawConsole(req);
+            ImGui::EndTabItem();
+        }
+        if (!openScript_.empty()) {
+            bool open = true;
+            const std::string label = openScript_ + ".lua" + (scriptDirty_ ? " *" : "") + "###openscript";
+            const ImGuiTabItemFlags flags = (selectScriptTab_ ? ImGuiTabItemFlags_SetSelected : 0) |
+                                            (scriptDirty_ ? ImGuiTabItemFlags_UnsavedDocument : 0);
+            selectScriptTab_ = false;
+            if (ImGui::BeginTabItem(label.c_str(), &open, flags)) {
+                drawScriptEditor(data, req);
+                ImGui::EndTabItem();
+            }
+            if (!open) {
+                openScript_.clear();
+                scriptBuffer_.clear();
+                scriptDirty_ = false;
+            }
+        }
+        ImGui::EndTabBar();
+    }
+    ImGui::EndGroup();
+}
+
+void EditorShell::drawScriptList(const EditorFrameData& data, EditorRequests& req) {
+    sectionHeading("Scripts", fonts_);
+    if (data.scripts.empty()) {
+        ImGui::TextDisabled("None loaded.");
+    }
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    for (const ScriptView& s : data.scripts) {
+        const std::string name(s.name);
+        ImGui::PushID(name.c_str());
+        // Status dot: green loaded, red failed (hover for the error).
+        const ImVec2 at = ImGui::GetCursorScreenPos();
+        const float r = ImGui::GetFontSize() * 0.22f;
+        if (ImGui::Selectable(("      " + name).c_str(), openScript_ == name)) {
+            openScript(s);
+        }
+        dl->AddCircleFilled(ImVec2(at.x + r * 2.0f, at.y + ImGui::GetTextLineHeight() * 0.5f), r,
+                            ImGui::GetColorU32(s.ok ? palette::accent() : palette::error()));
+        if (!s.ok) {
+            ImGui::SetItemTooltip("%.*s", static_cast<int>(s.error.size()), s.error.data());
+        } else {
+            ImGui::SetItemTooltip("content/scripts/%s.lua: click to open", name.c_str());
+        }
+        ImGui::PopID();
+    }
+
+    sectionHeading("New script", fonts_);
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::InputTextWithHint("##newname", "name, e.g. my_study", newScriptName_, sizeof(newScriptName_));
+    const std::string newName(newScriptName_);
+    ImGui::BeginDisabled(newName.empty());
+    if (ImGui::Button("Create", ImVec2(-1.0f, 0))) {
+        req.commands.push_back(commands::makeCommand("SaveScript", {{"name", newName}, {"source", kNewScriptTemplate}}));
+        openScript(ScriptView{newName, kNewScriptTemplate, true, {}});
+        newScriptName_[0] = '\0';
+    }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("Creates content/scripts/<name>.lua and opens it");
+
+    sectionHeading("Load a file", fonts_);
+    ImGui::SetNextItemWidth(-1.0f);
+    ImGui::InputTextWithHint("##loadpath", "scripts/file.lua", loadScriptPath_, sizeof(loadScriptPath_));
+    if (ImGui::Button("Load and run", ImVec2(-1.0f, 0))) {
+        req.commands.push_back(commands::makeCommand("LoadScript", {{"path", std::string(loadScriptPath_)}}));
+    }
+    ImGui::SetItemTooltip("Path relative to the content folder, or absolute");
+
+    if (!data.scriptErrors.empty()) {
+        sectionHeading(std::format("Errors ({})", data.scriptErrors.size()).c_str(), fonts_);
+        ImGui::PushStyleColor(ImGuiCol_Text, palette::error());
+        const std::size_t first = data.scriptErrors.size() > 8 ? data.scriptErrors.size() - 8 : 0;
+        for (std::size_t k = data.scriptErrors.size(); k-- > first;) {  // newest first
+            const ScriptErrorView& e = data.scriptErrors[k];
+            ImGui::TextWrapped("%.*s: %.*s", static_cast<int>(e.where.size()), e.where.data(),
+                               static_cast<int>(e.message.size()), e.message.data());
+        }
+        ImGui::PopStyleColor();
+    }
+}
+
+void EditorShell::drawConsole(EditorRequests& req) {
+    // Evaluates Lua through the EvalLua command (logged and replayable).
+    const float inputHeight = ImGui::GetTextLineHeight() * 5.0f;
+    ImGui::BeginChild("Transcript", ImVec2(0, -inputHeight - ImGui::GetFrameHeightWithSpacing() * 1.5f),
+                      ImGuiChildFlags_Borders, ImGuiWindowFlags_HorizontalScrollbar);
+    ImGui::PushFont(fonts_.mono, 0.0f);
+    if (consoleLines_.empty()) {
+        ImGui::TextDisabled("Type Lua below and press Run. print() output and returned values appear here.");
+    }
+    for (const ConsoleLine& line : consoleLines_) {
+        if (line.error) {
+            ImGui::PushStyleColor(ImGuiCol_Text, palette::error());
+        }
+        ImGui::TextUnformatted(line.text.c_str());
+        if (line.error) {
+            ImGui::PopStyleColor();
+        }
+    }
+    if (consoleScroll_) {
+        ImGui::SetScrollHereY(1.0f);
+        consoleScroll_ = false;
+    }
+    ImGui::PopFont();
+    ImGui::EndChild();
+    ImGui::PushFont(fonts_.mono, 0.0f);
+    ImGui::InputTextMultiline("##lua", consoleInput_, sizeof(consoleInput_), ImVec2(-1.0f, inputHeight),
+                              ImGuiInputTextFlags_AllowTabInput);
+    ImGui::PopFont();
+    const bool ctrlEnter = ImGui::IsItemFocused() && ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Enter);
+    if (ImGui::Button("Run") || ctrlEnter) {
+        const std::string source(consoleInput_);
+        consoleLines_.push_back({"> " + source, false});
+        consoleScroll_ = true;
+        req.commands.push_back(commands::makeCommand("EvalLua", {{"source", source}}));
+    }
+    ImGui::SetItemTooltip("Ctrl+Enter");
+    ImGui::SameLine();
+    if (ImGui::Button("Clear")) {
+        consoleLines_.clear();
+    }
+}
+
+void EditorShell::drawScriptEditor(const EditorFrameData& data, EditorRequests& req) {
+    // Follow reloads from disk (file watcher, Reload) while there are no unsaved edits.
+    const ScriptView* loaded = nullptr;
+    for (const ScriptView& s : data.scripts) {
+        if (s.name == openScript_) {
+            loaded = &s;
+        }
+    }
+    if (loaded != nullptr && !scriptDirty_ && loaded->source != scriptLoaded_) {
+        scriptBuffer_ = std::string(loaded->source);
+        scriptLoaded_ = scriptBuffer_;
+    }
+
+    const bool save = ImGui::Button("Save") ||
+                      (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false) &&
+                       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows));
+    ImGui::SetItemTooltip("Write content/scripts/%s.lua and run it (Ctrl+S)", openScript_.c_str());
+    if (save) {
+        req.commands.push_back(
+            commands::makeCommand("SaveScript", {{"name", openScript_}, {"source", scriptBuffer_}}));
+        scriptLoaded_ = scriptBuffer_;
+        scriptDirty_ = false;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Run without saving")) {
+        req.commands.push_back(commands::makeCommand("LoadScript", {{"name", openScript_}, {"source", scriptBuffer_}}));
+    }
+    ImGui::SetItemTooltip("Run this text now; the file stays as it is");
+    ImGui::SameLine();
+    ImGui::BeginDisabled(!scriptDirty_);
+    if (ImGui::Button("Revert")) {
+        scriptBuffer_ = scriptLoaded_;
+        scriptDirty_ = false;
+    }
+    ImGui::EndDisabled();
+    ImGui::SameLine();
+    if (ImGui::Button("Reload from file")) {
+        req.commands.push_back(commands::makeCommand("ReloadScript", {{"name", openScript_}}));
+        scriptDirty_ = false;
+    }
+    if (!scriptStatus_.empty()) {
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextColored(scriptStatusError_ ? palette::error() : palette::textDim(), "%s", scriptStatus_.c_str());
+    }
+    if (loaded != nullptr && !loaded->ok) {
+        ImGui::PushStyleColor(ImGuiCol_Text, palette::error());
+        ImGui::TextWrapped("%.*s", static_cast<int>(loaded->error.size()), loaded->error.data());
+        ImGui::PopStyleColor();
+    }
+
+    ImGui::PushFont(fonts_.mono, 0.0f);
+    if (ImGui::InputTextMultiline("##source", scriptBuffer_.data(), scriptBuffer_.capacity() + 1, ImVec2(-1.0f, -1.0f),
+                                  ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize,
+                                  resizeString, &scriptBuffer_)) {
+        scriptDirty_ = scriptBuffer_ != scriptLoaded_;
+    }
+    ImGui::PopFont();
 }
 
 void EditorShell::consoleOutput(const std::string& text, bool error) {
