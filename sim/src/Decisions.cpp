@@ -726,6 +726,9 @@ BtStatus Simulation::tickNode(const CompiledTree& tree, std::uint16_t index, std
         case BtNodeType::SetPushing:
             agents_.push[i] = n.number[0];
             return BtStatus::Success;
+        case BtNodeType::UseEmergencyRoutes:
+            agents_.emergencyRoutes[i] = n.number[0] > 0.0f ? 1 : 0;
+            return BtStatus::Success;
         case BtNodeType::Despawn:
             agents_.despawnRequested[i] = 1;
             agents_.moveMode[i] = MoveMode::Stop;

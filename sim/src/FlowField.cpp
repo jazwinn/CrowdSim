@@ -28,7 +28,9 @@ constexpr float kLevelMove = 0.2f;
 
 }  // namespace
 
-FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<const std::int8_t> climb) {
+FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<const std::int8_t> climb,
+                         std::span<const std::uint8_t> closed) {
+    const auto isClosed = [&](std::uint32_t d) { return !closed.empty() && closed[d] != 0; };
     CS_PROFILE_ZONE();
     FlowField f;
     const std::uint32_t n = nav.polyCount();
@@ -47,7 +49,7 @@ FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<con
 
     for (std::uint32_t d = 0; d < n; ++d) {
         const glm::vec3 c = nav.polyCenter(d);
-        if (!nav.isOffMeshConnection(d) && goalArea.contains3d(c, 1.5f)) {
+        if (!nav.isOffMeshConnection(d) && !isClosed(d) && goalArea.contains3d(c, 1.5f)) {
             f.source[d] = 1;
             f.cost[d] = 0.0f;
             open.emplace(0.0f, d);
@@ -58,7 +60,7 @@ FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<con
         if (auto nearest = nav.findNearest(goalArea.center3d(),
                                            {goalArea.halfExtents.x + 1.0f, 2.0f, goalArea.halfExtents.y + 1.0f})) {
             const std::uint32_t d = nav.denseIndex(nearest->ref);
-            if (d != kNoPoly) {
+            if (d != kNoPoly && !isClosed(d)) {
                 f.source[d] = 1;
                 f.cost[d] = 0.0f;
                 open.emplace(0.0f, d);
@@ -74,6 +76,9 @@ FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<con
         }
         const glm::vec3 cu = nav.polyCenter(u);
         for (std::uint32_t p : nav.predecessors(u)) {
+            if (isClosed(p)) {
+                continue;
+            }
             if (!climb.empty()) {
                 // The move is p -> u. On a one-way polygon it must go the way the steps do.
                 const std::int8_t way = climb[p] != 0 ? climb[p] : climb[u];

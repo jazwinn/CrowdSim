@@ -291,6 +291,11 @@ public:
     [[nodiscard]] SimStats stats() const noexcept;
     [[nodiscard]] const NavMesh& navMesh() const noexcept { return navMesh_; }
     [[nodiscard]] const std::vector<FlowField>& flowFields() const noexcept { return flowFields_; }
+    /// Fields that also use emergency routes (objects tagged "emergency"); empty when the
+    /// scene has none, and then everyone uses flowFields().
+    [[nodiscard]] const std::vector<FlowField>& emergencyFlowFields() const noexcept { return emergencyFlowFields_; }
+    /// The field agent `i` follows towards its goal (normal or emergency routes), or null.
+    [[nodiscard]] const FlowField* flowFieldFor(std::uint32_t agent) const noexcept;
     /// Combined static geometry (valid after updateNavigation / the first step).
     [[nodiscard]] const geometry::TriangleMesh& staticMesh() const noexcept { return staticMesh_; }
     /// Increments whenever static geometry, navmesh or flow fields change.
@@ -333,6 +338,7 @@ private:
     void rebuildTreeLookups();
     void rebuildTaggedVolumes();
     void rebuildEscalators();
+    void rebuildEmergencyRoutes();
     [[nodiscard]] static std::int8_t escalatorSideOf(std::string_view side);
     void assignEscalatorLanes();
     [[nodiscard]] glm::vec2 escalatorSteering(std::uint32_t agent, glm::vec2 pref) const;
@@ -376,7 +382,9 @@ private:
     // Navigation (derived from the scene; rebuilt when dirty)
     geometry::TriangleMesh staticMesh_;
     NavMesh navMesh_;
-    std::vector<FlowField> flowFields_;
+    std::vector<FlowField> flowFields_;           ///< everyday routes (emergency routes closed)
+    std::vector<FlowField> emergencyFlowFields_;  ///< all routes; empty without emergency routes
+    std::vector<std::uint8_t> polyEmergency_;     ///< per dense polygon: on an emergency route
     bool navDirty_ = true;
     bool flowDirty_ = true;
     std::uint64_t staticVersion_ = 0;

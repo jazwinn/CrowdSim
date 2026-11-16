@@ -406,6 +406,7 @@ bool Simulation::updateNavigation() {
         }
         rebuildTaggedVolumes();
         rebuildEscalators();
+        rebuildEmergencyRoutes();
         navDirty_ = false;
         flowDirty_ = true;
         changed = true;
@@ -413,8 +414,16 @@ bool Simulation::updateNavigation() {
     if (flowDirty_) {
         CS_PROFILE_ZONE_NAMED("BuildFlowFields");
         flowFields_.clear();
+        emergencyFlowFields_.clear();
+        const bool emergency = std::find(polyEmergency_.begin(), polyEmergency_.end(), 1) != polyEmergency_.end();
         for (entt::entity e : goals_) {
-            flowFields_.push_back(buildFlowField(navMesh_, registry_.get<Goal>(e).area, polyClimb_));
+            const Area& area = registry_.get<Goal>(e).area;
+            flowFields_.push_back(buildFlowField(navMesh_, area, polyClimb_,
+                                                 emergency ? std::span<const std::uint8_t>(polyEmergency_)
+                                                           : std::span<const std::uint8_t>()));
+            if (emergency) {
+                emergencyFlowFields_.push_back(buildFlowField(navMesh_, area, polyClimb_));
+            }
         }
         rebuildTreeLookups();  // goal names may have changed
         flowDirty_ = false;
@@ -425,6 +434,34 @@ bool Simulation::updateNavigation() {
         staticSceneCache_.reset();
     }
     return changed;
+}
+
+const FlowField* Simulation::flowFieldFor(std::uint32_t i) const noexcept {
+    const std::uint32_t g = agents_.goalIndex[i];
+    const std::vector<FlowField>& fields =
+        agents_.emergencyRoutes[i] != 0 && !emergencyFlowFields_.empty() ? emergencyFlowFields_ : flowFields_;
+    return g < fields.size() ? &fields[g] : nullptr;
+}
+
+void Simulation::rebuildEmergencyRoutes() {
+    // Emergency routes (fire stairs, exit doors) are objects tagged "emergency": everyday
+    // routing keeps out of them, and agents told to (UseEmergencyRoutes) use them too.
+    polyEmergency_.assign(navMesh_.polyCount(), 0);
+    const auto it = std::find(tagNames_.begin(), tagNames_.end(), "emergency");
+    if (it == tagNames_.end()) {
+        return;
+    }
+    const auto tag = static_cast<std::uint16_t>(it - tagNames_.begin());
+    for (std::uint32_t d = 0; d < polyEmergency_.size(); ++d) {
+        const glm::vec3 c = navMesh_.polyCenter(d);
+        for (const TaggedVolume& v : taggedVolumes_) {
+            if (v.tag == tag && c.x >= v.min.x && c.x <= v.max.x && c.z >= v.min.z && c.z <= v.max.z &&
+                c.y >= v.min.y - 0.5f && c.y <= v.max.y + 0.5f) {
+                polyEmergency_[d] = 1;
+                break;
+            }
+        }
+    }
 }
 
 void Simulation::step() {
@@ -709,8 +746,8 @@ void Simulation::computePreferredVelocities() {
                 case MoveMode::Goal: {
                     const glm::vec3 target = agents_.goalTarget[i];
                     steerTo = target;
-                    if (useNav && agents_.linkActive[i] == 0 && agents_.goalIndex[i] < flowFields_.size()) {
-                        const FlowField& ff = flowFields_[agents_.goalIndex[i]];
+                    if (useNav && agents_.linkActive[i] == 0 && flowFieldFor(i) != nullptr) {
+                        const FlowField& ff = *flowFieldFor(i);
                         const std::uint32_t dense = navMesh_.denseIndex(agents_.navPoly[i]);
                         if (dense != kNoPoly && ff.next[dense] != kNoPoly) {
                             // Collect a short corridor of portals along the flow field and string-pull it.
@@ -999,9 +1036,9 @@ void Simulation::integrate(float dt) {
                 if (useNav && detour != nullptr) {
                     // Next polygon on the way: from the flow field (Goal) or the path corridor (Point).
                     PolyRef nextPoly = 0;
-                    if (agents_.moveMode[i] == MoveMode::Goal && agents_.goalIndex[i] < flowFields_.size()) {
+                    if (agents_.moveMode[i] == MoveMode::Goal && flowFieldFor(i) != nullptr) {
                         const std::uint32_t dense = navMesh_.denseIndex(agents_.navPoly[i]);
-                        const FlowField& ff = flowFields_[agents_.goalIndex[i]];
+                        const FlowField& ff = *flowFieldFor(i);
                         if (dense != kNoPoly && ff.next[dense] != kNoPoly) {
                             nextPoly = navMesh_.refAt(ff.next[dense]);
                         }

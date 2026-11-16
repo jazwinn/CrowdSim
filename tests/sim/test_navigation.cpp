@@ -5,6 +5,7 @@
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/geometry/Primitives.hpp"
+#include "crowdsim/sim/BehaviorTree.hpp"
 #include "crowdsim/sim/Scenarios.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 #include "crowdsim/snapshot/RenderSnapshot.hpp"
@@ -118,4 +119,71 @@ TEST_CASE("Static scene snapshot carries meshes, navmesh and flow arrows") {
     w.sim.step();
     w.sim.writeSnapshot(snap2);
     CHECK(snap2.staticScene.get() == snap.staticScene.get());
+}
+
+TEST_CASE("Emergency routes: only agents told to use them route through them") {
+    // A hall with two ways out: a short fire exit corridor tagged "emergency", and a long
+    // everyday corridor round the north side.
+    struct Result {
+        std::uint32_t arrived = 0;
+        bool usedFireExit = false;
+    };
+    auto run = [](bool useEmergency) {
+        World w;
+        auto floor = [&](float x0, float x1, float z0, float z1, std::vector<std::string> tags) {
+            geometry::PrimitiveDesc d;
+            d.position = {(x0 + x1) / 2, -0.2f, (z0 + z1) / 2};
+            d.size = {x1 - x0, 0.2f, z1 - z0};
+            w.sim.addStaticObject(sim::StaticObject{"floor", d, {}, {}, std::move(tags)});
+        };
+        floor(-10.0f, 10.0f, -5.0f, 5.0f, {});                // hall
+        floor(10.0f, 20.0f, -1.0f, 1.0f, {"emergency"});      // fire exit corridor
+        floor(-10.0f, 26.0f, 5.0f, 8.0f, {});                 // everyday corridor
+        floor(20.0f, 26.0f, -5.0f, 5.0f, {});                 // outside
+
+        sim::BtNodeDesc use{"UseEmergencyRoutes", "use", {}, {}};
+        use.params["use"].number = useEmergency ? 1.0f : 0.0f;
+        sim::BtNodeDesc root{"Sequence", "root", {}, {use, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}},
+                                                      sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+        w.sim.setBehaviorTree(sim::compileBehaviorTree(root, "leaver"));
+        sim::AgentType t;
+        t.name = "leaver";
+        t.behaviour = "leaver";
+        w.sim.defineAgentType(t);
+        sim::Goal goal;
+        goal.name = "outside";
+        goal.area = {{23.0f, -2.0f}, {2.0f, 2.0f}, 0.0f};
+        const sim::SceneId goalId = w.sim.addGoal(goal);
+        sim::Spawner s;
+        s.name = "hall";
+        s.area = {{-5.0f, 0.0f}, {2.0f, 2.0f}, 0.0f};
+        s.rate = 5.0f;
+        s.total = 5;
+        s.goal = goalId;
+        s.agentMix = {{"leaver", 1.0f}};
+        w.sim.addSpawner(s);
+        REQUIRE(w.sim.updateNavigation());
+        REQUIRE(w.sim.emergencyFlowFields().size() == 1);
+        Result r;
+        for (int step = 0; step < 30 * 90; ++step) {
+            w.sim.step();
+            const auto& a = w.sim.agents();
+            for (std::uint32_t i = 0; i < a.size(); ++i) {
+                r.usedFireExit = r.usedFireExit || (a.position[i].x > 12.0f && a.position[i].x < 18.0f &&
+                                                    std::abs(a.position[i].y) < 1.5f);
+            }
+        }
+        r.arrived = static_cast<std::uint32_t>(w.sim.stats().arrived);
+        return r;
+    };
+    const Result evacuees = run(true);
+    CHECK(evacuees.arrived == 5);
+    CHECK(evacuees.usedFireExit);
+    const Result shoppers = run(false);
+    CHECK(shoppers.arrived == 5);
+    CHECK_FALSE(shoppers.usedFireExit);
+
+    sim::BtNodeDesc negative{"UseEmergencyRoutes", "use", {}, {}};
+    negative.params["use"].number = -1.0f;
+    CHECK_THROWS((void)sim::compileBehaviorTree(negative, "bad"));
 }

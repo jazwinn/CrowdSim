@@ -256,11 +256,10 @@ void Simulation::assignEscalatorLanes() {
 }
 
 bool Simulation::boardsEscalator(std::uint32_t i, const Escalator& e) const {
-    const std::uint32_t g = agents_.goalIndex[i];
-    if (agents_.moveMode[i] == MoveMode::Goal && g < flowFields_.size()) {
+    if (agents_.moveMode[i] == MoveMode::Goal && flowFieldFor(i) != nullptr) {
         // Follow the flow field a few polygons on from where the agent stands.
         constexpr int kLookAhead = 6;
-        const FlowField& f = flowFields_[g];
+        const FlowField& f = *flowFieldFor(i);
         std::uint32_t d = navMesh_.denseIndex(agents_.navPoly[i]);
         for (int hop = 0; hop < kLookAhead && d < f.next.size(); ++hop) {
             const glm::vec3 c = navMesh_.polyCenter(d);

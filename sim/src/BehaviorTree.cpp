@@ -15,7 +15,7 @@ constexpr BtParamSpec kNone{"", K::Number, 0.0f, "", ""};
 // Composite children limit: kBtMaxNodes bounds the tree anyway.
 constexpr std::uint8_t kMany = 32;
 
-constexpr std::array<BtNodeTypeInfo, 31> kNodeTypes = {{
+constexpr std::array<BtNodeTypeInfo, 32> kNodeTypes = {{
     {BtNodeType::Sequence,
      "Sequence",
      BtCategory::Composite,
@@ -220,6 +220,16 @@ constexpr std::array<BtNodeTypeInfo, 31> kNodeTypes = {{
                   "N pressed towards where you are going once bodies touch (0 = only shuffle along)"},
       kNone, kNone},
      "From now on, push into a packed crowd this hard (scene bodies; the default is 100 N)."},
+    {BtNodeType::UseEmergencyRoutes,
+     "UseEmergencyRoutes",
+     BtCategory::Action,
+     0,
+     0,
+     1,
+     {BtParamSpec{"use", K::Number, 1.0f, "", "1 = also take emergency routes, 0 = everyday routes only"}, kNone,
+      kNone},
+     "From now on, find the way to goals through emergency routes too (objects tagged emergency: fire stairs, exit "
+     "doors); everyone else keeps out of them."},
     {BtNodeType::Despawn,
      "Despawn",
      BtCategory::Action,
@@ -401,6 +411,7 @@ public:
         }
         if ((node.type == BtNodeType::SetEscalatorStyle || node.type == BtNodeType::SetEscalatorBoarding ||
              node.type == BtNodeType::SetQueueManners || node.type == BtNodeType::SetPushing ||
+             node.type == BtNodeType::UseEmergencyRoutes ||
              node.type == BtNodeType::IsBlocked) &&
             (node.number[0] < 0.0f || node.number[1] < 0.0f)) {
             throw std::invalid_argument(std::format("{}: {} parameters must not be negative", path, info->name));

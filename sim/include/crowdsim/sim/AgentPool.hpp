@@ -116,6 +116,7 @@ public:
     std::vector<EscalatorRider> rider;
     std::vector<QueueManners> manners;
     std::vector<float> push;  ///< N pressed forward when touching others (SetPushing)
+    std::vector<std::uint8_t> emergencyRoutes;  ///< 1 = routes may use emergency routes (UseEmergencyRoutes)
 
     // --- Bodies in dense crowds (only when the scene enables BodyParams) ---
     std::vector<float> pressure;         ///< N/m: compressive force on the body per metre of its width
@@ -199,6 +200,7 @@ public:
         rider.push_back(EscalatorRider{});
         manners.push_back(QueueManners{});
         push.push_back(kDefaultPush);
+        emergencyRoutes.push_back(0);
         pressure.push_back(0.0f);
         bodyForce.push_back(glm::vec2(0.0f));
         wallForce.push_back(glm::vec2(0.0f));
@@ -287,6 +289,7 @@ private:
         f(rider);
         f(manners);
         f(push);
+        f(emergencyRoutes);
         f(pressure);
         f(bodyForce);
         f(wallForce);

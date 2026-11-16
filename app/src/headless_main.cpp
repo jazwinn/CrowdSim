@@ -54,7 +54,8 @@ void dumpRemaining(sim::Simulation& sim) {
     const sim::AgentPool& a = sim.agents();
     for (std::uint32_t i = 0; i < std::min<std::uint32_t>(a.size(), 50); ++i) {
         const std::uint32_t dense = sim.navMesh().denseIndex(a.navPoly[i]);
-        const bool reachable = dense != sim::kNoPoly && sim.flowFields()[a.goalIndex[i]].reachable(dense);
+        const sim::FlowField* field = sim.flowFieldFor(i);
+        const bool reachable = dense != sim::kNoPoly && field != nullptr && field->reachable(dense);
         std::fprintf(stderr,
                      "agent %u pos=(%.2f, %.2f, %.2f) vel=(%.2f, %.2f) pref=(%.2f, %.2f) orca=(%.2f, %.2f) poly=%u "
                      "dense=%u reachable=%d link=%d\n",

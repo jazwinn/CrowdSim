@@ -38,7 +38,10 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   local +Z), `plane`, or `mesh` (glTF `asset`, uniform `scale`). `position` is the centre of the
   footprint at the object's lowest point; `rotationY` is in degrees (+Z turns towards +X).
 - **Tags**: `walkable` (may become navmesh if flat enough), `obstacle` (never walkable, blocks).
-  Other tags (`area:<name>`, `door`, ...) are preserved for scripts and metrics.
+  `emergency` marks an emergency route (fire stairs, the floor outside an exit door): everyday
+  routing to goals keeps out of it, and only agents whose tree runs `UseEmergencyRoutes` take it
+  (two sets of flow fields are kept when a scene has any). Other tags (`area:<name>`, `door`, ...)
+  are preserved for scripts and metrics.
 - **Escalators**: a `stairs` or `ramp` object tagged `escalator` moves its riders from the low
   edge to the high edge (`escalator:down` reverses it); `escalator:speed=<m/s>` is the step speed
   along the slope (default 0.5). Escalators are one-way for goal routing (flow fields): nobody is
@@ -153,6 +156,7 @@ reloaded tree restart from its root. Scene files embed the trees they use under 
 | `SetState` | action | 0 | `name` ("walking") | Set the state label (debugger, metrics). |
 | `SetQueueManners` | action | 0 | `gap` (0.6), `ease` (0.5) | From now on, slow to a stop `gap` m behind whoever is ahead in your line instead of pressing into them (0 = off, the default). |
 | `SetPushing` | action | 0 | `force` (100) | From now on, press this hard (N) towards where you are going once bodies touch (scene bodies). Agents that never run it push with 100 N; 0 = only shuffle along. |
+| `UseEmergencyRoutes` | action | 0 | `use` (1) | From now on, find the way to goals through emergency routes too (objects tagged `emergency`: fire stairs, exit doors); 0 = everyday routes only, the default. |
 | `SetEscalatorStyle` | action | 0 | `side` ("either"), `walk` (0), `clear` (2) | How to ride escalators from now on: `side` `left`, `right`, `either` (your side; near the middle the shorter line) or `shorter`; `walk` = own pace on the steps × preferred speed (0 = stand); walk `clear` m straight off before turning. Without it: either side, pace 0.45. |
 | `SetEscalatorBoarding` | action | 0 | `gap` (0.9), `squeeze` (1) | How to step onto escalators: standers wait until the person ahead in their lane is `gap` m away; `squeeze` 1 = when pushed to the front on the wrong side, step on (or switch lanes) anyway. |
 | `Despawn` | action | 0 | – | Remove the agent. |

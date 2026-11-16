@@ -35,8 +35,9 @@ struct FlowField {
 /// Build the field for a goal area on `nav`. Deterministic (ties broken by index).
 /// `climb` (optional, one entry per dense polygon) makes polygons one-way in height:
 /// +1 = moves into or out of it may only go up (an up escalator), -1 = only down,
-/// 0 = either way.
+/// 0 = either way. `closed` (optional, per dense polygon) leaves polygons out entirely.
 [[nodiscard]] FlowField buildFlowField(const NavMesh& nav, const Area& goalArea,
-                                       std::span<const std::int8_t> climb = {});
+                                       std::span<const std::int8_t> climb = {},
+                                       std::span<const std::uint8_t> closed = {});
 
 }  // namespace crowdsim::sim
