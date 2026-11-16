@@ -1,0 +1,11 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "reveller_pushing",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "id": "label", "params": {"name": "pushing"}},
+    {"type": "SetPushing", "id": "push", "params": {"force": 350}},
+    {"type": "MoveToGoal", "id": "walk"},
+    {"type": "Despawn", "id": "leave"}
+  ]}
+}

@@ -1,0 +1,16 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "reveller_metered_down",
+  "behaviour": "reveller_metered_down",
+  "radius": [0.2, 0.25],
+  "preferredSpeed": [0.95, 1.35],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 2.5,
+  "mass": [50, 85],
+  "personalSpace": 0.04,
+  "height": 1.7,
+  "color": "#d98c40",
+  "colorJitter": 0.12,
+  "tags": []
+}

@@ -1,0 +1,16 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "reveller_pushing",
+  "behaviour": "reveller_pushing",
+  "radius": [0.22, 0.26],
+  "preferredSpeed": [1.2, 1.5],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "mass": [70, 95],
+  "personalSpace": 0.02,
+  "height": 1.78,
+  "color": "#b4473a",
+  "colorJitter": 0.08,
+  "tags": []
+}

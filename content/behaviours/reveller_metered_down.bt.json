@@ -1,0 +1,15 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "reveller_metered_down",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "id": "label", "params": {"name": "walking"}},
+    {"type": "SetPushing", "id": "push", "params": {"force": 120}},
+    {"type": "SetQueueManners", "id": "manners", "params": {"gap": 0.55, "ease": 0.4}},
+    {"type": "SetState", "id": "held", "params": {"name": "held by marshals"}},
+    {"type": "Queue", "id": "wait", "params": {"goal": "Marshal (alley top)"}},
+    {"type": "SetState", "id": "label2", "params": {"name": "walking"}},
+    {"type": "MoveToGoal", "id": "walk"},
+    {"type": "Despawn", "id": "leave"}
+  ]}
+}

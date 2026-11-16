@@ -1,0 +1,23 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "reveller",
+  "root": {"type": "Sequence", "id": "root", "children": [
+    {"type": "SetState", "id": "label", "params": {"name": "walking"}},
+    {"type": "Parallel", "id": "go", "params": {"successThreshold": 1}, "children": [
+      {"type": "Sequence", "id": "trip", "children": [
+        {"type": "MoveToGoal", "id": "walk"},
+        {"type": "Despawn", "id": "leave"}
+      ]},
+      {"type": "Repeat", "id": "keep", "children": [
+        {"type": "Selector", "id": "how hard", "children": [
+          {"type": "Sequence", "id": "give up pushing", "children": [
+            {"type": "IsBlocked", "id": "stuck a while", "params": {"seconds": 20}},
+            {"type": "SetPushing", "id": "ease off", "params": {"force": 40}}
+          ]},
+          {"type": "SetPushing", "id": "press on", "params": {"force": 120}}
+        ]}
+      ]}
+    ]}
+  ]}
+}
