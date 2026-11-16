@@ -106,8 +106,10 @@ public:
     std::vector<glm::vec3> linkStart;
     std::vector<glm::vec3> linkEnd;
     std::vector<std::uint32_t> linkEndPoly;
-    // Escalator lane while boarding or riding: -1 left, +1 right, 0 none.
+    // Escalator lane while boarding or riding: -1 left, +1 right, 0 none; and which
+    // escalator (index into Simulation::escalators()) that lane is on.
     std::vector<std::int8_t> escalatorLane;
+    std::vector<std::uint16_t> escalatorIndex;
     // Behaviour settings from the agent's tree (see EscalatorRider, QueueManners).
     std::vector<EscalatorRider> rider;
     std::vector<QueueManners> manners;
@@ -191,6 +193,7 @@ public:
         linkEnd.push_back(glm::vec3(0.0f));
         linkEndPoly.push_back(0);
         escalatorLane.push_back(0);
+        escalatorIndex.push_back(0);
         rider.push_back(EscalatorRider{});
         manners.push_back(QueueManners{});
         push.push_back(kDefaultPush);
@@ -278,6 +281,7 @@ private:
         f(linkEnd);
         f(linkEndPoly);
         f(escalatorLane);
+        f(escalatorIndex);
         f(rider);
         f(manners);
         f(push);

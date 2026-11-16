@@ -61,7 +61,7 @@ glm::vec2 Simulation::applyQueueManners(std::uint32_t i, glm::vec2 pref) const {
         }
         const bool inPath = std::abs(glm::dot(d, right)) < kFile;
         if (line != nullptr) {
-            if (inPath || agents_.escalatorLane[j] == lane) {
+            if (inPath || (agents_.escalatorLane[j] == lane && agents_.escalatorIndex[j] == agents_.escalatorIndex[i])) {
                 ahead = std::min(ahead, along);
             }
             return;

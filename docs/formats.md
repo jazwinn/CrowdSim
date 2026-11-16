@@ -41,8 +41,11 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   Other tags (`area:<name>`, `door`, ...) are preserved for scripts and metrics.
 - **Escalators**: a `stairs` or `ramp` object tagged `escalator` moves its riders from the low
   edge to the high edge (`escalator:down` reverses it); `escalator:speed=<m/s>` is the step speed
-  along the slope (default 0.5). Two lanes fit when the object is at least 2.4 m wide (the navmesh
-  loses about 0.5 m per side). Everything about how people ride is behaviour, set by tree nodes:
+  along the slope (default 0.5). Escalators are one-way for goal routing (flow fields): nobody is
+  sent up a down escalator, so an up/down pair carries one direction each, and only people whose
+  route goes onto an escalator line up for it. (Point-to-point paths, `MoveToPoint` and `Wander`,
+  do not check the direction yet.) Two lanes fit when the object is at least 2.4 m wide (the
+  navmesh loses about 0.5 m per side). Everything about how people ride is behaviour, set by tree nodes:
   `SetEscalatorStyle` (side, walking pace, clearing the landing), `SetEscalatorBoarding` (gap,
   squeezing on) and the general `SetQueueManners`. See `scenes/escalator_etiquette.scene.json`
   and `behaviours/escalator_*.bt.json`.

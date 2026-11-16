@@ -233,3 +233,84 @@ TEST_CASE("SetEscalatorStyle rejects an unknown side") {
     bad.params["side"].text = "middle";
     CHECK_THROWS_AS((void)sim::compileBehaviorTree(bad, "bad"), std::invalid_argument);
 }
+
+TEST_CASE("Flow fields never route people against the steps") {
+    World w("stand-left");  // one up escalator; goal "top" on the upper landing
+    sim::Goal bottom;
+    bottom.name = "bottom";
+    bottom.area = {{0.0f, -kRun / 2 - 9.0f}, {3.0f, 1.5f}, 0.0f};
+    (void)w.sim.addGoal(bottom);
+    REQUIRE(w.sim.updateNavigation());
+    const sim::NavMesh& nav = w.sim.navMesh();
+    auto dense = [&](glm::vec3 p) {
+        const auto hit = nav.findNearest(p, {1.0f, 1.0f, 1.0f});
+        REQUIRE(hit.has_value());
+        return nav.denseIndex(hit->ref);
+    };
+    const std::uint32_t lower = dense({0.0f, 0.0f, -kRun / 2 - 4.0f});
+    const std::uint32_t upper = dense({0.0f, kRise, kRun / 2 + 4.0f});
+    const auto& fields = w.sim.flowFields();
+    REQUIRE(fields.size() == 2);
+    CHECK(fields[0].reachable(lower));   // up the escalator: fine
+    CHECK(!fields[1].reachable(upper));  // down the up escalator: no route
+}
+
+TEST_CASE("Riders stepping off an up escalator do not board the down escalator beside it") {
+    // An up and a down escalator side by side; the goal is on the upper landing beyond the
+    // head of the down one, so riders walk across its boarding approach.
+    core::LogService logs{core::LogConfig{.console = false}};
+    core::JobSystem jobs{4};
+    sim::Simulation sim{{logs.logger(), jobs}, sim::SimConfig{}};
+    auto box = [&](glm::vec3 pos, glm::vec3 size) {
+        geometry::PrimitiveDesc d;
+        d.position = pos;
+        d.size = size;
+        sim.addStaticObject(sim::StaticObject{"floor", d, {}, {}, {}});
+    };
+    box({0.0f, -0.2f, -kRun / 2 - 6.0f}, {12.0f, 0.2f, 12.0f});
+    box({0.0f, kRise - 0.2f, kRun / 2 + 6.0f}, {12.0f, 0.2f, 12.0f});
+    for (const float x : {-1.5f, 1.5f}) {
+        geometry::PrimitiveDesc esc;
+        esc.kind = geometry::PrimitiveKind::Stairs;
+        esc.position = {x, 0.0f, 0.0f};
+        esc.size = {2.4f, kRise, kRun};
+        esc.steps = 30;
+        std::vector<std::string> tags{"escalator"};
+        if (x > 0.0f) {
+            tags.emplace_back("escalator:down");
+        }
+        sim.addStaticObject(sim::StaticObject{"escalator", esc, {}, {}, tags});
+    }
+    sim::BtNodeDesc root{"Sequence", "root", {}, {sim::BtNodeDesc{"MoveToGoal", "go", {}, {}},
+                                                  sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+    sim.setBehaviorTree(sim::compileBehaviorTree(root, "up"));
+    sim::AgentType t;
+    t.name = "up";
+    t.behaviour = "up";
+    t.params.radiusMin = t.params.radiusMax = 0.24f;
+    sim.defineAgentType(t);
+    sim::Goal goal;
+    goal.name = "beyond";
+    goal.area = {{4.5f, kRun / 2 + 2.5f}, {1.0f, 1.0f}, kRise};
+    const sim::SceneId goalId = sim.addGoal(goal);
+    sim::Spawner s;
+    s.name = "bottom";
+    s.area = {{-1.5f, -kRun / 2 - 9.0f}, {1.0f, 0.5f}, 0.0f};
+    s.rate = 1.0f;
+    s.total = 8;
+    s.goal = goalId;
+    s.agentMix = {{"up", 1.0f}};
+    sim.addSpawner(s);
+
+    bool rodeDown = false;
+    for (int step = 0; step < 30 * 120; ++step) {
+        sim.step();
+        const auto& a = sim.agents();
+        for (std::uint32_t i = 0; i < a.size(); ++i) {
+            // On the down escalator's steps (x > 0, between the landings).
+            rodeDown = rodeDown || (a.position[i].x > 0.4f && std::abs(a.position[i].y) < kRun / 2 - 0.5f);
+        }
+    }
+    CHECK_FALSE(rodeDown);
+    CHECK(sim.stats().arrived == 8);
+}

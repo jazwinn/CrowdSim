@@ -414,7 +414,7 @@ bool Simulation::updateNavigation() {
         CS_PROFILE_ZONE_NAMED("BuildFlowFields");
         flowFields_.clear();
         for (entt::entity e : goals_) {
-            flowFields_.push_back(buildFlowField(navMesh_, registry_.get<Goal>(e).area));
+            flowFields_.push_back(buildFlowField(navMesh_, registry_.get<Goal>(e).area, polyClimb_));
         }
         rebuildTreeLookups();  // goal names may have changed
         flowDirty_ = false;

@@ -336,6 +336,8 @@ private:
     [[nodiscard]] static std::int8_t escalatorSideOf(std::string_view side);
     void assignEscalatorLanes();
     [[nodiscard]] glm::vec2 escalatorSteering(std::uint32_t agent, glm::vec2 pref) const;
+    /// Whether the agent's way on leads onto escalator `e` (so it should line up for it).
+    [[nodiscard]] bool boardsEscalator(std::uint32_t agent, const Escalator& e) const;
     [[nodiscard]] glm::vec2 beltVelocityAt(glm::vec2 position, float height) const;
     /// On the steps, or within `clear` m of stepping off.
     [[nodiscard]] bool onEscalator(glm::vec2 position, float height, float clear) const;
@@ -413,6 +415,7 @@ private:
     std::vector<std::string> tagNames_{""};
     std::vector<TaggedVolume> taggedVolumes_;
     std::vector<Escalator> escalators_;
+    std::vector<std::int8_t> polyClimb_;  ///< per dense polygon: +1 on an up escalator, -1 down
 };
 
 }  // namespace crowdsim::sim

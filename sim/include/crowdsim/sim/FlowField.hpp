@@ -8,6 +8,7 @@
 /// corridor instead of running a path query.
 
 #include <cstdint>
+#include <span>
 #include <vector>
 
 #include <glm/vec3.hpp>
@@ -32,6 +33,10 @@ struct FlowField {
 };
 
 /// Build the field for a goal area on `nav`. Deterministic (ties broken by index).
-[[nodiscard]] FlowField buildFlowField(const NavMesh& nav, const Area& goalArea);
+/// `climb` (optional, one entry per dense polygon) makes polygons one-way in height:
+/// +1 = moves into or out of it may only go up (an up escalator), -1 = only down,
+/// 0 = either way.
+[[nodiscard]] FlowField buildFlowField(const NavMesh& nav, const Area& goalArea,
+                                       std::span<const std::int8_t> climb = {});
 
 }  // namespace crowdsim::sim

@@ -137,6 +137,24 @@ void Simulation::rebuildEscalators() {
         e.laneOffset = std::min(0.3f, usable);
         escalators_.push_back(e);
     }
+
+    // Escalators are one-way: flow fields never route people against the steps, so
+    // up and down escalators side by side each carry their own direction.
+    polyClimb_.assign(escalators_.empty() ? 0 : navMesh_.polyCount(), 0);
+    for (std::uint32_t d = 0; d < polyClimb_.size(); ++d) {
+        if (navMesh_.isOffMeshConnection(d)) {
+            continue;
+        }
+        const glm::vec3 c = navMesh_.polyCenter(d);
+        for (const Escalator& e : escalators_) {
+            const Local q = toLocal(e, glm::vec2(c.x, c.z));
+            if (q.s >= 0.0f && q.s <= e.length && std::abs(q.l) <= e.halfWidth + 0.3f &&
+                std::abs(c.y - floorHeight(e, q.s)) < kLevelTolerance) {
+                polyClimb_[d] = e.exitHeight > e.entryHeight ? 1 : -1;
+                break;
+            }
+        }
+    }
 }
 
 void Simulation::assignEscalatorLanes() {
@@ -147,19 +165,39 @@ void Simulation::assignEscalatorLanes() {
 
     // Serial and in index order, so the choice of lane is deterministic. Agents
     // already in a lane are counted first; newcomers then pick their lane.
+    //
+    // Each agent belongs to at most one escalator: the one whose steps it stands on,
+    // else the one it took a lane for while still in that one's approach, else the
+    // first whose approach it is in and whose steps its way on leads onto. (Approaches
+    // overlap where escalators chain or pair up, so the lane must stay with its own.)
     std::vector<std::uint32_t> count(escalators_.size() * 2, 0);
     std::vector<std::int16_t> where(agents_.size(), -1);
     for (std::uint32_t i = 0; i < agents_.size(); ++i) {
-        for (std::size_t k = 0; k < escalators_.size(); ++k) {
-            const Escalator& e = escalators_[k];
-            const Local q = toLocal(e, agents_.position[i]);
-            if (inApproach(e, q, agents_.height[i]) || onBelt(e, q, agents_.height[i])) {
-                where[i] = static_cast<std::int16_t>(k);
-                if (agents_.escalatorLane[i] != 0 && q.s < 3.0f) {
-                    ++count[k * 2 + (agents_.escalatorLane[i] > 0 ? 1 : 0)];
-                }
-                break;
+        const float h = agents_.height[i];
+        std::int16_t found = -1;
+        for (std::size_t k = 0; k < escalators_.size() && found < 0; ++k) {
+            if (onBelt(escalators_[k], toLocal(escalators_[k], agents_.position[i]), h)) {
+                found = static_cast<std::int16_t>(k);
             }
+        }
+        const std::uint16_t own = agents_.escalatorIndex[i];
+        if (found < 0 && agents_.escalatorLane[i] != 0 && own < escalators_.size() &&
+            inApproach(escalators_[own], toLocal(escalators_[own], agents_.position[i]), h)) {
+            found = static_cast<std::int16_t>(own);
+        }
+        if (found >= 0 && agents_.escalatorLane[i] != 0 && own != static_cast<std::uint16_t>(found)) {
+            agents_.escalatorLane[i] = 0;  // a lane on another escalator does not carry over
+        }
+        for (std::size_t k = 0; k < escalators_.size() && found < 0; ++k) {
+            const Escalator& e = escalators_[k];
+            if (inApproach(e, toLocal(e, agents_.position[i]), h) && boardsEscalator(i, e)) {
+                found = static_cast<std::int16_t>(k);
+            }
+        }
+        where[i] = found;
+        if (found >= 0 && agents_.escalatorLane[i] != 0 &&
+            toLocal(escalators_[static_cast<std::size_t>(found)], agents_.position[i]).s < 3.0f) {
+            ++count[static_cast<std::size_t>(found) * 2 + (agents_.escalatorLane[i] > 0 ? 1 : 0)];
         }
     }
     for (std::uint32_t i = 0; i < agents_.size(); ++i) {
@@ -189,11 +227,6 @@ void Simulation::assignEscalatorLanes() {
             }
             continue;
         }
-        // Only agents heading the way the escalator travels take a lane.
-        const glm::vec2 want = agents_.preferredVelocity[i];
-        if (glm::dot(want, want) > 1e-6f && glm::dot(want, e.forward) <= 0.2f * std::sqrt(glm::dot(want, want))) {
-            continue;
-        }
         std::int8_t lane = 0;
         const std::uint32_t left = count[static_cast<std::size_t>(where[i]) * 2];
         const std::uint32_t right = count[static_cast<std::size_t>(where[i]) * 2 + 1];
@@ -209,8 +242,30 @@ void Simulation::assignEscalatorLanes() {
             lane = left < right ? std::int8_t{-1} : std::int8_t{1};  // near the middle: shorter line
         }
         agents_.escalatorLane[i] = lane;
+        agents_.escalatorIndex[i] = static_cast<std::uint16_t>(where[i]);
         ++count[static_cast<std::size_t>(where[i]) * 2 + (lane > 0 ? 1 : 0)];
     }
+}
+
+bool Simulation::boardsEscalator(std::uint32_t i, const Escalator& e) const {
+    const std::uint32_t g = agents_.goalIndex[i];
+    if (agents_.moveMode[i] == MoveMode::Goal && g < flowFields_.size()) {
+        // Follow the flow field a few polygons on from where the agent stands.
+        constexpr int kLookAhead = 6;
+        const FlowField& f = flowFields_[g];
+        std::uint32_t d = navMesh_.denseIndex(agents_.navPoly[i]);
+        for (int hop = 0; hop < kLookAhead && d < f.next.size(); ++hop) {
+            const glm::vec3 c = navMesh_.polyCenter(d);
+            if (onBelt(e, toLocal(e, glm::vec2(c.x, c.z)), c.y)) {
+                return true;
+            }
+            d = f.next[d];
+        }
+        return false;
+    }
+    // Other movement (paths to points): going the way the escalator travels.
+    const glm::vec2 want = agents_.preferredVelocity[i];
+    return glm::dot(want, want) <= 1e-6f || glm::dot(want, e.forward) > 0.2f * std::sqrt(glm::dot(want, want));
 }
 
 glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
@@ -227,11 +282,17 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
             const float edge = std::clamp((std::abs(q.l) - 0.4f) / 0.3f, 0.0f, 0.8f);
             return e.forward * (speed * (1.0f - edge)) - e.right * std::clamp(q.l * 1.5f, -0.8f, 0.8f);
         }
+    }
+    const std::uint16_t own = agents_.escalatorIndex[i];
+    for (std::size_t k = 0; k < escalators_.size(); ++k) {
+        const Escalator& e = escalators_[k];
+        const Local q = toLocal(e, pos);
         const bool riding = onBelt(e, q, height);
-        if (!riding && !inApproach(e, q, height)) {
+        if (!riding && !(k == own && inApproach(e, q, height))) {
             continue;
         }
-        const std::int8_t lane = agents_.escalatorLane[i];
+        // A lane counts only on the escalator it was taken for.
+        const std::int8_t lane = k == own ? agents_.escalatorLane[i] : std::int8_t{0};
         const bool stands = r.pace <= 0.0f;
         const float speed = agents_.preferredSpeed[i] * agents_.speedMultiplier[i];
         const float laneL = static_cast<float>(lane) * e.laneOffset;
@@ -309,12 +370,15 @@ const Escalator* Simulation::queueingFor(std::uint32_t i, bool& atFoot) const {
     if (agents_.escalatorLane[i] == 0) {
         return nullptr;
     }
-    for (const Escalator& e : escalators_) {
-        const Local q = toLocal(e, agents_.position[i]);
-        if (inApproach(e, q, agents_.height[i])) {
-            atFoot = q.s > -kBoardWindow;
-            return &e;
-        }
+    const std::uint16_t own = agents_.escalatorIndex[i];
+    if (own >= escalators_.size()) {
+        return nullptr;
+    }
+    const Escalator& e = escalators_[own];
+    const Local q = toLocal(e, agents_.position[i]);
+    if (inApproach(e, q, agents_.height[i])) {
+        atFoot = q.s > -kBoardWindow;
+        return &e;
     }
     return nullptr;
 }

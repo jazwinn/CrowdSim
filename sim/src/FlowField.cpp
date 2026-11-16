@@ -21,7 +21,14 @@ std::uint32_t FlowField::reachableCount() const noexcept {
     return n;
 }
 
-FlowField buildFlowField(const NavMesh& nav, const Area& goalArea) {
+namespace {
+
+/// Height change below which a move counts as level (sideways across an escalator).
+constexpr float kLevelMove = 0.2f;
+
+}  // namespace
+
+FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<const std::int8_t> climb) {
     CS_PROFILE_ZONE();
     FlowField f;
     const std::uint32_t n = nav.polyCount();
@@ -67,6 +74,14 @@ FlowField buildFlowField(const NavMesh& nav, const Area& goalArea) {
         }
         const glm::vec3 cu = nav.polyCenter(u);
         for (std::uint32_t p : nav.predecessors(u)) {
+            if (!climb.empty()) {
+                // The move is p -> u. On a one-way polygon it must go the way the steps do.
+                const std::int8_t way = climb[p] != 0 ? climb[p] : climb[u];
+                const float rise = cu.y - nav.polyCenter(p).y;
+                if ((way > 0 && rise < -kLevelMove) || (way < 0 && rise > kLevelMove)) {
+                    continue;
+                }
+            }
             const float c = cost + glm::length(nav.polyCenter(p) - cu) + nav.extraCost(p);
             if (c < f.cost[p] || (c == f.cost[p] && u < f.next[p] && f.source[p] == 0)) {
                 if (f.source[p] != 0) {
