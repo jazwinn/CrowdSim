@@ -323,6 +323,8 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::TextDisabled("Navmesh: %u polygons in %u tiles", data.navPolygons, data.navTiles);
     ImGui::Spacing();
     if (sectionToggle("Overlays", fonts_.strong)) {
+        ImGui::Checkbox("Agents", &overlays_.agents);
+        ImGui::SetItemTooltip("Hide the crowd to see heatmaps and the floor underneath (the simulation keeps running)");
         ImGui::Checkbox("Reference grid", &overlays_.ground);
         ImGui::Checkbox("Spawner / goal areas", &overlays_.areas);
         ImGui::Checkbox("Navmesh + walls", &overlays_.navmesh);

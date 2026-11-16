@@ -43,6 +43,11 @@ float Heatmap::density(int x, int z) const {
     return elapsed > 0.0 ? static_cast<float>(agentSeconds[i] / (cell * cell * elapsed)) : 0.0f;
 }
 
+float Heatmap::floorHeight(int x, int z) const {
+    const auto i = static_cast<std::size_t>(z * width + x);
+    return agentSeconds[i] > 0.0f && i < heightSeconds.size() ? heightSeconds[i] / agentSeconds[i] : elevation;
+}
+
 float Heatmap::speed(int x, int z) const {
     const auto i = static_cast<std::size_t>(z * width + x);
     return agentSeconds[i] > 0.0f ? speedSeconds[i] / agentSeconds[i] : 0.0f;
@@ -65,6 +70,7 @@ void MetricsCollector::reset() {
     std::fill(heatmap_.agentSeconds.begin(), heatmap_.agentSeconds.end(), 0.0f);
     std::fill(heatmap_.speedSeconds.begin(), heatmap_.speedSeconds.end(), 0.0f);
     std::fill(heatmap_.peakPressure.begin(), heatmap_.peakPressure.end(), 0.0f);
+    std::fill(heatmap_.heightSeconds.begin(), heatmap_.heightSeconds.end(), 0.0f);
     heatmap_.elapsed = 0.0;
     ++heatmap_.version;
     spawnTime_.clear();
@@ -128,6 +134,7 @@ void MetricsCollector::ensureHeatmap() {
         h.agentSeconds.assign(static_cast<std::size_t>(h.width * h.height), 0.0f);
         h.speedSeconds.assign(h.agentSeconds.size(), 0.0f);
         h.peakPressure.assign(h.agentSeconds.size(), 0.0f);
+        h.heightSeconds.assign(h.agentSeconds.size(), 0.0f);
     }
     heatmap_ = std::move(h);
 }
@@ -207,6 +214,7 @@ void MetricsCollector::afterStep(sim::Simulation& sim) {
             heatmap_.agentSeconds[c] += hdt;
             heatmap_.speedSeconds[c] += std::sqrt(v.x * v.x + v.y * v.y) * hdt;
             heatmap_.peakPressure[c] = std::max(heatmap_.peakPressure[c], a.pressure[i]);
+            heatmap_.heightSeconds[c] += a.height[i] * hdt;
         }
         heatmap_.elapsed += hdt;
         ++heatmap_.version;

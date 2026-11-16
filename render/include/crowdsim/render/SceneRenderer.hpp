@@ -71,6 +71,7 @@ struct Overlays {
     int flowGoal = 0;
     bool links = true;        ///< off-mesh links
     bool velocities = false;  ///< per-agent velocity lines
+    bool agents = true;       ///< the crowd itself (off to see heatmaps and the floor underneath)
 };
 
 /// A coloured grid on the floor (metrics heatmaps). Plain data: the caller fills
@@ -81,7 +82,8 @@ struct HeatmapOverlay {
     float cell = 1.0f;
     glm::vec2 origin{0.0f};  ///< (x, z) corner of cell (0, 0)
     float elevation = 0.0f;
-    std::vector<float> values;  ///< width * height, row-major by z
+    std::vector<float> values;   ///< width * height, row-major by z
+    std::vector<float> heights;  ///< optional, per cell: floor height to draw at (else `elevation`)
     float maxValue = 1.0f;
     std::uint64_t version = 0;
 };

@@ -29,6 +29,7 @@ struct OverlayToggles {
     int flowGoal = 0;
     bool links = true;
     bool velocities = false;
+    bool agents = true;  ///< draw the crowd
     // Crowd rendering (mirrors render::RenderSettings)
     bool animatedCharacters = true;
     bool shadows = true;

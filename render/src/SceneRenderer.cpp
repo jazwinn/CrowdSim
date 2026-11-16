@@ -458,7 +458,7 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
         float viewProj[16];
         bx::mtxMul(viewProj, view, proj);
         CrowdFrameInput in;
-        in.snapshot = &snap;
+        in.snapshot = overlays.agents ? &snap : nullptr;
         in.alpha = alpha;
         in.dt = frameSeconds;
         in.eye = eye;
@@ -582,7 +582,8 @@ SceneStats SceneRenderer::render(const snapshot::RenderSnapshot& snap, float alp
                 const float z0 = heatmap.origin.y + static_cast<float>(z) * heatmap.cell;
                 const float x1 = x0 + heatmap.cell;
                 const float z1 = z0 + heatmap.cell;
-                const float y = heatmap.elevation + 0.04f;
+                const float floorY = i < heatmap.heights.size() ? heatmap.heights[i] : heatmap.elevation;
+                const float y = floorY + 0.04f;
                 tris.insert(tris.end(),
                             {LineVertex{x0, y, z0, abgr}, LineVertex{x1, y, z1, abgr}, LineVertex{x1, y, z0, abgr},
                              LineVertex{x0, y, z0, abgr}, LineVertex{x0, y, z1, abgr}, LineVertex{x1, y, z1, abgr}});

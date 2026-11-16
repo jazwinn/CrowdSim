@@ -79,11 +79,15 @@ struct Heatmap {
     std::vector<float> agentSeconds;  ///< per cell
     std::vector<float> speedSeconds;  ///< per cell: sum of speed * dt
     std::vector<float> peakPressure;  ///< per cell: highest pressure seen, N/m
+    std::vector<float> heightSeconds; ///< per cell: sum of floor height * dt
     double elapsed = 0.0;             ///< seconds accumulated
     std::uint64_t version = 0;        ///< bumps whenever the data changes
 
     /// Time-averaged agents per m² in a cell.
     [[nodiscard]] float density(int x, int z) const;
+    /// Mean floor height agents stood on in a cell (`elevation` where none were): where
+    /// to draw the cell on slopes and upper floors.
+    [[nodiscard]] float floorHeight(int x, int z) const;
     /// Mean speed of agents seen in a cell (0 where none were).
     [[nodiscard]] float speed(int x, int z) const;
 };

@@ -296,6 +296,7 @@ int runGui(EngineContext& engine) {
         initialOverlays.navmesh = has("navmesh");
         initialOverlays.flowField = has("flow");
         initialOverlays.velocities = has("velocities");
+        initialOverlays.agents = !has("noagents");
         initialOverlays.ground = !has("nogrid");
         initialOverlays.areas = !has("noareas");
         initialOverlays.links = !has("nolinks");
@@ -763,6 +764,7 @@ int runGui(EngineContext& engine) {
             .flowGoal = req.overlays.flowGoal,
             .links = req.overlays.links,
             .velocities = req.overlays.velocities,
+            .agents = req.overlays.agents,
         };
         // Heatmap overlay from the metrics module, refreshed twice a second.
         {
@@ -780,6 +782,7 @@ int runGui(EngineContext& engine) {
                 o.origin = h.origin;
                 o.elevation = h.elevation;
                 o.values.resize(static_cast<std::size_t>(h.width * h.height));
+                o.heights.resize(o.values.size());
                 float peak = 0.0f;
                 for (int z = 0; z < h.height; ++z) {
                     for (int x = 0; x < h.width; ++x) {
@@ -787,6 +790,7 @@ int runGui(EngineContext& engine) {
                                         : kind == 2 ? h.speed(x, z)
                                                     : h.peakPressure[static_cast<std::size_t>(z * h.width + x)];
                         o.values[static_cast<std::size_t>(z * h.width + x)] = v;
+                        o.heights[static_cast<std::size_t>(z * h.width + x)] = h.floorHeight(x, z);
                         peak = std::max(peak, v);
                     }
                 }
