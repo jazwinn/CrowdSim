@@ -30,6 +30,7 @@ enum class MoveMode : std::uint8_t {
 
 inline constexpr std::uint32_t kCorridorCapacity = 16;
 inline constexpr std::uint32_t kNoAgent = 0xFFFFFFFFu;
+inline constexpr std::uint16_t kNoEscalator = 0xFFFFu;
 
 /// Everything needed to create one agent.
 /// How an agent rides escalators. Behaviour, set from its tree by SetEscalatorStyle and
@@ -107,7 +108,8 @@ public:
     std::vector<glm::vec3> linkEnd;
     std::vector<std::uint32_t> linkEndPoly;
     // Escalator lane while boarding or riding: -1 left, +1 right, 0 none; and which
-    // escalator (index into Simulation::escalators()) that lane is on.
+    // escalator (index into Simulation::escalators()) that lane is on, kept after
+    // stepping off until the next one (kNoEscalator before any).
     std::vector<std::int8_t> escalatorLane;
     std::vector<std::uint16_t> escalatorIndex;
     // Behaviour settings from the agent's tree (see EscalatorRider, QueueManners).
@@ -193,7 +195,7 @@ public:
         linkEnd.push_back(glm::vec3(0.0f));
         linkEndPoly.push_back(0);
         escalatorLane.push_back(0);
-        escalatorIndex.push_back(0);
+        escalatorIndex.push_back(kNoEscalator);
         rider.push_back(EscalatorRider{});
         manners.push_back(QueueManners{});
         push.push_back(kDefaultPush);

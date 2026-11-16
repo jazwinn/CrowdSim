@@ -185,14 +185,14 @@ void Simulation::assignEscalatorLanes() {
             inApproach(escalators_[own], toLocal(escalators_[own], agents_.position[i]), h)) {
             found = static_cast<std::int16_t>(own);
         }
-        if (found >= 0 && agents_.escalatorLane[i] != 0 && own != static_cast<std::uint16_t>(found)) {
-            agents_.escalatorLane[i] = 0;  // a lane on another escalator does not carry over
-        }
         for (std::size_t k = 0; k < escalators_.size() && found < 0; ++k) {
             const Escalator& e = escalators_[k];
             if (inApproach(e, toLocal(e, agents_.position[i]), h) && boardsEscalator(i, e)) {
                 found = static_cast<std::int16_t>(k);
             }
+        }
+        if (found >= 0 && agents_.escalatorLane[i] != 0 && own != static_cast<std::uint16_t>(found)) {
+            agents_.escalatorLane[i] = 0;  // a lane on another escalator does not carry over
         }
         where[i] = found;
         if (found >= 0 && agents_.escalatorLane[i] != 0 &&
@@ -203,6 +203,14 @@ void Simulation::assignEscalatorLanes() {
     for (std::uint32_t i = 0; i < agents_.size(); ++i) {
         if (where[i] < 0) {
             agents_.escalatorLane[i] = 0;  // left the escalator (or never used one)
+            // Off the steps and past the landing: done with it, so turning back across
+            // that landing later is ordinary walking, not stepping off again.
+            const std::uint16_t own = agents_.escalatorIndex[i];
+            if (own < escalators_.size() &&
+                !inExit(escalators_[own], toLocal(escalators_[own], agents_.position[i]), agents_.height[i],
+                        agents_.rider[i].clearLanding)) {
+                agents_.escalatorIndex[i] = kNoEscalator;
+            }
             continue;
         }
         const Escalator& e = escalators_[static_cast<std::size_t>(where[i])];
@@ -272,7 +280,11 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
     const glm::vec2 pos = agents_.position[i];
     const float height = agents_.height[i];
     const EscalatorRider& r = agents_.rider[i];
-    for (const Escalator& e : escalators_) {
+    const std::uint16_t own = agents_.escalatorIndex[i];
+    if (own < escalators_.size()) {
+        // Only someone who rode this escalator steps off it: others crossing its landing
+        // (to the down escalator beside it, say) are not pushed along.
+        const Escalator& e = escalators_[own];
         const Local q = toLocal(e, pos);
         if (inExit(e, q, height, r.clearLanding)) {
             // Step off and clear the landing before turning towards your destination.
@@ -283,7 +295,6 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
             return e.forward * (speed * (1.0f - edge)) - e.right * std::clamp(q.l * 1.5f, -0.8f, 0.8f);
         }
     }
-    const std::uint16_t own = agents_.escalatorIndex[i];
     for (std::size_t k = 0; k < escalators_.size(); ++k) {
         const Escalator& e = escalators_[k];
         const Local q = toLocal(e, pos);
@@ -326,6 +337,7 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
             return pref;  // not boarding (e.g. walking past the foot of the escalator)
         }
         // Approach: line up on the lane's centre line, then walk onto the steps.
+        const float offLane = std::abs(q.l - laneL);
         const glm::vec2 aim = e.entry + e.right * laneL + e.forward * std::min(q.s + 1.5f, 0.5f);
         glm::vec2 to = aim - pos;
         const float dist = std::sqrt(glm::dot(to, to));
@@ -339,11 +351,25 @@ glm::vec2 Simulation::escalatorSteering(std::uint32_t i, glm::vec2 pref) const {
         // person ahead in their lane is their boarding gap away.
         glm::vec2 out = to * std::min(speed, e.beltSpeed + 0.35f);
         const float sideways = std::clamp((laneL - q.l) * 2.0f, -0.4f, 0.4f);
-        const float offLane = std::abs(q.l - laneL);
         // Squeezers pushed to the very front on the wrong side step on anyway and
         // shuffle across on the steps; otherwise the two lines could lock each other.
         const glm::vec2 v = agents_.velocity[i];
-        const bool pressed = r.squeeze && q.s > -0.6f && glm::dot(v, v) < 0.15f * 0.15f;
+        const bool stuck = glm::dot(v, v) < 0.15f * 0.15f;
+        const bool atEdgeStuck = q.s > -0.6f && stuck;
+        if (atEdgeStuck && offLane > 0.3f) {
+            // Stuck beside the steps with nobody around (come in from the side, with the
+            // balustrade in the way): step back to get across into the lane.
+            bool alone = true;
+            hash_.queryPoints(pos, 0.9f, [&](std::uint32_t j, glm::vec2, float otherHeight) {
+                alone = alone && (j == i || std::abs(otherHeight - height) > 1.5f);
+            });
+            if (alone) {
+                const glm::vec2 back = e.entry + e.right * laneL - e.forward * kBoardWindow - pos;
+                const float len = std::sqrt(glm::dot(back, back));
+                return len > 1e-4f ? back / len * std::min(speed, 0.8f) : -e.forward * 0.3f;
+            }
+        }
+        const bool pressed = r.squeeze && atEdgeStuck;
         bool blocked = offLane > 0.3f && !pressed;
         if (!blocked && offLane > 0.12f) {
             out = e.right * sideways + e.forward * 0.15f;  // shuffle forward while side-stepping
