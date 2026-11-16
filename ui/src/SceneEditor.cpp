@@ -210,33 +210,17 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
                           static_cast<double>(rotateSnapDegrees));
     ImGui::Spacing();
 
-    // Dropping an entity on a section heading takes it out of its group.
-    auto ungroupTarget = [&]() {
-        if (ImGui::BeginDragDropTarget()) {
-            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kEntityPayload)) {
-                const auto id = *static_cast<const sim::SceneId*>(payload->Data);
-                commands.push_back(makeCommand("SetParent", {{"id", id}, {"parent", 0}}));
-            }
-            ImGui::EndDragDropTarget();
-        }
-    };
-    auto heading = [&](const char* title, std::size_t count) {
+    auto heading = [&](const char* title) {
         ImGui::PushFont(fonts_.strong, 0.0f);
         const bool open = ImGui::TreeNodeEx(title, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth |
                                                        ImGuiTreeNodeFlags_NoTreePushOnOpen);
         ImGui::PopFont();
-        ungroupTarget();
-        rightAlignedNote(std::to_string(count));
         return open;
-    };
-    auto ungrouped = [&](std::vector<sim::SceneId> ids) {
-        std::erase_if(ids, [&](sim::SceneId id) { return in.sim.parentOf(id) != sim::kNoSceneId; });
-        return ids;
     };
 
     // Open the groups around a newly selected entity (picked in the viewport, say) once.
     std::set<sim::SceneId> reveal;
-    if (selected_ != revealed_) {
+    if (selected_ != revealed_ && assets::entityKindOf(in.sim, selected_) != assets::EntityKind::None) {
         for (sim::SceneId p = in.sim.parentOf(selected_); p != sim::kNoSceneId; p = in.sim.parentOf(p)) {
             reveal.insert(p);
         }
@@ -244,25 +228,57 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
     }
     revealGroups_ = &reveal;
 
-    const auto groups = ungrouped(in.sim.groupIds());
-    if (!in.sim.groupIds().empty() && heading("Groups", in.sim.groupIds().size())) {
+    // Hierarchy: every entity, in its groups; what is in no group sits at the top level.
+    // Dropping an entity on the heading takes it out of its group.
+    std::vector<sim::SceneId> topLevel;
+    std::size_t total = 0;
+    for (const auto& ids : {in.sim.groupIds(), in.sim.goalIds(), in.sim.spawnerIds(), in.sim.offMeshLinkIds(),
+                            in.sim.staticObjectIds()}) {
+        total += ids.size();
+        for (sim::SceneId id : ids) {
+            if (in.sim.parentOf(id) == sim::kNoSceneId) {
+                topLevel.push_back(id);
+            }
+        }
+    }
+    const bool hierarchyOpen = heading("Hierarchy");
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kEntityPayload)) {
+            const auto id = *static_cast<const sim::SceneId*>(payload->Data);
+            commands.push_back(makeCommand("SetParent", {{"id", id}, {"parent", 0}}));
+        }
+        ImGui::EndDragDropTarget();
+    }
+    ImGui::SetItemTooltip("Everything in the scene, in its groups. Drop something here to take it out of its group.");
+    rightAlignedNote(std::to_string(total));
+    if (hierarchyOpen) {
         ImGui::Indent();
-        for (sim::SceneId g : groups) {
-            groupNode(in, g, commands);
+        if (topLevel.empty()) {
+            ImGui::TextDisabled("Empty scene");
+        }
+        for (sim::SceneId id : topLevel) {
+            if (in.sim.findGroup(id) != nullptr) {
+                groupNode(in, id, commands);
+            } else {
+                entityRow(in, id, commands);
+            }
         }
         ImGui::Unindent();
         ImGui::Spacing();
     }
     revealGroups_ = nullptr;
 
-    auto section = [&](const char* title, const std::vector<sim::SceneId>& all) {
-        const std::vector<sim::SceneId> ids = ungrouped(all);
-        if (!heading(title, ids.size())) {
+    // Quick lists of every entity of a kind, wherever it is in the hierarchy.
+    ImGui::PushID("lists");
+    auto section = [&](const char* title, const std::vector<sim::SceneId>& ids) {
+        const bool open = heading(title);
+        rightAlignedNote(std::to_string(ids.size()));
+        if (!open) {
             return;
         }
         ImGui::Indent();
         if (ids.empty()) {
-            ImGui::TextDisabled(all.empty() ? "None" : "All in groups");
+            ImGui::TextDisabled("None");
         }
         for (sim::SceneId id : ids) {
             entityRow(in, id, commands);
@@ -274,6 +290,7 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
     section("Spawners", in.sim.spawnerIds());
     section("Links", in.sim.offMeshLinkIds());
     section("Objects", in.sim.staticObjectIds());
+    ImGui::PopID();
 }
 
 void SceneEditor::entityRow(const SceneEditorInput& in, sim::SceneId id, std::vector<Json>& commands) {
@@ -320,9 +337,6 @@ void SceneEditor::groupNode(const SceneEditorInput& in, sim::SceneId id, std::ve
     const sim::Group* group = in.sim.findGroup(id);
     const std::vector<sim::SceneId> children = in.sim.childrenOf(id);
     ImGui::PushID(static_cast<int>(id));
-    if (revealGroups_ != nullptr && revealGroups_->contains(id)) {
-        ImGui::SetNextItemOpen(true);
-    }
     ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow |
                                ImGuiTreeNodeFlags_OpenOnDoubleClick;
     if (selected_ == id) {
@@ -338,6 +352,9 @@ void SceneEditor::groupNode(const SceneEditorInput& in, sim::SceneId id, std::ve
     }
     if (!shown) {
         ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    }
+    if (revealGroups_ != nullptr && revealGroups_->contains(id)) {
+        ImGui::SetNextItemOpen(true);  // right before the tree node: the eye is an item too
     }
     const bool open = ImGui::TreeNodeEx("##group", flags, "%s", group->name.c_str());
     if (!shown) {
