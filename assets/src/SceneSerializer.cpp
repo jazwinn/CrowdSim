@@ -18,6 +18,9 @@ nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name) {
     j["version"] = kSceneFormatVersion;
     j["name"] = name;
     j["navigation"] = toJson(sim.config().navigation);
+    if (sim.config().bodies.enabled) {
+        j["bodies"] = toJson(sim.config().bodies);
+    }
     j["nextId"] = sim.nextSceneId();
     auto list = [&](const std::vector<sim::SceneId>& ids) {
         Json arr = Json::array();
@@ -90,6 +93,7 @@ std::string loadScene(const nlohmann::json& input, sim::Simulation& sim, AssetLi
     if (scene.contains("navigation")) {
         sim.setNavigationSettings(navSettingsFromJson(scene["navigation"]));
     }
+    sim.setBodyParams(scene.contains("bodies") ? bodyParamsFromJson(scene["bodies"]) : sim::BodyParams{});
     // Definitions first (spawners reference agent types, types reference trees).
     for (const Json& tree : scene.value("behaviours", Json::array())) {
         sim.setBehaviorTree(compileBehaviorJson(tree, sim.customNodeSpecs()));

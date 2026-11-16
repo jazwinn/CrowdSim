@@ -600,14 +600,25 @@ void registerBuiltinCommands(CommandRegistry& r) {
            }});
 
     // ----------------------------------------------------------------------- simulation
-    r.add({"SetSimParams", "Change locomotion parameters and/or the seed (seed applies at the next reset).",
+    r.add({"SetSimParams",
+           "Change locomotion parameters, body physics for packed crowds and/or the seed (seed applies at the next "
+           "reset).",
            obj({{"seed", integer("world seed")},
-                {"locomotion", any("neighborDistance, maxNeighbors, timeHorizon, ...")}}),
+                {"locomotion", any("neighborDistance, maxNeighbors, timeHorizon, ...")},
+                {"bodies", any("enabled, stiffness, core, slopeLean, fallForce, tripForce, ... (docs/formats.md)")}}),
            [](const Json& p, CommandContext& ctx) {
                const Json before{{"seed", ctx.sim.config().seed},
-                                 {"locomotion", locomotionToJson(ctx.sim.config().locomotion)}};
+                                 {"locomotion", locomotionToJson(ctx.sim.config().locomotion)},
+                                 {"bodies", assets::toJson(ctx.sim.config().bodies)}};
                if (p.contains("locomotion")) {
                    ctx.sim.setLocomotionParams(locomotionFromJson(p["locomotion"], ctx.sim.config().locomotion));
+               }
+               if (p.contains("bodies")) {
+                   Json b = p["bodies"];
+                   if (b.is_object() && !b.contains("enabled")) {
+                       b["enabled"] = true;
+                   }
+                   ctx.sim.setBodyParams(assets::bodyParamsFromJson(b, ctx.sim.config().bodies));
                }
                if (p.contains("seed")) {
                    ctx.sim.setSeed(p["seed"].get<std::uint64_t>());

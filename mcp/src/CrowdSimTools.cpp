@@ -316,8 +316,13 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
                     },
                     nullptr});
     command("sim_reset", "Remove all agents and return to t = 0 (the scene is kept).", schema(), "ResetSimulation");
-    command("sim_set_params", "Set the seed and/or locomotion parameters: {seed, locomotion:{...}}.",
-            schema({{"seed", integer("world seed")}, {"locomotion", object("locomotion parameters")}}), "SetSimParams");
+    command("sim_set_params",
+            "Set the seed, locomotion parameters and/or body physics for packed crowds: {seed, locomotion:{...}, "
+            "bodies:{enabled, stiffness, core, slopeLean, fallForce, tripForce, ...}}.",
+            schema({{"seed", integer("world seed")},
+                    {"locomotion", object("locomotion parameters")},
+                    {"bodies", object("body contact, pressure and falls in packed crowds")}}),
+            "SetSimParams");
 
     // --- Analysis ---------------------------------------------------------------------------
     server.addTool({"metrics_get",
@@ -328,7 +333,7 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
     server.addTool({"heatmap_get",
                     "Density (agents/m², time-averaged since the last reset) or speed (m/s) heatmap over the scene, "
                     "downsampled to at most maxCells cells (default 900): values[z][x] with origin and cellSize.",
-                    schema({{"kind", str("density | speed")}, {"maxCells", integer("cell budget, 16..40000")}}),
+                    schema({{"kind", str("density | speed | pressure")}, {"maxCells", integer("cell budget, 16..40000")}}),
                     [&svc](const Json& args) {
                         Json p{{"kind", args.value("kind", std::string("density"))},
                                {"maxCells", args.value<std::size_t>("maxCells", 900)}};

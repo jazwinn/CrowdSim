@@ -13,6 +13,7 @@ crowdsim_add_library(sim
     src/Decisions.cpp
     src/Escalators.cpp
     src/QueueManners.cpp
+    src/Bodies.cpp
   DEPS
     CrowdSim::core
     CrowdSim::geometry

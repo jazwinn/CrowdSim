@@ -46,6 +46,33 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   `SetEscalatorStyle` (side, walking pace, clearing the landing), `SetEscalatorBoarding` (gap,
   squeezing on) and the general `SetQueueManners`. See `scenes/escalator_etiquette.scene.json`
   and `behaviours/escalator_*.bt.json`.
+- **Bodies** (optional `"bodies": {...}`; off when absent): physical contact in packed crowds.
+  Below contact density agents avoid each other as usual. When bodies touch (a crowd packed past
+  what avoidance can keep apart, or people held up for a few seconds pressing into the gaps),
+  they are moved by forces instead: bodies are springs down to an incompressible core, each person
+  presses forward with their push (`SetPushing`), packed people on a slope lean downhill, and walls
+  push back. Forces add up along chains of people, so the front of a packed crowd carries everyone
+  pushing behind it. Pressure (N/m) is the stress in each body from its contacts. Large net pushes
+  topple people; fallen people lie still, others pushed against them trip and fall on top (pile
+  layers), and they get up once the pressure is gone. A present section is enabled unless it says
+  `"enabled": false`; every field is optional:
+
+  | Field | Default | Meaning |
+  |---|---|---|
+  | `stiffness` | 5000 | N per metre two bodies are pressed into each other |
+  | `damping` | 400 | N per m/s of approach along the contact normal |
+  | `core` | 0.65 | incompressible fraction of the radius (limits density to ~11-14 /m2 for 0.2-0.25 m radii) |
+  | `slopeLean` | 0.5 | share of the downhill weight (m g sin a) packed people pass on to those below |
+  | `fallForce` | 800 | N of net push above which standing people may topple |
+  | `fallRate` | 0.3 | falls per second at twice `fallForce` (rises linearly above it) |
+  | `tripForce` | 300 | N of push towards someone lying in the way that trips people over them |
+  | `tripRate` | 0.6 | falls per second when tripping (x push / `tripForce`, up to 3x) |
+  | `getUpSeconds` | 3 | minimum time on the ground |
+  | `getUpPressure` | 300 | N/m; fallen people get up only below this and with no one on top |
+
+  Metrics then report pressure (peak, p90, people above the critical 1000 N/m and how many spent
+  30 s or more above it) and falls; `GetHeatmap {kind: "pressure"}` maps the peak pressure. See
+  `scenes/itaewon_2022*.scene.json`.
 - **Ids** are stable and never reused (`nextId` keeps deleted ids retired). Spawners reference
   goals by id; commands also accept the goal's **name** (`"goal": "Exit"`).
 - Files are written in entity creation order with floats rounded to 6 significant digits, so
@@ -121,11 +148,13 @@ reloaded tree restart from its root. Scene files embed the trees they use under 
 | `SetSpeed` | action | 0 | `multiplier` (1) | Scale walking speed. |
 | `SetState` | action | 0 | `name` ("walking") | Set the state label (debugger, metrics). |
 | `SetQueueManners` | action | 0 | `gap` (0.6), `ease` (0.5) | From now on, slow to a stop `gap` m behind whoever is ahead in your line instead of pressing into them (0 = off, the default). |
+| `SetPushing` | action | 0 | `force` (100) | From now on, press this hard (N) towards where you are going once bodies touch (scene bodies). Agents that never run it push with 100 N; 0 = only shuffle along. |
 | `SetEscalatorStyle` | action | 0 | `side` ("either"), `walk` (0), `clear` (2) | How to ride escalators from now on: `side` `left`, `right`, `either` (your side; near the middle the shorter line) or `shorter`; `walk` = own pace on the steps × preferred speed (0 = stand); walk `clear` m straight off before turning. Without it: either side, pace 0.45. |
 | `SetEscalatorBoarding` | action | 0 | `gap` (0.9), `squeeze` (1) | How to step onto escalators: standers wait until the person ahead in their lane is `gap` m away; `squeeze` 1 = when pushed to the front on the wrong side, step on (or switch lanes) anyway. |
 | `Despawn` | action | 0 | – | Remove the agent. |
 | `IsNearGoal` | condition | 0 | `distance` (3), `goal` | Within `distance` of the goal area. |
 | `IsCrowded` | condition | 0 | `threshold` (6), `radius` (2) | At least `threshold` agents within `radius`. |
+| `IsBlocked` | condition | 0 | `seconds` (5) | The agent has wanted to move but moved at under a quarter of that pace for `seconds` (held up in a crowd, or lying on the ground). |
 | `IsAreaTagged` | condition | 0 | `tag` | Standing inside the footprint of an object with `tag`. |
 | `RandomChance` | condition | 0 | `probability` (0.5) | Succeed with the given probability. |
 
@@ -190,7 +219,7 @@ every command with its JSON Schema.
 | `SpawnEntity` | yes | Place an instance of a Lua-registered entity type. |
 | `ListScripts` / `GetScript` / `ScriptErrors` / `ListEntityTypes` | no | Scripting queries. |
 | `AddGate` / `RemoveGate` | yes | Counting gate `{name, a:[x,z], b:[x,z], elevation}`: directional crossings and flow. |
-| `ListGates` / `GetMetrics` / `GetHeatmap` | no | Gate counts; metrics summary; density or speed heatmap (downsampled). |
+| `ListGates` / `GetMetrics` / `GetHeatmap` | no | Gate counts; metrics summary (with scene bodies also `pressure` and `falls`); density, speed or peak-pressure heatmap (downsampled). |
 | `StartRecording` / `StopRecording` | yes | Trajectory recording at `hz` samples/s. |
 | `ExportRecording` / `ExportMetrics` | no | CSV of trajectories / of the metrics time series (`recordings/` by default). |
 | `ResetMetrics` | yes | Clear accumulated metrics (gates kept). |

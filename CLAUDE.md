@@ -10,8 +10,8 @@ Decide where a change belongs before writing it:
 
 | It describes... | It goes in | Examples |
 |---|---|---|
-| How the world physically works | engine, as a generic mechanism driven by data | navmesh, avoidance, escalator steps that carry people in two lanes (`escalator` object tag), queues at goals with `capacity` |
-| What a person decides to do | a **behaviour tree node** with parameters, used from `content/behaviours/*.bt.json` | `MoveToGoal`, `Queue`, `SetQueueManners {gap, ease}`, `SetEscalatorStyle {side, walk, clear}`, `SetEscalatorBoarding {gap, squeeze}` |
+| How the world physically works | engine, as a generic mechanism driven by data | navmesh, avoidance, escalator steps that carry people in two lanes (`escalator` object tag), queues at goals with `capacity`, body contact / pressure / falls in packed crowds (scene `bodies`) |
+| What a person decides to do | a **behaviour tree node** with parameters, used from `content/behaviours/*.bt.json` | `MoveToGoal`, `Queue`, `SetQueueManners {gap, ease}`, `SetEscalatorStyle {side, walk, clear}`, `SetEscalatorBoarding {gap, squeeze}`, `SetPushing {force}` |
 | A particular population | `content/agents/*.agent.json` (body parameters + which tree) | `escalator_stander_left` = speed/radius/mass + tree `escalator_stand_left` |
 | A particular place or study | `content/scenes/*.scene.json`, `content/scripts/*.lua`, `tools/make_*.py` | `escalator_etiquette` scene, `escalator_trial.lua` report |
 
@@ -54,6 +54,8 @@ ctest --test-dir build/windows-msvc -C Release
 - Headless runs are the quickest check of a scene: `crowdsim_headless --scene scenes/<name>.scene.json
   --steps 9000 --seed N`. `--script` runs a Lua file (content-relative), `--no-content` proves a
   scene is self-contained. Compare several seeds before drawing conclusions.
+- Body physics (scene `bodies`) is integrated explicitly at 30 Hz: keep contact stiffness soft and
+  the core a position correction, not a stiffer spring, or forces blow up.
 - Editor screenshots: `crowdsim --scene ... --frames N --screenshot out.png --camera x,z,dist,yaw,pitch`.
   Run it from an empty folder to get the default layout instead of the user's `imgui.ini`.
 

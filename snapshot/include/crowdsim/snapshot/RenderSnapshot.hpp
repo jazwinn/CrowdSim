@@ -32,6 +32,9 @@ struct AgentInstance {
     std::uint16_t agentType = 0;
     std::uint16_t state = 0;  ///< behaviour state id, for debug colouring
     std::uint32_t agentId = 0;
+    float pressure = 0.0f;      ///< N/m on the body (bodies enabled), for colouring
+    std::uint8_t fallen = 0;    ///< 1 = lying on the ground
+    std::uint8_t pileLayer = 0; ///< 1 = on the floor, 2+ = lying on others
 };
 
 /// An axis-aligned rectangle on a floor, used for spawner/goal gizmos.

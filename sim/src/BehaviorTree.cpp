@@ -15,7 +15,7 @@ constexpr BtParamSpec kNone{"", K::Number, 0.0f, "", ""};
 // Composite children limit: kBtMaxNodes bounds the tree anyway.
 constexpr std::uint8_t kMany = 32;
 
-constexpr std::array<BtNodeTypeInfo, 29> kNodeTypes = {{
+constexpr std::array<BtNodeTypeInfo, 31> kNodeTypes = {{
     {BtNodeType::Sequence,
      "Sequence",
      BtCategory::Composite,
@@ -210,6 +210,16 @@ constexpr std::array<BtNodeTypeInfo, 29> kNodeTypes = {{
      {BtParamSpec{"gap", K::Number, 0.6f, "", "m (centre to centre) to stop behind the person ahead; 0 = off"},
       BtParamSpec{"ease", K::Number, 0.5f, "", "m over which to slow down before that"}, kNone},
      "From now on, slow to a stop behind whoever is ahead in your line instead of pressing into them."},
+    {BtNodeType::SetPushing,
+     "SetPushing",
+     BtCategory::Action,
+     0,
+     0,
+     1,
+     {BtParamSpec{"force", K::Number, 100.0f, "",
+                  "N pressed towards where you are going once bodies touch (0 = only shuffle along)"},
+      kNone, kNone},
+     "From now on, push into a packed crowd this hard (scene bodies; the default is 100 N)."},
     {BtNodeType::Despawn,
      "Despawn",
      BtCategory::Action,
@@ -236,6 +246,15 @@ constexpr std::array<BtNodeTypeInfo, 29> kNodeTypes = {{
      {BtParamSpec{"threshold", K::Number, 6.0f, "", "neighbour count"},
       BtParamSpec{"radius", K::Number, 2.0f, "", "radius (m)"}, kNone},
      "Succeed if at least `threshold` agents are within `radius`."},
+    {BtNodeType::IsBlocked,
+     "IsBlocked",
+     BtCategory::Condition,
+     0,
+     0,
+     1,
+     {BtParamSpec{"seconds", K::Number, 5.0f, "", "how long the agent has wanted to move but hardly moved"},
+      kNone, kNone},
+     "Succeed if the agent has been held up (moving at under a quarter of its wish) for `seconds`."},
     {BtNodeType::IsAreaTagged,
      "IsAreaTagged",
      BtCategory::Condition,
@@ -381,7 +400,8 @@ public:
             }
         }
         if ((node.type == BtNodeType::SetEscalatorStyle || node.type == BtNodeType::SetEscalatorBoarding ||
-             node.type == BtNodeType::SetQueueManners) &&
+             node.type == BtNodeType::SetQueueManners || node.type == BtNodeType::SetPushing ||
+             node.type == BtNodeType::IsBlocked) &&
             (node.number[0] < 0.0f || node.number[1] < 0.0f)) {
             throw std::invalid_argument(std::format("{}: {} parameters must not be negative", path, info->name));
         }

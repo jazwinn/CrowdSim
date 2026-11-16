@@ -48,10 +48,12 @@ enum class BtNodeType : std::uint8_t {
     SetEscalatorStyle,
     SetEscalatorBoarding,
     SetQueueManners,
+    SetPushing,
     Despawn,
     // Conditions
     IsNearGoal,
     IsCrowded,
+    IsBlocked,
     IsAreaTagged,
     RandomChance,
     // Script-defined (M6)

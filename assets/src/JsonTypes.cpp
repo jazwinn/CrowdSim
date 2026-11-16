@@ -405,6 +405,43 @@ sim::NavBuildSettings navSettingsFromJson(const Json& j) {
     return n;
 }
 
+Json toJson(const sim::BodyParams& b) {
+    return Json{{"enabled", b.enabled},
+                {"stiffness", roundFloat(b.stiffness)},
+                {"damping", roundFloat(b.damping)},
+                {"core", roundFloat(b.core)},
+                {"slopeLean", roundFloat(b.slopeLean)},
+                {"fallForce", roundFloat(b.fallForce)},
+                {"fallRate", roundFloat(b.fallRate)},
+                {"tripForce", roundFloat(b.tripForce)},
+                {"tripRate", roundFloat(b.tripRate)},
+                {"getUpSeconds", roundFloat(b.getUpSeconds)},
+                {"getUpPressure", roundFloat(b.getUpPressure)}};
+}
+
+sim::BodyParams bodyParamsFromJson(const Json& j, sim::BodyParams b) {
+    if (!j.is_object()) {
+        throw std::invalid_argument("bodies must be an object");
+    }
+    b.enabled = j.value("enabled", true);
+    b.stiffness = value<float>(j, "stiffness", b.stiffness);
+    b.damping = value<float>(j, "damping", b.damping);
+    b.core = value<float>(j, "core", b.core);
+    b.slopeLean = value<float>(j, "slopeLean", b.slopeLean);
+    b.fallForce = value<float>(j, "fallForce", b.fallForce);
+    b.fallRate = value<float>(j, "fallRate", b.fallRate);
+    b.tripForce = value<float>(j, "tripForce", b.tripForce);
+    b.tripRate = value<float>(j, "tripRate", b.tripRate);
+    b.getUpSeconds = value<float>(j, "getUpSeconds", b.getUpSeconds);
+    b.getUpPressure = value<float>(j, "getUpPressure", b.getUpPressure);
+    if (b.stiffness <= 0.0f || b.damping < 0.0f || b.core < 0.0f || b.core >= 1.0f || b.slopeLean < 0.0f ||
+        b.fallForce < 0.0f || b.fallRate < 0.0f || b.tripForce < 0.0f || b.tripRate < 0.0f ||
+        b.getUpSeconds < 0.0f || b.getUpPressure < 0.0f) {
+        throw std::invalid_argument("bodies: stiffness must be > 0, core in [0, 1), the rest >= 0");
+    }
+    return b;
+}
+
 Json entityToJson(const sim::Simulation& sim, sim::SceneId id) {
     Json j;
     switch (entityKindOf(sim, id)) {

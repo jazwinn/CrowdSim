@@ -194,19 +194,29 @@ void CrowdRenderer::prepare(const CrowdFrameInput& in, core::JobSystem* jobs) {
             const bool visible = in.camera.intersectsSphere(centre, 1.0f);
             const bool caster = in.shadows && in.light.intersectsSphere(centre, 1.0f);
 
+            const bool lying = a.fallen != 0;
             std::uint8_t lod = 0;
             if (visible) {
-                lod = !animated || distSq > farSq ? 3 : (distSq > nearSq ? 2 : 1);
+                lod = lying || !animated || distSq > farSq ? 3 : (distSq > nearSq ? 2 : 1);
             }
             std::uint8_t shadow = 0;
             if (caster) {
-                shadow = animated && distSq <= farSq ? 1 : 2;
+                shadow = animated && distSq <= farSq && !lying ? 1 : 2;
             }
             lod_[i] = lod;
             shadow_[i] = shadow;
 
-            capsule_[i] =
-                CapsuleInstance{p.x, p.y, p.z, heading, a.color.r, a.color.g, a.color.b, a.radius / in.capsuleRadius};
+            if (lying) {
+                // Lying along the heading, raised onto the people underneath; tinted so a
+                // pile stands out from the crowd around it. Negative scale = lying (vs_agent).
+                const glm::vec3 tint = a.color * 0.45f + glm::vec3(0.55f, 0.08f, 0.08f);
+                const float lift = 0.28f * static_cast<float>(std::max<int>(0, a.pileLayer - 1));
+                capsule_[i] = CapsuleInstance{p.x, p.y + lift, p.z, heading, tint.r, tint.g, tint.b,
+                                              -a.radius / in.capsuleRadius};
+            } else {
+                capsule_[i] = CapsuleInstance{p.x,       p.y,       p.z,       heading,
+                                              a.color.r, a.color.g, a.color.b, a.radius / in.capsuleRadius};
+            }
             if (lod == 1 || lod == 2 || shadow == 1) {
                 const float scale = std::clamp(1.0f + 0.5f * (a.radius / character_->radius - 1.0f), 0.9f, 1.1f);
                 animation::GaitState& gait = slots_[agentSlot_[i]].gait;

@@ -44,6 +44,10 @@ enum class EntityKind { Object, Link, Goal, Spawner, None };
 [[nodiscard]] Json toJson(const sim::NavBuildSettings& n);
 [[nodiscard]] sim::NavBuildSettings navSettingsFromJson(const Json& j);
 
+[[nodiscard]] Json toJson(const sim::BodyParams& b);
+/// Missing fields keep the values in `base`; a present "bodies" section is enabled unless it says otherwise.
+[[nodiscard]] sim::BodyParams bodyParamsFromJson(const Json& j, sim::BodyParams base = {});
+
 /// {"kind": ..., "id": ..., <entity fields>} for any scene entity; null if unknown.
 [[nodiscard]] Json entityToJson(const sim::Simulation& sim, sim::SceneId id);
 

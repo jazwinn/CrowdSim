@@ -55,12 +55,34 @@ struct LocomotionParams {
     float levelSeparation = 1.0f;      ///< m; agents further apart vertically ignore each other
 };
 
+/// Physical bodies in packed crowds (scene "bodies"; off by default). When enabled,
+/// agents whose bodies touch stop avoiding each other and are moved by forces instead:
+/// bodies compress like springs down to an incompressible core, each person presses
+/// forward with their own push (SetPushing), packed people on a slope lean downhill,
+/// walls push back. Forces add up along chains of people, so the front of a packed
+/// crowd feels everyone behind it. Large net pushes topple people; fallen people lie
+/// still and others pushed against them trip and fall on top (a pile).
+struct BodyParams {
+    bool enabled = false;
+    float stiffness = 5000.0f;      ///< N per metre two bodies are pressed into each other
+    float damping = 400.0f;         ///< N per m/s of approach along the contact normal
+    float core = 0.65f;             ///< incompressible fraction of the radius
+    float slopeLean = 0.5f;         ///< share of the downhill weight (m g sin a) packed people pass on
+    float fallForce = 800.0f;       ///< N of net push above which standing people may topple
+    float fallRate = 0.3f;          ///< falls per second at twice fallForce (rises linearly above it)
+    float tripForce = 300.0f;       ///< N of push towards someone lying in the way that trips people over them
+    float tripRate = 0.6f;          ///< falls per second when tripping (x push / tripForce, up to 3x)
+    float getUpSeconds = 3.0f;      ///< minimum time on the ground
+    float getUpPressure = 300.0f;   ///< N/m: fallen people get up only below this and with no one on top
+};
+
 struct SimConfig {
     std::uint64_t seed = 1;
     double stepHz = 30.0;
     double decisionHz = 10.0;  ///< behaviour-tree tick rate per agent (staggered across agents)
     LocomotionParams locomotion;
     NavBuildSettings navigation;
+    BodyParams bodies;
 };
 
 /// Services the simulation borrows from the composition root.
@@ -75,6 +97,9 @@ struct SimStats {
     std::uint64_t arrived = 0;  ///< goal arrivals (MoveToGoal / Queue completions)
     std::uint64_t despawned = 0;
     float averageSpeed = 0.0f;
+    std::uint32_t fallen = 0;      ///< agents on the ground now
+    std::uint64_t falls = 0;       ///< falls since the start
+    float peakPressure = 0.0f;     ///< N/m, highest on any agent now
 };
 
 /// Wall time of each phase of the last step, in milliseconds (always measured;
@@ -192,6 +217,8 @@ public:
     /// Locomotion tuning and seed (the seed takes effect at the next reset()).
     void setLocomotionParams(const LocomotionParams& params);
     void setSeed(std::uint64_t seed) noexcept { config_.seed = seed; }
+    /// Physical body contact in packed crowds (see BodyParams).
+    void setBodyParams(const BodyParams& params) noexcept { config_.bodies = params; }
 
     // --- Behaviours and agent types ---------------------------------------------------
     /// Add or replace a compiled tree (matched by name). Replacing bumps its
@@ -284,6 +311,13 @@ private:
     void spawnAgents(float dt);
     void computePreferredVelocities();
     void computeAvoidance(float dt);
+    /// Bodies (BodyParams): contact forces, pressure, falls (parallel; requests only).
+    void computeBodies(float dt);
+    /// Apply fall / get-up requests from computeBodies (serial, deterministic).
+    void applyBodyRequests();
+    /// Move an agent whose body touches others by forces instead of avoidance.
+    [[nodiscard]] glm::vec2 bodyVelocity(std::uint32_t agent, float dt) const;
+    [[nodiscard]] static glm::vec2 clampWallForce(glm::vec2 force) noexcept;
     void integrate(float dt);
     void addAgent(const AgentInit& init);
     void removeAgentAt(std::uint32_t index);
@@ -352,6 +386,7 @@ private:
     std::uint64_t spawnedTotal_ = 0;
     std::uint64_t arrivedTotal_ = 0;
     std::uint64_t despawnedTotal_ = 0;
+    std::uint64_t fallsTotal_ = 0;
     std::vector<std::uint32_t> idToIndex_;  ///< agent id -> pool index (kNoAgent when gone)
 
     // Decision layer

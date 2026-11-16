@@ -97,6 +97,12 @@ This is what `tools/mcp_workflow_test.py` does (it runs in CTest as `mcp_stdio_w
 9. Iterate: widen the doorway (`object_update`), `sim_reset`, run again and compare arrivals; or
    save the scene (`scene_save`) and the trees (they are in the scene file).
 
+Packed crowds: `sim_set_params {bodies: {enabled: true}}` (or a scene with a `bodies` section)
+turns on body contact, crowd pressure and falls. `metrics_get` then includes `pressure` (peak, p90,
+people above 1000 N/m, people critically exposed) and `falls`; `heatmap_get {kind: "pressure"}`
+shows where the pressure peaked. Compare variants of a place by running each scene with the same
+seeds (`scenes/itaewon_2022*.scene.json` are an example).
+
 Custom behaviour beyond the built-in nodes: `script_write` a Lua file that registers a node with
 `bt.register_node{...}` (see `crowdsim://docs/scripting.md`), then use its name in `bt_set`.
 

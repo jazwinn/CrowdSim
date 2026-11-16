@@ -723,6 +723,9 @@ BtStatus Simulation::tickNode(const CompiledTree& tree, std::uint16_t index, std
         case BtNodeType::SetQueueManners:
             agents_.manners[i] = QueueManners{n.number[0], std::max(0.05f, n.number[1])};
             return BtStatus::Success;
+        case BtNodeType::SetPushing:
+            agents_.push[i] = n.number[0];
+            return BtStatus::Success;
         case BtNodeType::Despawn:
             agents_.despawnRequested[i] = 1;
             agents_.moveMode[i] = MoveMode::Stop;
@@ -748,6 +751,8 @@ BtStatus Simulation::tickNode(const CompiledTree& tree, std::uint16_t index, std
             });
             return static_cast<float>(count) >= n.number[0] ? BtStatus::Success : BtStatus::Failure;
         }
+        case BtNodeType::IsBlocked:
+            return agents_.slowTime[i] >= n.number[0] ? BtStatus::Success : BtStatus::Failure;
         case BtNodeType::IsAreaTagged: {
             const std::uint16_t tag = lookup.tagOf[n.text];
             for (const TaggedVolume& v : taggedVolumes_) {

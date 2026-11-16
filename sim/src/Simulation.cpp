@@ -357,6 +357,7 @@ void Simulation::reset() {
     nextAgentId_ = 0;
     spawnedTotal_ = 0;
     arrivedTotal_ = 0;
+    fallsTotal_ = 0;
     despawnedTotal_ = 0;
     idToIndex_.clear();
 }
@@ -475,6 +476,10 @@ void Simulation::step() {
     computePreferredVelocities();
     lap(profile_.preferred);
     computeAvoidance(dt);
+    if (config_.bodies.enabled) {
+        computeBodies(dt);
+        applyBodyRequests();
+    }
     lap(profile_.avoidance);
     integrate(dt);
     lap(profile_.integrate);
@@ -771,6 +776,7 @@ void Simulation::computeAvoidance(float dt) {
     const LocomotionParams& lp = config_.locomotion;
     const orca::Params params{lp.timeHorizon, dt, lp.obstacleTimeHorizon};
     const bool useNav = navMesh_.valid();
+    const bool bodies = config_.bodies.enabled;
 
     services_.jobs.parallelFor(agents_.size(), kParallelChunk, [&](core::IndexRange r, std::uint32_t) {
         std::array<orca::Neighbor, orca::kMaxNeighbors> neighbors{};
@@ -782,9 +788,22 @@ void Simulation::computeAvoidance(float dt) {
             if (agents_.linkActive[i] != 0) {
                 continue;  // on a ladder / escalator: no avoidance
             }
+            if (bodies && agents_.fallen[i] != 0) {
+                agents_.newVelocity[i] = glm::vec2(0.0f);
+                continue;
+            }
             const glm::vec2 p = agents_.position[i];
             const float h = agents_.height[i];
             std::uint32_t count = 0;
+            // With bodies, someone held up in a crowd stops keeping their distance and
+            // presses into the gaps, more readily the harder they push: avoidance then
+            // lets bodies close in to their cores, and contact forces take over.
+            float shrink = 1.0f;
+            if (bodies) {
+                const float willing = std::clamp(agents_.push[i] / 300.0f, 0.2f, 1.0f);
+                const float accept = willing * std::min(1.0f, agents_.slowTime[i] / 3.0f);
+                shrink = 1.0f - accept * (1.0f - config_.bodies.core);
+            }
 
             // Keep the K nearest on the same level, ordered by (distance, index) so ties are deterministic.
             // Positions and heights come from the hash (contiguous); only accepted
@@ -807,9 +826,15 @@ void Simulation::computeAvoidance(float dt) {
                     --slot;
                 }
                 distSq[slot] = d2;
-                neighbors[slot] = orca::Neighbor{agents_.position[j], agents_.velocity[j],
-                                                 agents_.radius[j] + agents_.personalSpace[j], j,
-                                                 orca::massResponsibility(agents_.mass[i], agents_.mass[j])};
+                if (bodies && agents_.fallen[j] != 0) {
+                    // Someone lying on the ground: a still obstacle to step around.
+                    neighbors[slot] = orca::Neighbor{agents_.position[j], glm::vec2(0.0f),
+                                                     agents_.radius[j] * 1.6f, j, 1.0f};
+                } else {
+                    neighbors[slot] = orca::Neighbor{agents_.position[j], agents_.velocity[j],
+                                                     (agents_.radius[j] + agents_.personalSpace[j]) * shrink, j,
+                                                     orca::massResponsibility(agents_.mass[i], agents_.mass[j])};
+                }
             });
 
             // Nearby navmesh boundary edges on this level, nearest first. Escalator riders
@@ -848,7 +873,7 @@ void Simulation::computeAvoidance(float dt) {
             }
 
             const orca::AgentState self{p,      agents_.velocity[i], agents_.preferredVelocity[i],
-                                        radius, agents_.maxSpeed[i], i};
+                                        radius * shrink, agents_.maxSpeed[i], i};
             agents_.newVelocity[i] = orca::computeNewVelocity(
                 self, std::span(neighbors.data(), count),
                 std::span(wallCandidates.data(), std::min<std::uint32_t>(numWalls, orca::kMaxWalls)), params);
@@ -861,12 +886,19 @@ void Simulation::integrate(float dt) {
     const float maxTurn = config_.locomotion.maxTurnRate * dt;
     const bool useNav = navMesh_.valid();
     const dtNavMesh* detour = navMesh_.detour();
+    const bool bodies = config_.bodies.enabled;
 
     services_.jobs.parallelFor(agents_.size(), kParallelChunk, [&](core::IndexRange r, std::uint32_t thread) {
         for (std::uint32_t i = r.begin; i < r.end; ++i) {
             agents_.prevPosition[i] = agents_.position[i];
             agents_.prevHeading[i] = agents_.heading[i];
             agents_.prevHeight[i] = agents_.height[i];
+            if (bodies && agents_.fallen[i] != 0) {
+                agents_.velocity[i] = glm::vec2(0.0f);  // lying still
+                agents_.wallForce[i] = glm::vec2(0.0f);
+                agents_.slowTime[i] += dt;
+                continue;
+            }
 
             if (agents_.linkActive[i] != 0) {
                 // Traverse an off-mesh link at walking pace.
@@ -886,14 +918,20 @@ void Simulation::integrate(float dt) {
                     agents_.navPoly[i] = agents_.linkEndPoly[i];
                 }
             } else {
-                // Acceleration-limited velocity change towards the avoidance result.
-                glm::vec2 dv = agents_.newVelocity[i] - agents_.velocity[i];
-                const float maxDv = agents_.maxAcceleration[i] * dt;
-                const float dvLenSq = glm::dot(dv, dv);
-                if (dvLenSq > maxDv * maxDv) {
-                    dv *= maxDv / std::sqrt(dvLenSq);
+                glm::vec2 v;
+                const bool pressed = bodies && agents_.inContact[i] != 0;
+                if (pressed) {
+                    v = bodyVelocity(i, dt);  // touching others: moved by forces
+                } else {
+                    // Acceleration-limited velocity change towards the avoidance result.
+                    glm::vec2 dv = agents_.newVelocity[i] - agents_.velocity[i];
+                    const float maxDv = agents_.maxAcceleration[i] * dt;
+                    const float dvLenSq = glm::dot(dv, dv);
+                    if (dvLenSq > maxDv * maxDv) {
+                        dv *= maxDv / std::sqrt(dvLenSq);
+                    }
+                    v = agents_.velocity[i] + dv;
                 }
-                glm::vec2 v = agents_.velocity[i] + dv;
                 const glm::vec2 start2 = agents_.position[i];
                 if (!escalators_.empty()) {
                     // Escalator steps carry their riders whatever avoidance says: never
@@ -931,13 +969,31 @@ void Simulation::integrate(float dt) {
                         agents_.height[i] = result[1];
                         const glm::vec2 moved(result[0], result[2]);
                         if (glm::dot(moved - end2, moved - end2) > 1e-8f) {
-                            v = (moved - start2) / dt;  // slid along a boundary
+                            const glm::vec2 slid = (moved - start2) / dt;  // slid along a boundary
+                            if (pressed) {
+                                // What the wall took out of the motion is its push on the body.
+                                agents_.wallForce[i] = clampWallForce(agents_.mass[i] * (slid - v) / dt);
+                            }
+                            v = slid;
+                        } else if (pressed) {
+                            agents_.wallForce[i] = glm::vec2(0.0f);
                         }
                         end2 = moved;
                     }
                 }
+                if (!pressed) {
+                    agents_.wallForce[i] = glm::vec2(0.0f);
+                }
                 agents_.velocity[i] = v;
                 agents_.position[i] = end2;
+                // Time spent wanting to move but hardly moving (IsBlocked).
+                const glm::vec2 want = agents_.preferredVelocity[i];
+                const float wantSq = glm::dot(want, want);
+                if (wantSq > 0.04f && glm::dot(v, want) < 0.25f * wantSq) {
+                    agents_.slowTime[i] += dt;
+                } else {
+                    agents_.slowTime[i] = 0.0f;
+                }
 
                 // Start traversing an off-mesh link when the flow field leads onto one.
                 if (useNav && detour != nullptr) {
@@ -997,6 +1053,11 @@ SimStats Simulation::stats() const noexcept {
         speedSum += std::sqrt(static_cast<double>(glm::dot(v, v)));
     }
     s.averageSpeed = agents_.empty() ? 0.0f : static_cast<float>(speedSum / agents_.size());
+    s.falls = fallsTotal_;
+    for (std::uint32_t i = 0; i < agents_.size(); ++i) {
+        s.fallen += agents_.fallen[i];
+        s.peakPressure = std::max(s.peakPressure, agents_.pressure[i]);
+    }
     return s;
 }
 
@@ -1015,6 +1076,7 @@ std::uint64_t Simulation::stateHash() const noexcept {
     hash.addBytes(std::as_bytes(std::span(agents_.navPoly)));
     hash.addBytes(std::as_bytes(std::span(agents_.stateId)));
     hash.addBytes(std::as_bytes(std::span(agents_.moveMode)));
+    hash.addBytes(std::as_bytes(std::span(agents_.fallen)));
     return hash.value();
 }
 
@@ -1077,6 +1139,9 @@ void Simulation::writeSnapshot(snapshot::RenderSnapshot& out) const {
             a.agentType = agents_.agentType[i];
             a.state = agents_.stateId[i];
             a.agentId = agents_.id[i];
+            a.pressure = agents_.pressure[i];
+            a.fallen = agents_.fallen[i];
+            a.pileLayer = agents_.pileLayer[i];
         }
     });
 

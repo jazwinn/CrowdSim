@@ -11,6 +11,7 @@
 #include <bit>
 #include <cmath>
 #include <glm/common.hpp>
+#include <glm/geometric.hpp>
 
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Profile.hpp"
@@ -236,6 +237,7 @@ void NavMesh::clear() {
     tileOffset_.clear();
     denseToRef_.clear();
     polyCenter_.clear();
+    polyGradient_.clear();
     offMesh_.clear();
     extraCost_.clear();
     predStart_.clear();
@@ -370,6 +372,7 @@ void NavMesh::buildIndex() {
 
     denseToRef_.resize(polyCount_);
     polyCenter_.resize(polyCount_);
+    polyGradient_.assign(polyCount_, glm::vec2(0.0f));
     offMesh_.assign(polyCount_, 0);
     extraCost_.assign(polyCount_, 0.0f);
     std::vector<std::vector<std::uint32_t>> preds(polyCount_);
@@ -410,14 +413,22 @@ void NavMesh::buildIndex() {
                 continue;
             }
             const dtPolyDetail& pd = tile->detailMeshes[ip];
+            glm::vec3 normalSum(0.0f);  // area-weighted, for the slope
             for (int j = 0; j < pd.triCount; ++j) {
                 const unsigned char* t = &tile->detailTris[(pd.triBase + static_cast<unsigned int>(j)) * 4];
+                glm::vec3 tri[3];
                 for (int k = 0; k < 3; ++k) {
                     const float* v = t[k] < poly.vertCount
                                          ? &tile->verts[poly.verts[t[k]] * 3]
                                          : &tile->detailVerts[(pd.vertBase + t[k] - poly.vertCount) * 3];
+                    tri[k] = glm::vec3(v[0], v[1], v[2]);
                     debugTriangles_.emplace_back(v[0], v[1] + 0.03f, v[2]);
                 }
+                glm::vec3 n = glm::cross(tri[1] - tri[0], tri[2] - tri[0]);
+                normalSum += n.y < 0.0f ? -n : n;
+            }
+            if (normalSum.y > 1e-6f) {
+                polyGradient_[dense] = glm::vec2(-normalSum.x / normalSum.y, -normalSum.z / normalSum.y);
             }
         }
     }

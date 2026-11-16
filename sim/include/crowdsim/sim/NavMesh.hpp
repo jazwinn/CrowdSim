@@ -12,6 +12,7 @@
 #include <span>
 #include <vector>
 
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include "crowdsim/geometry/TriangleMesh.hpp"
@@ -97,6 +98,8 @@ public:
     [[nodiscard]] std::uint32_t denseIndex(PolyRef ref) const noexcept;
     [[nodiscard]] PolyRef refAt(std::uint32_t dense) const noexcept { return denseToRef_[dense]; }
     [[nodiscard]] glm::vec3 polyCenter(std::uint32_t dense) const noexcept { return polyCenter_[dense]; }
+    /// Slope of a polygon's surface: (dY/dX, dY/dZ). Zero on flat floors.
+    [[nodiscard]] glm::vec2 polyGradient(std::uint32_t dense) const noexcept { return polyGradient_[dense]; }
     [[nodiscard]] bool isOffMeshConnection(std::uint32_t dense) const noexcept { return offMesh_[dense] != 0; }
     /// Extra traversal cost of a polygon (non-zero for off-mesh links).
     [[nodiscard]] float extraCost(std::uint32_t dense) const noexcept { return extraCost_[dense]; }
@@ -187,6 +190,7 @@ private:
     std::vector<std::uint32_t> tileOffset_;  ///< by tile index; dense = tileOffset + poly index
     std::vector<PolyRef> denseToRef_;
     std::vector<glm::vec3> polyCenter_;
+    std::vector<glm::vec2> polyGradient_;
     std::vector<std::uint8_t> offMesh_;
     std::vector<float> extraCost_;
     std::vector<std::uint32_t> predStart_;  ///< CSR reverse adjacency
