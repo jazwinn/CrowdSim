@@ -15,7 +15,12 @@ The building (132 m x 60 m, floors at 0, 5, 10 and 15 m):
     department stores and electronics/sports above, a food court and a cinema on the
     top floor.
   - Main entrances on the south and north sides of the ground floor, from plazas.
-  - Two dog-leg fire stairs behind the north shops, reached by passages between them.
+  - Six enclosed dog-leg fire stairs: behind the north and south shops (reached by
+    passages between them) and at both ends of the building (from the anchor stores),
+    each with a ground-floor door outside. The ground-floor anchor stores have two more
+    exit doors each. All ten emergency exits are goals ("Emergency exit (...)") on aprons
+    outside. The stairs and aprons are tagged `emergency`: shoppers keep out of them, and
+    only agents whose tree runs UseEmergencyRoutes (evacuees) go that way.
 
 Shoppers come in through either entrance, visit a few shops on floors of their
 choosing (more of them on the lower floors), browse, and leave by the entrance they
@@ -55,10 +60,12 @@ ESC_Z = (4.2, 1.4)              # up escalators at z = +-4.2 (outside), down at 
 BRIDGE = 6.0                    # length of the landing bridges along the void
 CASCADE_START = 45.0            # ground-floor foot of each cascade at |x| = 45
 
-STAIR_X = 30.0                  # fire stairs behind the north shops at x = +-30
+STAIR_X = 30.0                  # fire stairs behind the north and south shops at x = +-30
 STAIR_HALF = 2.5
 PASSAGE = 3.0                   # passage between shops to the stairs
 ENTRANCE = 8.0                  # ground-floor entrance passages at x = 0
+EXIT_DOOR = 2.4                 # emergency exit doors from the anchor stores
+ANCHOR_EXIT_Z = (-20.0, 20.0)
 
 FLOOR_NAMES = ["G", "L1", "L2", "L3"]
 ANCHORS = {  # (west, east) per floor
@@ -103,8 +110,8 @@ def box(name, x0, x1, y0, y1, z0, z1, tags, color):
     })
 
 
-def slab(name, y, x0, x1, z0, z1, color=FLOOR_C):
-    box(name, x0, x1, y - SLAB, y, z0, z1, ["walkable"], color)
+def slab(name, y, x0, x1, z0, z1, color=FLOOR_C, extra_tags=()):
+    box(name, x0, x1, y - SLAB, y, z0, z1, ["walkable", *extra_tags], color)
 
 
 def wall(name, y, x0, x1, z0, z1, height=WALL_H, color=WALL_C):
@@ -183,14 +190,19 @@ for side, sgn in (("west", -1.0), ("east", 1.0)):
                    zs * ESC_Z[1], ESC_WIDTH, STOREY, ESC_RUN, rot, up_tags + ["escalator:down"], STEEL_C,
                    ESC_STEPS)
             escalator_count += 2
-        # Balustrades: a low skirt along both sides of every escalator.
+        # Balustrades: a low skirt along both sides of every escalator. They stop short of
+        # the landings: the navmesh keeps an agent radius clear of obstacles, and a skirt
+        # running right to the edge would close the landing in front of the steps to
+        # people crossing from one escalator to the next.
+        inset = 0.6
         outer = ESC_Z[0] + ESC_WIDTH / 2 + 0.08
         between = (ESC_Z[0] + ESC_Z[1]) / 2
         for bz in (-outer, -between, 0.0, between, outer):
             objects.append({
                 "id": new_id(), "name": f"Balustrade {FLOOR_NAMES[k]}-{FLOOR_NAMES[k + 1]} {side}",
-                "type": "ramp", "position": [r3(mid), r3(y + 0.9), bz], "rotationY": rot,
-                "size": [0.14, STOREY, r3(ESC_RUN)], "tags": ["obstacle"], "color": RAIL_C,
+                "type": "ramp", "position": [r3(mid), r3(y + 0.9 + STOREY * inset / ESC_RUN), bz], "rotationY": rot,
+                "size": [0.14, r3(STOREY * (ESC_RUN - 2 * inset) / ESC_RUN), r3(ESC_RUN - 2 * inset)],
+                "tags": ["obstacle"], "color": RAIL_C,
             })
         # Landing bridge at floor k+1 (the top one in the middle joins both cascades).
         yb = (k + 1) * STOREY
@@ -237,12 +249,11 @@ for k in range(FLOORS):
     fl = FLOOR_NAMES[k]
     kinds = iter(SHOP_KINDS[k])
     for side, sgn in (("north", 1.0), ("south", -1.0)):
-        # Gaps in the shop row: the entrance passage (ground floor) and the stair passages (north).
-        gaps = []
+        # Gaps in the shop row: the entrance passage (ground floor) and the passages to the
+        # fire stairs behind the shops.
+        gaps = [(-STAIR_X - PASSAGE / 2, -STAIR_X + PASSAGE / 2), (STAIR_X - PASSAGE / 2, STAIR_X + PASSAGE / 2)]
         if k == 0:
             gaps.append((-ENTRANCE / 2, ENTRANCE / 2))
-        if side == "north":
-            gaps += [(-STAIR_X - PASSAGE / 2, -STAIR_X + PASSAGE / 2), (STAIR_X - PASSAGE / 2, STAIR_X + PASSAGE / 2)]
         gaps.sort()
         segments = []
         edge = -ANCHOR_X
@@ -304,50 +315,112 @@ for k in range(FLOORS):
             for tz in range(-22, 23, 8):  # aisles of shelving
                 box(f"{full} shelving", cx - 3.0, cx + 3.0, y, y + 1.8, tz - 0.5, tz + 0.5, ["obstacle"], SHOP_C)
 
-    # Outer walls of this storey, with the entrances (ground floor) and stair doors (north).
-    south_gaps = [(-ENTRANCE / 2, ENTRANCE / 2)] if k == 0 else []
-    north_gaps = [(-STAIR_X - PASSAGE / 2, -STAIR_X + PASSAGE / 2), (STAIR_X - PASSAGE / 2, STAIR_X + PASSAGE / 2)]
+    # Outer walls of this storey: entrances (ground floor), doors into the fire stairs (every
+    # floor) and emergency exits straight outside from the anchor stores (ground floor).
+    side_gaps = [(-STAIR_X - PASSAGE / 2, -STAIR_X + PASSAGE / 2), (STAIR_X - PASSAGE / 2, STAIR_X + PASSAGE / 2)]
+    end_gaps = [(-PASSAGE / 2, PASSAGE / 2)]
     if k == 0:
-        north_gaps.append((-ENTRANCE / 2, ENTRANCE / 2))
-    wall_x(f"{fl} outer wall south", y, Z0 - WALL / 2, X0 - WALL, X1 + WALL, south_gaps)
-    wall_x(f"{fl} outer wall north", y, Z1 + WALL / 2, X0 - WALL, X1 + WALL, north_gaps)
-    wall_z(f"{fl} outer wall west", y, X0 - WALL / 2, Z0, Z1)
-    wall_z(f"{fl} outer wall east", y, X1 + WALL / 2, Z0, Z1)
+        side_gaps.append((-ENTRANCE / 2, ENTRANCE / 2))
+        end_gaps += [(z - EXIT_DOOR / 2, z + EXIT_DOOR / 2) for z in ANCHOR_EXIT_Z]
+    wall_x(f"{fl} outer wall south", y, Z0 - WALL / 2, X0 - WALL, X1 + WALL, side_gaps)
+    wall_x(f"{fl} outer wall north", y, Z1 + WALL / 2, X0 - WALL, X1 + WALL, side_gaps)
+    wall_z(f"{fl} outer wall west", y, X0 - WALL / 2, Z0, Z1, end_gaps)
+    wall_z(f"{fl} outer wall east", y, X1 + WALL / 2, Z0, Z1, end_gaps)
 
-# --- Fire stairs ---------------------------------------------------------------------------
-# Dog-leg stairs outside the north wall: from each floor's landing up a flight to a half
-# landing, then back up the other flight to the next floor's landing.
-FLIGHT_Z0, FLIGHT_Z1 = Z1 + 2.0, Z1 + 7.0
-for sx in (-STAIR_X, STAIR_X):
-    tag = "west" if sx < 0 else "east"
+# --- Fire stairs and emergency exits -------------------------------------------------------
+# Six enclosed dog-leg stair cores outside the building: behind the north and south shops
+# (reached by passages between shops) and at both ends (opening into the anchor stores).
+# On every floor a door in the outer wall (which stands on the landing's edge) leads onto it; a flight climbs
+# away from the building to a half landing and the other flight comes back to the next
+# floor's landing. At ground level a side door opens outside, onto an apron where the
+# emergency exit is. The anchor stores also have two exit doors straight outside.
+emergency_exits = []
+# Emergency routes: everyday routing keeps out of them; evacuees (UseEmergencyRoutes) use them.
+EMERGENCY = ["emergency"]
+
+
+def apron_exit(name, x0, x1, z0, z1):
+    slab(f"{name} apron", 0.0, x0, x1, z0, z1, PLAZA_C, EMERGENCY)
+    emergency_exits.append(goal(f"Emergency exit ({name})", (x0 + x1) / 2, (z0 + z1) / 2,
+                                (x1 - x0) / 2 - 0.5, (z1 - z0) / 2 - 0.5, 0.0))
+
+
+def stair_core(name, px, pz, out, door_side):
+    """A core on the building face at (px, pz), extending along `out` (an axis direction).
+    `door_side` (+1/-1) is which side of it the ground-floor door to the outside is on."""
+    ox, oz = out
+    lx, lz = oz, ox  # lateral axis
+
+    def rect(a0, a1, b0, b1):
+        xs = [px + ox * b + lx * a for a in (a0, a1) for b in (b0, b1)]
+        zs = [pz + oz * b + lz * a for a in (a0, a1) for b in (b0, b1)]
+        return min(xs), max(xs), min(zs), max(zs)
+
+    def centre(a, b):
+        return px + ox * b + lx * a, pz + oz * b + lz * a
+
+    hw = STAIR_HALF
+    fw = hw - 0.15
+    run = 5.0                       # flights from b = 2 to b = 7
+    rot = math.degrees(math.atan2(ox, oz))
+    top = (FLOORS - 1) * STOREY + WALL_H
     for k in range(FLOORS):
         y = k * STOREY
-        slab(f"Fire stairs {tag} landing {FLOOR_NAMES[k]}", y, sx - STAIR_HALF, sx + STAIR_HALF, Z1, FLIGHT_Z0, STAIR_C)
+        x0, x1, z0, z1 = rect(-hw, hw, 0.0, 2.0)
+        slab(f"{name} landing {FLOOR_NAMES[k]}", y, x0, x1, z0, z1, STAIR_C, EMERGENCY)
         if k + 1 < FLOORS:
             half = STOREY / 2
-            fw = STAIR_HALF - 0.15
-            stairs(f"Fire stairs {tag} {FLOOR_NAMES[k]} flight 1", sx - 0.15 - fw / 2, y, (FLIGHT_Z0 + FLIGHT_Z1) / 2,
-                   fw, half, FLIGHT_Z1 - FLIGHT_Z0, 0.0, ["walkable"], STAIR_C, 14)
-            slab(f"Fire stairs {tag} half landing {FLOOR_NAMES[k]}", y + half, sx - STAIR_HALF, sx + STAIR_HALF,
-                 FLIGHT_Z1, FLIGHT_Z1 + 2.0, STAIR_C)
-            stairs(f"Fire stairs {tag} {FLOOR_NAMES[k]} flight 2", sx + 0.15 + fw / 2, y + half,
-                   (FLIGHT_Z0 + FLIGHT_Z1) / 2, fw, half, FLIGHT_Z1 - FLIGHT_Z0, 180.0, ["walkable"], STAIR_C, 14)
-    box(f"Fire stairs {tag} core wall", sx - 0.15, sx + 0.15, 0.0, (FLOORS - 1) * STOREY + 1.0,
-        FLIGHT_Z0, FLIGHT_Z1, ["obstacle"], WALL_C)
-    top = (FLOORS - 1) * STOREY + WALL_H
-    box(f"Fire stairs {tag} wall", sx - STAIR_HALF - WALL, sx - STAIR_HALF, 0.0, top, Z1, FLIGHT_Z1 + 2.0,
-        ["obstacle"], WALL_C)
-    box(f"Fire stairs {tag} wall", sx + STAIR_HALF, sx + STAIR_HALF + WALL, 0.0, top, Z1, FLIGHT_Z1 + 2.0,
-        ["obstacle"], WALL_C)
-    box(f"Fire stairs {tag} wall", sx - STAIR_HALF - WALL, sx + STAIR_HALF + WALL, 0.0, top,
-        FLIGHT_Z1 + 2.0, FLIGHT_Z1 + 2.0 + WALL, ["obstacle"], WALL_C)
+            cx, cz = centre(-0.15 - fw / 2, 2.0 + run / 2)
+            stairs(f"{name} {FLOOR_NAMES[k]} flight 1", cx, y, cz, fw, half, run, rot, ["walkable"] + EMERGENCY, STAIR_C, 14)
+            x0, x1, z0, z1 = rect(-hw, hw, 2.0 + run, 4.0 + run)
+            slab(f"{name} half landing {FLOOR_NAMES[k]}", y + half, x0, x1, z0, z1, STAIR_C, EMERGENCY)
+            cx, cz = centre(0.15 + fw / 2, 2.0 + run / 2)
+            stairs(f"{name} {FLOOR_NAMES[k]} flight 2", cx, y + half, cz, fw, half, run, rot + 180.0,
+                   ["walkable"] + EMERGENCY, STAIR_C, 14)
+    x0, x1, z0, z1 = rect(-0.15, 0.15, 2.0, 2.0 + run)
+    box(f"{name} core wall", x0, x1, 0.0, (FLOORS - 1) * STOREY + 1.0, z0, z1, ["obstacle"], WALL_C)
+    back = 4.0 + run
+    x0, x1, z0, z1 = rect(-hw - WALL, hw + WALL, back, back + WALL)
+    box(f"{name} wall", x0, x1, 0.0, top, z0, z1, ["obstacle"], WALL_C)
+    for sd in (-1.0, 1.0):
+        a0, a1 = (hw, hw + WALL) if sd > 0 else (-hw - WALL, -hw)
+        if sd == door_side:
+            # Door to the outside at ground level, beside the landing.
+            for b0, b1, y0 in ((0.0, 0.2, 0.0), (0.2, 1.8, 2.2), (1.8, back, 0.0)):
+                x0, x1, z0, z1 = rect(a0, a1, b0, b1)
+                box(f"{name} wall", x0, x1, y0, top, z0, z1, ["obstacle"], WALL_C)
+        else:
+            x0, x1, z0, z1 = rect(a0, a1, 0.0, back)
+            box(f"{name} wall", x0, x1, 0.0, top, z0, z1, ["obstacle"], WALL_C)
+    # The apron runs under the side wall, so the doorway has floor.
+    a0 = hw if door_side > 0 else -hw - WALL - 6.0
+    x0, x1, z0, z1 = rect(a0, a0 + 6.0 + WALL, 0.0, 4.0)
+    apron_exit(name, x0, x1, z0, z1)
+
+
+for sx in (-STAIR_X, STAIR_X):
+    away = 1.0 if sx > 0 else -1.0
+    ew = "east" if sx > 0 else "west"
+    # North cores: lateral +x, so `away` puts the door on the side away from the middle.
+    # South cores: lateral -x.
+    stair_core(f"Fire stairs north-{ew}", sx, Z1, (0.0, 1.0), away)
+    stair_core(f"Fire stairs south-{ew}", sx, Z0, (0.0, -1.0), -away)
+stair_core("Fire stairs west", X0, 0.0, (-1.0, 0.0), 1.0)
+stair_core("Fire stairs east", X1, 0.0, (1.0, 0.0), -1.0)
+
+# Exit doors straight outside from the ground-floor anchor stores.
+for sgn, ew in ((-1.0, "west"), (1.0, "east")):
+    for z in ANCHOR_EXIT_Z:
+        ns = "north" if z > 0 else "south"
+        xa = sgn * X1  # from the inside of the wall, so the doorway has floor
+        apron_exit(f"{ew} {ns} door", min(xa, xa + sgn * 5.3), max(xa, xa + sgn * 5.3), z - 3.0, z + 3.0)
 
 # --- Entrances, exits and arrivals ---------------------------------------------------------
 exits = {
     "south": goal("South entrance", 0.0, -34.0, 6.0, 2.0, 0.0),
     "north": goal("North entrance", 0.0, 34.0, 6.0, 2.0, 0.0),
 }
-ARRIVALS = {"south": 1.4, "north": 0.9}  # people per second; the south side faces the street
+ARRIVALS = {"south": 1.2, "north": 0.8}  # people per second; the south side faces the street
 MIX = [
     {"type": "mall_shopper", "weight": 0.72},
     {"type": "mall_diner", "weight": 0.18},
