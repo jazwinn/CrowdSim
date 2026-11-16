@@ -1,0 +1,26 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "tunnel_foot_to_b",
+  "root": {
+    "type": "Sequence",
+    "id": "root",
+    "children": [
+      {
+        "type": "SetState",
+        "id": "label",
+        "params": {
+          "name": "walking"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "out"
+      },
+      {
+        "type": "Despawn",
+        "id": "gone"
+      }
+    ]
+  }
+}

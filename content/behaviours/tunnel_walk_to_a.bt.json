@@ -1,0 +1,57 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "tunnel_walk_to_a",
+  "root": {
+    "type": "Sequence",
+    "id": "root",
+    "children": [
+      {
+        "type": "SetState",
+        "id": "label",
+        "params": {
+          "name": "to the travelator"
+        }
+      },
+      {
+        "type": "SetEscalatorStyle",
+        "id": "style",
+        "params": {
+          "side": "right",
+          "walk": 0.7,
+          "clear": 2.0
+        }
+      },
+      {
+        "type": "SetQueueManners",
+        "id": "manners",
+        "params": {
+          "gap": 0.6,
+          "ease": 0.5
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "board",
+        "params": {
+          "goal": "Travelator to A (start)"
+        }
+      },
+      {
+        "type": "SetState",
+        "id": "riding",
+        "params": {
+          "name": "on the travelator"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "out"
+      },
+      {
+        "type": "Despawn",
+        "id": "gone"
+      }
+    ]
+  }
+}

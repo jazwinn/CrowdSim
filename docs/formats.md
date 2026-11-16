@@ -54,7 +54,8 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   `SetEscalatorStyle` (side, walking pace, clearing the landing), `SetEscalatorBoarding` (gap,
   squeezing on) and the general `SetQueueManners`. See `scenes/escalator_etiquette.scene.json`
   and `behaviours/escalator_*.bt.json`; `scenes/shopping_mall.scene.json` chains escalator pairs
-  up a four-storey atrium (`tools/make_mall_scene.py`).
+  up a four-storey atrium (`tools/make_mall_scene.py`); `scenes/travelator_tunnel.scene.json` has
+  a moving walkway each way along an interchange tunnel (`tools/make_travelator_tunnel_scene.py`).
 - **Bodies** (optional `"bodies": {...}`; off when absent): physical contact in packed crowds.
   Below contact density agents avoid each other as usual. When bodies touch (a crowd packed past
   what avoidance can keep apart, or people held up for a few seconds pressing into the gaps),

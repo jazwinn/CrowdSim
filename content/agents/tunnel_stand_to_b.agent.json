@@ -1,0 +1,21 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "tunnel_stand_to_b",
+  "behaviour": "tunnel_stand_to_b",
+  "radius": [
+    0.22,
+    0.27
+  ],
+  "preferredSpeed": [
+    1.1,
+    1.5
+  ],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.08,
+  "height": 1.72,
+  "color": "#e8b04a",
+  "colorJitter": 0.1,
+  "tags": []
+}

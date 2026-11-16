@@ -1,0 +1,1873 @@
+{
+  "format": "crowdsim.scene",
+  "version": 1,
+  "name": "travelator_tunnel",
+  "behaviours": [
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "tunnel_stand_to_b",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "to the travelator"
+            }
+          },
+          {
+            "type": "SetEscalatorStyle",
+            "id": "style",
+            "params": {
+              "side": "left",
+              "walk": 0.0,
+              "clear": 2.0
+            }
+          },
+          {
+            "type": "SetQueueManners",
+            "id": "manners",
+            "params": {
+              "gap": 0.6,
+              "ease": 0.5
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "board",
+            "params": {
+              "goal": "Travelator to B (start)"
+            }
+          },
+          {
+            "type": "SetState",
+            "id": "riding",
+            "params": {
+              "name": "on the travelator"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "out"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "tunnel_walk_to_b",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "to the travelator"
+            }
+          },
+          {
+            "type": "SetEscalatorStyle",
+            "id": "style",
+            "params": {
+              "side": "right",
+              "walk": 0.7,
+              "clear": 2.0
+            }
+          },
+          {
+            "type": "SetQueueManners",
+            "id": "manners",
+            "params": {
+              "gap": 0.6,
+              "ease": 0.5
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "board",
+            "params": {
+              "goal": "Travelator to B (start)"
+            }
+          },
+          {
+            "type": "SetState",
+            "id": "riding",
+            "params": {
+              "name": "on the travelator"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "out"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "tunnel_foot_to_b",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "walking"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "out"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "tunnel_stand_to_a",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "to the travelator"
+            }
+          },
+          {
+            "type": "SetEscalatorStyle",
+            "id": "style",
+            "params": {
+              "side": "left",
+              "walk": 0.0,
+              "clear": 2.0
+            }
+          },
+          {
+            "type": "SetQueueManners",
+            "id": "manners",
+            "params": {
+              "gap": 0.6,
+              "ease": 0.5
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "board",
+            "params": {
+              "goal": "Travelator to A (start)"
+            }
+          },
+          {
+            "type": "SetState",
+            "id": "riding",
+            "params": {
+              "name": "on the travelator"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "out"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "tunnel_walk_to_a",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "to the travelator"
+            }
+          },
+          {
+            "type": "SetEscalatorStyle",
+            "id": "style",
+            "params": {
+              "side": "right",
+              "walk": 0.7,
+              "clear": 2.0
+            }
+          },
+          {
+            "type": "SetQueueManners",
+            "id": "manners",
+            "params": {
+              "gap": 0.6,
+              "ease": 0.5
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "board",
+            "params": {
+              "goal": "Travelator to A (start)"
+            }
+          },
+          {
+            "type": "SetState",
+            "id": "riding",
+            "params": {
+              "name": "on the travelator"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "out"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "tunnel_foot_to_a",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "label",
+            "params": {
+              "name": "walking"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "out"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    }
+  ],
+  "agentTypes": [
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "tunnel_stand_to_b",
+      "behaviour": "tunnel_stand_to_b",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.1,
+        1.5
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.08,
+      "height": 1.72,
+      "color": "#e8b04a",
+      "colorJitter": 0.1,
+      "tags": []
+    },
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "tunnel_walk_to_b",
+      "behaviour": "tunnel_walk_to_b",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.1,
+        1.5
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.08,
+      "height": 1.72,
+      "color": "#d9534f",
+      "colorJitter": 0.1,
+      "tags": []
+    },
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "tunnel_foot_to_b",
+      "behaviour": "tunnel_foot_to_b",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.1,
+        1.5
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.08,
+      "height": 1.72,
+      "color": "#4aa3df",
+      "colorJitter": 0.1,
+      "tags": []
+    },
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "tunnel_stand_to_a",
+      "behaviour": "tunnel_stand_to_a",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.1,
+        1.5
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.08,
+      "height": 1.72,
+      "color": "#e8b04a",
+      "colorJitter": 0.1,
+      "tags": []
+    },
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "tunnel_walk_to_a",
+      "behaviour": "tunnel_walk_to_a",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.1,
+        1.5
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.08,
+      "height": 1.72,
+      "color": "#d9534f",
+      "colorJitter": 0.1,
+      "tags": []
+    },
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "tunnel_foot_to_a",
+      "behaviour": "tunnel_foot_to_a",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.1,
+        1.5
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.08,
+      "height": 1.72,
+      "color": "#4aa3df",
+      "colorJitter": 0.1,
+      "tags": []
+    }
+  ],
+  "navigation": {
+    "agentHeight": 1.9,
+    "agentMaxClimb": 0.45,
+    "agentMaxSlope": 45.0,
+    "agentRadius": 0.3,
+    "cellHeight": 0.1,
+    "cellSize": 0.2,
+    "tileSize": 64
+  },
+  "nextId": 69,
+  "groups": [
+    {
+      "id": 1,
+      "name": "Tunnel"
+    },
+    {
+      "id": 17,
+      "name": "Travelators"
+    },
+    {
+      "id": 24,
+      "name": "Ads"
+    },
+    {
+      "id": 62,
+      "name": "Goals and arrivals"
+    }
+  ],
+  "objects": [
+    {
+      "id": 2,
+      "name": "Concourse A floor",
+      "type": "box",
+      "position": [
+        0.0,
+        -0.2,
+        6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        28.0,
+        0.2,
+        12.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#a59d90",
+      "parent": 1
+    },
+    {
+      "id": 3,
+      "name": "Concourse B floor",
+      "type": "box",
+      "position": [
+        0.0,
+        -0.2,
+        134.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        28.0,
+        0.2,
+        12.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#a59d90",
+      "parent": 1
+    },
+    {
+      "id": 4,
+      "name": "Tunnel floor",
+      "type": "box",
+      "position": [
+        0.0,
+        -0.2,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        16.0,
+        0.2,
+        116.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#b9b2a6",
+      "parent": 1
+    },
+    {
+      "id": 5,
+      "name": "Tunnel wall west",
+      "type": "box",
+      "position": [
+        -8.15,
+        0.0,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        4.5,
+        116.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 6,
+      "name": "Tunnel wall east",
+      "type": "box",
+      "position": [
+        8.15,
+        0.0,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        4.5,
+        116.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 7,
+      "name": "Concourse A end wall",
+      "type": "box",
+      "position": [
+        0.0,
+        0.0,
+        -0.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        28.0,
+        4.5,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 8,
+      "name": "Concourse B end wall",
+      "type": "box",
+      "position": [
+        0.0,
+        0.0,
+        140.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        28.0,
+        4.5,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 9,
+      "name": "Concourse A side wall",
+      "type": "box",
+      "position": [
+        -14.15,
+        0.0,
+        6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        4.5,
+        12.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 10,
+      "name": "Concourse A side wall",
+      "type": "box",
+      "position": [
+        14.15,
+        0.0,
+        6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        4.5,
+        12.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 11,
+      "name": "Concourse A wall",
+      "type": "box",
+      "position": [
+        -11.0,
+        0.0,
+        12.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        4.5,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 12,
+      "name": "Concourse A wall",
+      "type": "box",
+      "position": [
+        11.0,
+        0.0,
+        12.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        4.5,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 13,
+      "name": "Concourse B side wall",
+      "type": "box",
+      "position": [
+        -14.15,
+        0.0,
+        134.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        4.5,
+        12.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 14,
+      "name": "Concourse B side wall",
+      "type": "box",
+      "position": [
+        14.15,
+        0.0,
+        134.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        4.5,
+        12.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 15,
+      "name": "Concourse B wall",
+      "type": "box",
+      "position": [
+        -11.0,
+        0.0,
+        127.85
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        4.5,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 16,
+      "name": "Concourse B wall",
+      "type": "box",
+      "position": [
+        11.0,
+        0.0,
+        127.85
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        4.5,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#c9c4bc",
+      "parent": 1
+    },
+    {
+      "id": 18,
+      "name": "Travelator to B",
+      "type": "box",
+      "position": [
+        -6.4,
+        -0.1,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.4,
+        0.15,
+        100.0
+      ],
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.75"
+      ],
+      "color": "#3b3f45",
+      "parent": 17
+    },
+    {
+      "id": 19,
+      "name": "Travelator to B handrail (inner)",
+      "type": "box",
+      "position": [
+        -5.1,
+        0.0,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.2,
+        1.0,
+        98.8
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#9aa1a9",
+      "parent": 17
+    },
+    {
+      "id": 20,
+      "name": "Travelator to B handrail (outer)",
+      "type": "box",
+      "position": [
+        -7.7,
+        0.0,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.2,
+        1.0,
+        98.8
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#9aa1a9",
+      "parent": 17
+    },
+    {
+      "id": 21,
+      "name": "Travelator to A",
+      "type": "box",
+      "position": [
+        6.4,
+        -0.1,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.4,
+        0.15,
+        100.0
+      ],
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.75",
+        "escalator:down"
+      ],
+      "color": "#3b3f45",
+      "parent": 17
+    },
+    {
+      "id": 22,
+      "name": "Travelator to A handrail (inner)",
+      "type": "box",
+      "position": [
+        5.1,
+        0.0,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.2,
+        1.0,
+        98.8
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#9aa1a9",
+      "parent": 17
+    },
+    {
+      "id": 23,
+      "name": "Travelator to A handrail (outer)",
+      "type": "box",
+      "position": [
+        7.7,
+        0.0,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.2,
+        1.0,
+        98.8
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#9aa1a9",
+      "parent": 17
+    },
+    {
+      "id": 25,
+      "name": "Ad box",
+      "type": "box",
+      "position": [
+        0.0,
+        0.0,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        3.2,
+        2.6,
+        92.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#5d6066",
+      "parent": 24
+    },
+    {
+      "id": 26,
+      "name": "Ad panel (box, west 1)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        29.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 27,
+      "name": "Ad panel (box, east 1)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        29.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 28,
+      "name": "Ad panel (box, west 2)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        38.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 29,
+      "name": "Ad panel (box, east 2)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        38.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 30,
+      "name": "Ad panel (box, west 3)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        48.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 31,
+      "name": "Ad panel (box, east 3)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        48.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 32,
+      "name": "Ad panel (box, west 4)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        57.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 33,
+      "name": "Ad panel (box, east 4)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        57.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 34,
+      "name": "Ad panel (box, west 5)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        67.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 35,
+      "name": "Ad panel (box, east 5)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        67.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 36,
+      "name": "Ad panel (box, west 6)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        76.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 37,
+      "name": "Ad panel (box, east 6)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        76.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 38,
+      "name": "Ad panel (box, west 7)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        86.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 39,
+      "name": "Ad panel (box, east 7)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        86.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 40,
+      "name": "Ad panel (box, west 8)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        95.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 41,
+      "name": "Ad panel (box, east 8)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        95.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 42,
+      "name": "Ad panel (box, west 9)",
+      "type": "box",
+      "position": [
+        -1.625,
+        0.3,
+        105.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 43,
+      "name": "Ad panel (box, east 9)",
+      "type": "box",
+      "position": [
+        1.625,
+        0.3,
+        105.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.1,
+        8.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 44,
+      "name": "Ad panel (wall, west 1)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        26.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 45,
+      "name": "Ad panel (wall, east 1)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        26.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 46,
+      "name": "Ad panel (wall, west 2)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        36.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 47,
+      "name": "Ad panel (wall, east 2)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        36.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 48,
+      "name": "Ad panel (wall, west 3)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        46.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 49,
+      "name": "Ad panel (wall, east 3)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        46.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 50,
+      "name": "Ad panel (wall, west 4)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        56.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 51,
+      "name": "Ad panel (wall, east 4)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        56.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 52,
+      "name": "Ad panel (wall, west 5)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        66.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 53,
+      "name": "Ad panel (wall, east 5)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        66.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 54,
+      "name": "Ad panel (wall, west 6)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        76.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 55,
+      "name": "Ad panel (wall, east 6)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        76.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 56,
+      "name": "Ad panel (wall, west 7)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        86.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 57,
+      "name": "Ad panel (wall, east 7)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        86.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#f2f2f2",
+      "parent": 24
+    },
+    {
+      "id": 58,
+      "name": "Ad panel (wall, west 8)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        96.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 59,
+      "name": "Ad panel (wall, east 8)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        96.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 60,
+      "name": "Ad panel (wall, west 9)",
+      "type": "box",
+      "position": [
+        -7.975,
+        1.0,
+        106.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 61,
+      "name": "Ad panel (wall, east 9)",
+      "type": "box",
+      "position": [
+        7.975,
+        1.0,
+        106.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.05,
+        2.6,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    }
+  ],
+  "goals": [
+    {
+      "id": 63,
+      "name": "Station A",
+      "area": {
+        "center": [
+          0.0,
+          4.0
+        ],
+        "halfExtents": [
+          12.0,
+          2.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 62
+    },
+    {
+      "id": 64,
+      "name": "Station B",
+      "area": {
+        "center": [
+          0.0,
+          136.0
+        ],
+        "halfExtents": [
+          12.0,
+          2.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 62
+    },
+    {
+      "id": 65,
+      "name": "Travelator to B (start)",
+      "area": {
+        "center": [
+          -6.4,
+          21.5
+        ],
+        "halfExtents": [
+          0.6,
+          1.0
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 62
+    },
+    {
+      "id": 66,
+      "name": "Travelator to A (start)",
+      "area": {
+        "center": [
+          6.4,
+          118.5
+        ],
+        "halfExtents": [
+          0.6,
+          1.0
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 62
+    }
+  ],
+  "spawners": [
+    {
+      "id": 67,
+      "name": "Arrivals at A (to B)",
+      "area": {
+        "center": [
+          0.0,
+          9.0
+        ],
+        "halfExtents": [
+          10.0,
+          1.5
+        ],
+        "elevation": 0.0
+      },
+      "rate": 1.4,
+      "total": 0,
+      "startTime": 0.0,
+      "stopTime": null,
+      "goal": 64,
+      "groupSize": [
+        1,
+        1
+      ],
+      "agent": {
+        "agentType": 0,
+        "color": "#4aa3df",
+        "colorJitter": 0.1,
+        "maxAcceleration": 3.0,
+        "maxSpeedFactor": 1.35,
+        "preferredSpeed": [
+          1.1,
+          1.5
+        ],
+        "radius": [
+          0.22,
+          0.27
+        ]
+      },
+      "agentMix": [
+        {
+          "type": "tunnel_stand_to_b",
+          "weight": 0.35
+        },
+        {
+          "type": "tunnel_walk_to_b",
+          "weight": 0.2
+        },
+        {
+          "type": "tunnel_foot_to_b",
+          "weight": 0.45
+        }
+      ],
+      "parent": 62
+    },
+    {
+      "id": 68,
+      "name": "Arrivals at B (to A)",
+      "area": {
+        "center": [
+          0.0,
+          131.0
+        ],
+        "halfExtents": [
+          10.0,
+          1.5
+        ],
+        "elevation": 0.0
+      },
+      "rate": 1.1,
+      "total": 0,
+      "startTime": 0.0,
+      "stopTime": null,
+      "goal": 63,
+      "groupSize": [
+        1,
+        1
+      ],
+      "agent": {
+        "agentType": 0,
+        "color": "#4aa3df",
+        "colorJitter": 0.1,
+        "maxAcceleration": 3.0,
+        "maxSpeedFactor": 1.35,
+        "preferredSpeed": [
+          1.1,
+          1.5
+        ],
+        "radius": [
+          0.22,
+          0.27
+        ]
+      },
+      "agentMix": [
+        {
+          "type": "tunnel_stand_to_a",
+          "weight": 0.35
+        },
+        {
+          "type": "tunnel_walk_to_a",
+          "weight": 0.2
+        },
+        {
+          "type": "tunnel_foot_to_a",
+          "weight": 0.45
+        }
+      ],
+      "parent": 62
+    }
+  ],
+  "links": []
+}
