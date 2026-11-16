@@ -124,6 +124,7 @@ Keep per-agent state in a Lua table keyed by `ctx:id(a)`, and clear it on comple
 | `agents.register_type{name, behaviour, radius, preferredSpeed, color, ...}` | `DefineAgentType` (fields as in `*.agent.json`). |
 | `agents.count()` | Agents alive. |
 | `agents.count_near(x, y, z, radius)` | Agents within `radius` on that floor. |
+| `agents.region(x0, z0, x1, z1)` | Crowd in a box on the ground: `{count, density, peak_pressure, mean_pressure, fallen}` (pressure in N/m with scene bodies). |
 | `agents.get(id)` | `{id, type, behaviour, state, goal, position, speed}` or `nil`. |
 
 ### `sim`, `metrics`, `events`, `log`
@@ -133,7 +134,7 @@ Keep per-agent state in a Lua table keyed by `ctx:id(a)`, and clear it on comple
 | `sim.time()`, `sim.step_index()`, `sim.seed()` | Clock and seed. |
 | `sim.random()` | World-seeded random number in [0, 1). |
 | `sim.play()`, `sim.pause()`, `sim.step(n)`, `sim.command(name, params)` | Playback through commands. |
-| `metrics.get()` | `{alive, spawned, arrived, despawned, average_speed, time}`. |
+| `metrics.get()` | `{alive, spawned, arrived, despawned, average_speed, fallen, falls, peak_pressure, time}`. |
 | `events.on(name, fn)` | `agent_spawned(id)`, `agent_arrived(id, goal)`, `agent_despawned(id)`, `step(index, time)`. Handlers belong to the registering script and are replaced when it reloads. |
 | `events.clear([name])` | Remove handlers. |
 | `print(...)`, `log.info/warn/error(msg)` | To the Log panel (and the console output). |

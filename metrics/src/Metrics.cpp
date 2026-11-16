@@ -64,10 +64,13 @@ void MetricsCollector::reset() {
     series_.clear();
     std::fill(heatmap_.agentSeconds.begin(), heatmap_.agentSeconds.end(), 0.0f);
     std::fill(heatmap_.speedSeconds.begin(), heatmap_.speedSeconds.end(), 0.0f);
+    std::fill(heatmap_.peakPressure.begin(), heatmap_.peakPressure.end(), 0.0f);
     heatmap_.elapsed = 0.0;
     ++heatmap_.version;
     spawnTime_.clear();
     slowFor_.clear();
+    criticalFor_.clear();
+    criticallyExposed_ = 0;
     timeToGoal_.clear();
     rows_.clear();
 }
@@ -124,6 +127,7 @@ void MetricsCollector::ensureHeatmap() {
         h.origin = {bounds.min.x, bounds.min.z};
         h.agentSeconds.assign(static_cast<std::size_t>(h.width * h.height), 0.0f);
         h.speedSeconds.assign(h.agentSeconds.size(), 0.0f);
+        h.peakPressure.assign(h.agentSeconds.size(), 0.0f);
     }
     heatmap_ = std::move(h);
 }
@@ -151,6 +155,7 @@ void MetricsCollector::afterStep(sim::Simulation& sim) {
             case sim::SimEventType::AgentDespawned:
                 spawnTime_.erase(e.agentId);
                 slowFor_.erase(e.agentId);
+                criticalFor_.erase(e.agentId);
                 break;
         }
     }
@@ -201,6 +206,7 @@ void MetricsCollector::afterStep(sim::Simulation& sim) {
             const glm::vec2 v = a.velocity[i];
             heatmap_.agentSeconds[c] += hdt;
             heatmap_.speedSeconds[c] += std::sqrt(v.x * v.x + v.y * v.y) * hdt;
+            heatmap_.peakPressure[c] = std::max(heatmap_.peakPressure[c], a.pressure[i]);
         }
         heatmap_.elapsed += hdt;
         ++heatmap_.version;
@@ -242,8 +248,8 @@ void MetricsCollector::takeSample() {
         const auto cx = static_cast<std::int32_t>(std::floor(a.position[i].x));
         const auto cz = static_cast<std::int32_t>(std::floor(a.position[i].y));
         ++occupancy[(static_cast<std::uint32_t>(cx) << 16) ^ static_cast<std::uint32_t>(cz & 0xFFFF)];
-        // Stuck: wants to move, is not queueing, barely moves.
-        const bool trying = a.moveMode[i] != sim::MoveMode::Stop && a.queueStage[i] == 0;
+        // Stuck: wants to move, is not queueing or lying on the ground, barely moves.
+        const bool trying = a.moveMode[i] != sim::MoveMode::Stop && a.queueStage[i] == 0 && a.fallen[i] == 0;
         if (trying && speeds[i] < kStuckSpeed) {
             slowFor_[a.id[i]] += sampleDt;
         } else {
@@ -263,6 +269,25 @@ void MetricsCollector::takeSample() {
     for (const auto& [id, seconds] : slowFor_) {
         s.stuck += seconds >= kStuckSeconds ? 1u : 0u;
     }
+    // Pressure on bodies (scene bodies; zero otherwise).
+    std::vector<float> pressures;
+    for (std::uint32_t i = 0; i < a.size(); ++i) {
+        const float p = a.pressure[i];
+        s.fallen += a.fallen[i];
+        if (p > 0.0f) {
+            pressures.push_back(p);
+            s.peakPressure = std::max(s.peakPressure, p);
+        }
+        if (p >= kCriticalPressure) {
+            ++s.critical;
+            float& t = criticalFor_[a.id[i]];
+            const bool before = t >= kCriticalSeconds;
+            t += sampleDt;
+            criticallyExposed_ += !before && t >= kCriticalSeconds ? 1u : 0u;
+        }
+    }
+    s.p90Pressure = percentile(pressures, 0.9f);
+    s.falls = sim_.stats().falls;
     for (const Gate& g : gates_) {
         s.gateTotals.push_back(g.forward + g.backward);
     }
@@ -291,6 +316,23 @@ Json MetricsCollector::summary() const {
         j["arrived"] = s.arrived;
         j["speed"] = {{"mean", round3(s.meanSpeed)}, {"p50", round3(s.p50Speed)}, {"p90", round3(s.p90Speed)}};
         j["density"] = {{"peak", round3(s.peakDensity)}, {"p90", round3(s.p90Density)}, {"unit", "agents/m²"}};
+        if (sim_.config().bodies.enabled) {
+            float peakEver = 0.0f;
+            std::uint32_t mostOnGround = 0;
+            for (const Sample& x : series_) {
+                peakEver = std::max(peakEver, x.peakPressure);
+                mostOnGround = std::max(mostOnGround, x.fallen);
+            }
+            j["pressure"] = {{"peak", round3(s.peakPressure)},
+                             {"p90", round3(s.p90Pressure)},
+                             {"peakEver", round3(peakEver)},
+                             {"critical", s.critical},
+                             {"criticalLevel", kCriticalPressure},
+                             {"criticallyExposed", criticallyExposed_},
+                             {"criticalSeconds", kCriticalSeconds},
+                             {"unit", "N/m"}};
+            j["falls"] = {{"total", s.falls}, {"onGround", s.fallen}, {"mostOnGround", mostOnGround}};
+        }
     }
     // Gate flow over the last 10 s.
     Json gates = Json::array();
@@ -344,8 +386,8 @@ Json MetricsCollector::summary() const {
 }
 
 Json MetricsCollector::heatmapJson(const std::string& kind, std::size_t maxCells) const {
-    if (kind != "density" && kind != "speed") {
-        throw std::invalid_argument("heatmap kind must be \"density\" or \"speed\"");
+    if (kind != "density" && kind != "speed" && kind != "pressure") {
+        throw std::invalid_argument("heatmap kind must be \"density\", \"speed\" or \"pressure\"");
     }
     const Heatmap& h = heatmap_;
     if (h.width == 0) {
@@ -363,6 +405,7 @@ Json MetricsCollector::heatmapJson(const std::string& kind, std::size_t maxCells
         for (int x = 0; x < w; ++x) {
             double agentSeconds = 0.0;
             double speedSeconds = 0.0;
+            double pressure = 0.0;
             int cells = 0;
             for (int dz = 0; dz < factor; ++dz) {
                 for (int dx = 0; dx < factor; ++dx) {
@@ -372,6 +415,7 @@ Json MetricsCollector::heatmapJson(const std::string& kind, std::size_t maxCells
                         const auto i = static_cast<std::size_t>(sz * h.width + sx);
                         agentSeconds += h.agentSeconds[i];
                         speedSeconds += h.speedSeconds[i];
+                        pressure = std::max<double>(pressure, h.peakPressure[i]);
                         ++cells;
                     }
                 }
@@ -380,8 +424,10 @@ Json MetricsCollector::heatmapJson(const std::string& kind, std::size_t maxCells
             if (kind == "density") {
                 const double area = static_cast<double>(cells) * h.cell * h.cell;
                 v = h.elapsed > 0.0 && area > 0.0 ? agentSeconds / (area * h.elapsed) : 0.0;
-            } else {
+            } else if (kind == "speed") {
                 v = agentSeconds > 0.0 ? speedSeconds / agentSeconds : 0.0;
+            } else {
+                v = pressure;
             }
             peak = std::max(peak, v);
             row.push_back(round3(v));
@@ -389,7 +435,9 @@ Json MetricsCollector::heatmapJson(const std::string& kind, std::size_t maxCells
         rows.push_back(row);
     }
     return Json{{"kind", kind},
-                {"unit", kind == "density" ? "agents/m² (time-averaged)" : "m/s (mean while present)"},
+                {"unit", kind == "density" ? "agents/m² (time-averaged)"
+                         : kind == "speed"   ? "m/s (mean while present)"
+                                             : "N/m (peak on any body)"},
                 {"width", w},
                 {"height", hh},
                 {"cellSize", h.cell * static_cast<float>(factor)},
@@ -417,7 +465,8 @@ std::size_t MetricsCollector::exportTrajectories(const std::filesystem::path& fi
 std::size_t MetricsCollector::exportSeries(const std::filesystem::path& file) const {
     std::filesystem::create_directories(file.parent_path());
     std::ofstream out(file, std::ios::binary);
-    out << "time,alive,arrived,mean_speed,p50_speed,p90_speed,peak_density,p90_density,stuck";
+    out << "time,alive,arrived,mean_speed,p50_speed,p90_speed,peak_density,p90_density,stuck,peak_pressure,"
+           "p90_pressure,critical,fallen,falls";
     for (const Gate& g : gates_) {
         out << ",gate_" << g.name;
     }
@@ -425,6 +474,7 @@ std::size_t MetricsCollector::exportSeries(const std::filesystem::path& file) co
     for (const Sample& s : series_) {
         out << std::format("{:.2f},{},{},{:.3f},{:.3f},{:.3f},{:.3f},{:.3f},{}", s.time, s.alive, s.arrived,
                            s.meanSpeed, s.p50Speed, s.p90Speed, s.peakDensity, s.p90Density, s.stuck);
+        out << std::format(",{:.1f},{:.1f},{},{},{}", s.peakPressure, s.p90Pressure, s.critical, s.fallen, s.falls);
         for (std::size_t g = 0; g < gates_.size(); ++g) {
             out << ',' << (g < s.gateTotals.size() ? s.gateTotals[g] : 0);
         }

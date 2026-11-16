@@ -597,6 +597,35 @@ struct ScriptHost::Impl {
         agents.set_function("count", [this]() { return ctx.sim.agents().size(); });
         agents.set_function(
             "count_near", [this](float x, float y, float z, float r) { return ctx.sim.countAgentsNear({x, y, z}, r); });
+        // Crowd conditions inside an axis-aligned box on the ground (x, z): how many people,
+        // how dense, the pressure on them and how many are on the ground.
+        agents.set_function("region", [this](float x0, float z0, float x1, float z1) {
+            const sim::AgentPool& a = ctx.sim.agents();
+            const float minX = std::min(x0, x1);
+            const float maxX = std::max(x0, x1);
+            const float minZ = std::min(z0, z1);
+            const float maxZ = std::max(z0, z1);
+            std::uint32_t count = 0;
+            std::uint32_t fallen = 0;
+            float peak = 0.0f;
+            double sum = 0.0;
+            for (std::uint32_t i = 0; i < a.size(); ++i) {
+                const glm::vec2 p = a.position[i];
+                if (p.x < minX || p.x > maxX || p.y < minZ || p.y > maxZ) {
+                    continue;
+                }
+                ++count;
+                fallen += a.fallen[i];
+                peak = std::max(peak, a.pressure[i]);
+                sum += a.pressure[i];
+            }
+            const float area = std::max(1e-3f, (maxX - minX) * (maxZ - minZ));
+            return jsonToLua(lua, Json{{"count", count},
+                                       {"density", static_cast<float>(count) / area},
+                                       {"peak_pressure", peak},
+                                       {"mean_pressure", count > 0 ? sum / count : 0.0},
+                                       {"fallen", fallen}});
+        });
         agents.set_function("get", [this](std::uint32_t id) -> sol::object {
             const auto d = ctx.sim.agentDebug(id);
             if (!d) {
@@ -643,6 +672,9 @@ struct ScriptHost::Impl {
                                        {"arrived", s.arrived},
                                        {"despawned", s.despawned},
                                        {"average_speed", s.averageSpeed},
+                                       {"fallen", s.fallen},
+                                       {"falls", s.falls},
+                                       {"peak_pressure", s.peakPressure},
                                        {"time", ctx.sim.simTimeSeconds()}});
         });
 

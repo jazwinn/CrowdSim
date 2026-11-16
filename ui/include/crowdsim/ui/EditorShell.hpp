@@ -34,7 +34,7 @@ struct OverlayToggles {
     bool shadows = true;
     float lodNearDistance = 30.0f;
     float lodFarDistance = 90.0f;
-    int heatmap = 0;  ///< 0 off, 1 density, 2 speed
+    int heatmap = 0;  ///< 0 off, 1 density, 2 speed, 3 peak pressure
     bool routes = true;  ///< spawner-to-goal arcs (one colour per goal)
 };
 

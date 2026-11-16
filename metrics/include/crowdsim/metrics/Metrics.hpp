@@ -8,7 +8,9 @@
 ///    density (peak and p90 of occupied 1 m cells), stuck agents, gate totals;
 ///  * time-to-goal distribution (spawn -> goal arrival);
 ///  * stuck detection: agents trying to move but slower than 0.15 m/s for 10 s;
-///  * density and speed heatmaps over the scene's walkable bounds;
+///  * with scene bodies: crowd pressure (peak, p90, agents above the critical level),
+///    falls, and the time each agent has spent above the critical pressure;
+///  * density, speed and peak-pressure heatmaps over the scene's walkable bounds;
 ///  * trajectory recording (id, type, time, position, velocity, state) with CSV export.
 
 #include <cstdint>
@@ -33,6 +35,12 @@ namespace crowdsim::metrics {
 
 using Json = nlohmann::json;
 
+/// Crowd pressure that is dangerous when sustained (N/m; about 1000 N/m for prolonged
+/// exposure in the crowd-safety literature). Pressure metrics count agents at or above it.
+inline constexpr float kCriticalPressure = 1000.0f;
+/// Time above kCriticalPressure after which an agent counts as critically exposed.
+inline constexpr float kCriticalSeconds = 30.0f;
+
 struct Gate {
     std::string name;
     glm::vec2 a{0.0f};  ///< endpoints on the ground plane (x, z)
@@ -54,6 +62,11 @@ struct Sample {
     float peakDensity = 0.0f;  ///< agents / m² in the busiest 1 m cell
     float p90Density = 0.0f;   ///< 90th percentile over occupied cells
     std::uint32_t stuck = 0;
+    float peakPressure = 0.0f;   ///< N/m, highest on any body
+    float p90Pressure = 0.0f;    ///< N/m, 90th percentile over bodies under any pressure
+    std::uint32_t critical = 0;  ///< agents at or above kCriticalPressure now
+    std::uint32_t fallen = 0;    ///< agents on the ground now
+    std::uint64_t falls = 0;     ///< falls so far
     std::vector<std::uint64_t> gateTotals;  ///< forward + backward per gate, cumulative
 };
 
@@ -65,6 +78,7 @@ struct Heatmap {
     float elevation = 0.0f;
     std::vector<float> agentSeconds;  ///< per cell
     std::vector<float> speedSeconds;  ///< per cell: sum of speed * dt
+    std::vector<float> peakPressure;  ///< per cell: highest pressure seen, N/m
     double elapsed = 0.0;             ///< seconds accumulated
     std::uint64_t version = 0;        ///< bumps whenever the data changes
 
@@ -117,7 +131,9 @@ public:
     [[nodiscard]] std::vector<std::uint32_t> stuckAgents() const;
     /// Current aggregates, gate counts and rates, time-to-goal statistics, stuck agents.
     [[nodiscard]] Json summary() const;
-    /// Heatmap ("density" or "speed") downsampled to at most `maxCells` cells.
+    /// Agents that have spent kCriticalSeconds above kCriticalPressure (including ones gone).
+    [[nodiscard]] std::uint64_t criticallyExposed() const noexcept { return criticallyExposed_; }
+    /// Heatmap ("density", "speed" or "pressure") downsampled to at most `maxCells` cells.
     [[nodiscard]] Json heatmapJson(const std::string& kind, std::size_t maxCells) const;
 
 private:
@@ -133,6 +149,8 @@ private:
 
     std::unordered_map<std::uint32_t, double> spawnTime_;  ///< agent id -> spawn time
     std::unordered_map<std::uint32_t, float> slowFor_;     ///< agent id -> seconds below the stuck speed
+    std::unordered_map<std::uint32_t, float> criticalFor_; ///< agent id -> seconds above kCriticalPressure
+    std::uint64_t criticallyExposed_ = 0;                  ///< agents that reached kCriticalSeconds
     std::vector<float> timeToGoal_;
 
     bool recording_ = false;

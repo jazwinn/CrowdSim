@@ -332,7 +332,8 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::Checkbox("Velocities", &overlays_.velocities);
         ImGui::Checkbox("Flow field", &overlays_.flowField);
         propertyLabel("Heatmap");
-        ImGui::Combo("##heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0");
+        ImGui::Combo("##heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0Peak pressure\0");
+        ImGui::SetItemTooltip("Peak pressure: the highest crowd pressure on any body in each cell (scene bodies)");
         if (overlays_.flowField && data.goals > 1) {
             propertyLabel("Flow goal");
             ImGui::SliderInt("##flowgoal", &overlays_.flowGoal, 0, static_cast<int>(data.goals) - 1);

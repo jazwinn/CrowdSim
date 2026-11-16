@@ -218,6 +218,27 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
             readout("Time to goal", "%.1f s mean", ttg["mean"].get<double>());
             readout("Time to goal, p90", "%.1f s", ttg["p90"].get<double>());
         }
+        if (s.contains("pressure")) {
+            // Scene bodies: crowd pressure and falls.
+            const Json& pr = s["pressure"];
+            const double peakNow = pr["peak"].get<double>();
+            ImGui::TableNextRow();
+            ImGui::TableNextColumn();
+            ImGui::TextColored(palette::textDim(), "Peak pressure");
+            ImGui::SetItemTooltip("Highest crowd pressure on any body now (N/m); about %.0f N/m is dangerous "
+                                  "when sustained",
+                                  pr["criticalLevel"].get<double>());
+            ImGui::TableNextColumn();
+            ImGui::TextColored(peakNow >= pr["criticalLevel"].get<double>() ? palette::warning() : palette::text(),
+                               "%.0f N/m", peakNow);
+            readout("Above critical now", "%u", pr["critical"].get<unsigned>());
+            readout("Critically exposed", "%llu",
+                    static_cast<unsigned long long>(pr["criticallyExposed"].get<std::uint64_t>()));
+            ImGui::SetItemTooltip("People who have spent %.0f s or more above the critical pressure",
+                                  pr["criticalSeconds"].get<double>());
+            readout("On the ground", "%u", s["falls"]["onGround"].get<unsigned>());
+            readout("Falls", "%llu", static_cast<unsigned long long>(s["falls"]["total"].get<std::uint64_t>()));
+        }
         endReadout();
     }
 
@@ -230,7 +251,15 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
         std::vector<double> mean(series.size());
         std::vector<double> p90(series.size());
         std::vector<double> peak(series.size());
+        std::vector<double> pressurePeak(series.size());
+        std::vector<double> pressureP90(series.size());
+        std::vector<double> onGround(series.size());
+        bool anyPressure = false;
         for (std::size_t i = 0; i < series.size(); ++i) {
+            pressurePeak[i] = series[i].peakPressure;
+            pressureP90[i] = series[i].p90Pressure;
+            onGround[i] = series[i].fallen;
+            anyPressure = anyPressure || series[i].peakPressure > 0.0f || series[i].fallen > 0;
             t[i] = series[i].time;
             alive[i] = series[i].alive;
             arrived[i] = static_cast<double>(series[i].arrived);
@@ -256,6 +285,19 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
             ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
             line("speed", "density", t.data(), peak.data(), n);
             endPlot();
+        }
+
+        if (anyPressure) {
+            // People on the ground share the chart on a right axis: counts, not N/m.
+            sectionHeading("Pressure and falls", fonts);
+            if (beginPlot("##pressure", "time (s)", "N/m")) {
+                ImPlot::SetupAxis(ImAxis_Y2, "on the ground", ImPlotAxisFlags_AuxDefault | ImPlotAxisFlags_AutoFit);
+                line("pressure", "peak", t.data(), pressurePeak.data(), n);
+                line("pressure", "p90", t.data(), pressureP90.data(), n);
+                ImPlot::SetAxes(ImAxis_X1, ImAxis_Y2);
+                line("pressure", "on the ground", t.data(), onGround.data(), n);
+                endPlot();
+            }
         }
 
         if (!m.gates().empty()) {

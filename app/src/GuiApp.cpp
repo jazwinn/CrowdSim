@@ -301,7 +301,7 @@ int runGui(EngineContext& engine) {
         initialOverlays.links = !has("nolinks");
         initialOverlays.shadows = !has("noshadows");
         initialOverlays.animatedCharacters = !has("capsules");
-        initialOverlays.heatmap = has("heatmap-speed") ? 2 : (has("heatmap") ? 1 : 0);
+        initialOverlays.heatmap = has("heatmap-pressure") ? 3 : has("heatmap-speed") ? 2 : (has("heatmap") ? 1 : 0);
         if (config.lodDistances) {
             initialOverlays.lodNearDistance = (*config.lodDistances)[0];
             initialOverlays.lodFarDistance = (*config.lodDistances)[1];
@@ -783,12 +783,17 @@ int runGui(EngineContext& engine) {
                 float peak = 0.0f;
                 for (int z = 0; z < h.height; ++z) {
                     for (int x = 0; x < h.width; ++x) {
-                        const float v = kind == 1 ? h.density(x, z) : h.speed(x, z);
+                        const float v = kind == 1   ? h.density(x, z)
+                                        : kind == 2 ? h.speed(x, z)
+                                                    : h.peakPressure[static_cast<std::size_t>(z * h.width + x)];
                         o.values[static_cast<std::size_t>(z * h.width + x)] = v;
                         peak = std::max(peak, v);
                     }
                 }
-                o.maxValue = kind == 1 ? std::max(peak, 0.5f) : std::max(peak, 1.5f);
+                // Pressure: scaled so the critical level is mid-scale until something exceeds twice it.
+                o.maxValue = kind == 1   ? std::max(peak, 0.5f)
+                             : kind == 2 ? std::max(peak, 1.5f)
+                                         : std::max(peak, 2.0f * metrics::kCriticalPressure);
                 o.version = ++heatmapVersion;
             }
             heatmapKind = kind;

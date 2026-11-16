@@ -92,7 +92,7 @@ void registerMetricsCommands(commands::CommandRegistry& r, MetricsCollector& m) 
     r.add({"GetHeatmap",
            "Density (agents/m², time-averaged) or speed (m/s) heatmap over the scene, downsampled to at most "
            "maxCells cells.",
-           obj({{"kind", str("density | speed")}, {"maxCells", num("cell budget (default 2500)")}}),
+           obj({{"kind", str("density | speed | pressure")}, {"maxCells", num("cell budget (default 2500)")}}),
            [&m](const Json& p, CommandContext&) {
                CommandOutput out;
                out.result =
