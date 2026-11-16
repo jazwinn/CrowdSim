@@ -154,7 +154,7 @@ reloaded tree restart from its root. Scene files embed the trees they use under 
 | `Repeat` | decorator | 1 | `count` (0 = forever) | Re-run the child while it succeeds; fail when it fails. |
 | `Cooldown` | decorator | 1 | `seconds` (5) | After the child finishes, fail for `seconds`. |
 | `Timeout` | decorator | 1 | `seconds` (10) | Fail if the child is still running after `seconds`. |
-| `MoveToGoal` | action | 0 | `goal` | Walk to a goal along its flow field; succeed inside the goal area. |
+| `MoveToGoal` | action | 0 | `goal` | Walk to a goal along its flow field; succeed inside the goal area. With no `goal`, the one its spawner gave it (even after visiting others). |
 | `MoveToPoint` | action | 0 | `point`, `tolerance` (0.5) | Walk to a point along a navmesh path; fail if unreachable. |
 | `Wander` | action | 0 | `radius` (8) | Walk to a random reachable point within `radius`. |
 | `Wait` | action | 0 | `seconds` (2), `jitter` (0) | Stand still for `seconds` + random jitter. |

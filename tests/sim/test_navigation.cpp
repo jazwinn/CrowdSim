@@ -187,3 +187,46 @@ TEST_CASE("Emergency routes: only agents told to use them route through them") {
     negative.params["use"].number = -1.0f;
     CHECK_THROWS((void)sim::compileBehaviorTree(negative, "bad"));
 }
+
+TEST_CASE("MoveToGoal with no goal named goes to the spawner's goal, after visiting others") {
+    World w;
+    geometry::PrimitiveDesc floor;
+    floor.position = {0.0f, -0.2f, 0.0f};
+    floor.size = {30.0f, 0.2f, 10.0f};
+    w.sim.addStaticObject(sim::StaticObject{"floor", floor, {}, {}, {}});
+    sim::BtNodeDesc visit{"MoveToGoal", "visit", {}, {}};
+    visit.params["goal"].kind = sim::BtParamKind::Text;
+    visit.params["goal"].text = "Shop";
+    sim::BtNodeDesc root{"Sequence", "root", {}, {visit, sim::BtNodeDesc{"MoveToGoal", "home", {}, {}},
+                                                  sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+    w.sim.setBehaviorTree(sim::compileBehaviorTree(root, "visitor"));
+    sim::AgentType t;
+    t.name = "visitor";
+    t.behaviour = "visitor";
+    w.sim.defineAgentType(t);
+    sim::Goal shop;
+    shop.name = "Shop";
+    shop.area = {{0.0f, 0.0f}, {1.0f, 1.0f}, 0.0f};
+    (void)w.sim.addGoal(shop);
+    sim::Goal exit;
+    exit.name = "Exit";
+    exit.area = {{12.0f, 0.0f}, {1.0f, 3.0f}, 0.0f};
+    const sim::SceneId exitId = w.sim.addGoal(exit);
+    sim::Spawner s;
+    s.name = "in";
+    s.area = {{-12.0f, 0.0f}, {0.5f, 0.5f}, 0.0f};
+    s.rate = 5.0f;
+    s.total = 1;
+    s.goal = exitId;
+    s.agentMix = {{"visitor", 1.0f}};
+    w.sim.addSpawner(s);
+    float furthest = -100.0f;
+    for (int step = 0; step < 30 * 40 && (w.sim.stats().spawned == 0 || w.sim.agents().size() > 0); ++step) {
+        w.sim.step();
+        if (w.sim.agents().size() == 1) {
+            furthest = std::max(furthest, w.sim.agents().position[0].x);
+        }
+    }
+    CHECK(w.sim.agents().size() == 0);
+    CHECK(furthest > 10.0f);  // left the shop for the exit before despawning
+}

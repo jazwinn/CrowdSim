@@ -343,13 +343,15 @@ void Simulation::removeAgentsOfGoal(std::uint32_t goalIndex) {
         return;
     }
     for (std::uint32_t i = agents_.size(); i-- > 0;) {
-        if (agents_.goalIndex[i] == goalIndex) {
+        if (agents_.goalIndex[i] == goalIndex || agents_.assignedGoal[i] == goalIndex) {
             removeAgentAt(i);
         }
     }
-    for (std::uint16_t& g : agents_.goalIndex) {
-        if (g > goalIndex) {
-            --g;
+    for (std::vector<std::uint16_t>* list : {&agents_.goalIndex, &agents_.assignedGoal}) {
+        for (std::uint16_t& g : *list) {
+            if (g > goalIndex) {
+                --g;
+            }
         }
     }
 }

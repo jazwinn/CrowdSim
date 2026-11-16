@@ -373,8 +373,8 @@ BtStatus Simulation::tickNode(const CompiledTree& tree, std::uint16_t index, std
 
     auto goalFor = [&](std::uint16_t text) -> std::int32_t {
         const std::int32_t g = lookup.goalOf[text];
-        if (g == -1) {
-            return agents_.goalIndex[i] < goals_.size() ? agents_.goalIndex[i] : -2;
+        if (g == -1) {  // no goal named: the one the spawner gave
+            return agents_.assignedGoal[i] < goals_.size() ? agents_.assignedGoal[i] : -2;
         }
         return g;
     };

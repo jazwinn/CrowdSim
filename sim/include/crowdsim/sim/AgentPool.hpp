@@ -99,6 +99,9 @@ public:
     std::vector<std::uint32_t> navPoly;
     std::vector<glm::vec3> goalTarget;
     std::vector<std::uint16_t> goalIndex;
+    /// The goal its spawner gave it: what MoveToGoal / Queue / IsNearGoal mean with no goal
+    /// named, however many other goals its tree has sent it to since.
+    std::vector<std::uint16_t> assignedGoal;
     std::vector<std::uint16_t> agentType;
     std::vector<float> spawnTime;
     // Off-mesh link traversal (ladders, escalators): active while linkActive != 0.
@@ -188,6 +191,7 @@ public:
         navPoly.push_back(a.navPoly);
         goalTarget.push_back(a.goalTarget);
         goalIndex.push_back(a.goalIndex);
+        assignedGoal.push_back(a.goalIndex);
         agentType.push_back(a.agentType);
         spawnTime.push_back(a.spawnTime);
         linkActive.push_back(0);
@@ -277,6 +281,7 @@ private:
         f(navPoly);
         f(goalTarget);
         f(goalIndex);
+        f(assignedGoal);
         f(agentType);
         f(spawnTime);
         f(linkActive);
