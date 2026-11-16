@@ -72,6 +72,10 @@ struct Group {
     std::string name;
 };
 
+/// ECS tag: hidden in the editor (with everything in it, for a group). Display only:
+/// hidden objects still block and carry people, hidden goals and spawners still work.
+struct HiddenComponent {};
+
 /// ECS component: the group an entity belongs to (only groups can be parents).
 struct ParentComponent {
     SceneId parent = kNoSceneId;

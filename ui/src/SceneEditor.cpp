@@ -63,6 +63,38 @@ std::string groupPath(const sim::Simulation& sim, sim::SceneId id) {
     return path;
 }
 
+/// The show/hide toggle in front of a Scene list row: an open eye when shown, struck
+/// through when hidden, dimmed when a group it is in is hidden. Returns true when clicked.
+bool eyeToggle(bool hidden, bool hiddenByGroup) {
+    const float size = ImGui::GetFrameHeight();
+    const ImVec2 pos = ImGui::GetCursorScreenPos();
+    const bool clicked = ImGui::InvisibleButton("##eye", ImVec2(size * 0.75f, ImGui::GetTextLineHeight()));
+    const bool hovered = ImGui::IsItemHovered();
+    ImGui::SetItemTooltip(hidden ? "Hidden: click to show" : (hiddenByGroup ? "Hidden with its group (click to hide it too)"
+                                                                           : "Shown: click to hide (H)"));
+    ImVec4 tint = ImGui::GetStyleColorVec4(hovered ? ImGuiCol_Text
+                                                   : (hidden || hiddenByGroup ? ImGuiCol_TextDisabled : ImGuiCol_Text));
+    if (!hovered && !hidden && !hiddenByGroup) {
+        tint.w *= 0.6f;  // shown: present but quiet
+    }
+    const ImU32 colour = ImGui::GetColorU32(tint);
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    const ImVec2 c(pos.x + size * 0.36f, pos.y + ImGui::GetTextLineHeight() * 0.5f);
+    const float w = size * 0.25f;
+    const float h = size * 0.15f;
+    const float thick = std::max(1.0f, size * 0.06f);
+    // Almond outline (two arcs) and a pupil.
+    dl->AddBezierQuadratic(ImVec2(c.x - w, c.y), ImVec2(c.x, c.y - 2.0f * h), ImVec2(c.x + w, c.y), colour, thick);
+    dl->AddBezierQuadratic(ImVec2(c.x - w, c.y), ImVec2(c.x, c.y + 2.0f * h), ImVec2(c.x + w, c.y), colour, thick);
+    if (!hidden) {
+        dl->AddCircleFilled(c, h * 0.75f, colour);
+    } else {
+        dl->AddLine(ImVec2(c.x - w, c.y + w * 0.8f), ImVec2(c.x + w, c.y - w * 0.8f), colour, thick);
+    }
+    ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+    return clicked;
+}
+
 /// A dim note at the right end of the last item; left out where it would run into the
 /// item's own label, which ends at `labelEnd` (screen x; negative = do not check).
 void rightAlignedNote(const std::string& text, float labelEnd = -1.0f) {
@@ -249,9 +281,20 @@ void SceneEditor::entityRow(const SceneEditorInput& in, sim::SceneId id, std::ve
     const Json e = assets::entityToJson(in.sim, id);
     const std::string name = e.value("name", std::string("(unnamed)"));
     ImGui::PushID(static_cast<int>(id));
+    const bool hidden = in.sim.isHidden(id);
+    const bool shown = in.sim.isVisible(id);
+    if (eyeToggle(hidden, !hidden && !shown)) {
+        commands.push_back(makeCommand("SetHidden", {{"id", id}, {"hidden", !hidden}}));
+    }
+    if (!shown) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    }
     if (ImGui::Selectable(name.c_str(), selected_ == id)) {
         selected_ = id;
         selectedAgent_ = kNoAgentSelected;
+    }
+    if (!shown) {
+        ImGui::PopStyleColor();
     }
     const float labelEnd = ImGui::GetItemRectMin().x + ImGui::CalcTextSize(name.c_str()).x;
     if (labelEnd > ImGui::GetItemRectMax().x) {
@@ -288,7 +331,18 @@ void SceneEditor::groupNode(const SceneEditorInput& in, sim::SceneId id, std::ve
     if (children.empty()) {
         flags |= ImGuiTreeNodeFlags_Leaf;
     }
+    const bool hidden = in.sim.isHidden(id);
+    const bool shown = in.sim.isVisible(id);
+    if (eyeToggle(hidden, !hidden && !shown)) {
+        commands.push_back(makeCommand("SetHidden", {{"id", id}, {"hidden", !hidden}}));
+    }
+    if (!shown) {
+        ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+    }
     const bool open = ImGui::TreeNodeEx("##group", flags, "%s", group->name.c_str());
+    if (!shown) {
+        ImGui::PopStyleColor();
+    }
     if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
         selected_ = id;
         selectedAgent_ = kNoAgentSelected;
@@ -681,9 +735,22 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
             ImGui::EndCombo();
         }
     }
+    {
+        bool visible = !in.sim.isHidden(selected_);
+        propertyLabel("Visible");
+        if (ImGui::Checkbox("##visible", &visible)) {
+            commands.push_back(makeCommand("SetHidden", {{"id", selected_}, {"hidden", !visible}}));
+        }
+        if (visible && !in.sim.isVisible(selected_)) {
+            ImGui::SameLine();
+            ImGui::TextDisabled("(its group is hidden)");
+        }
+        ImGui::SetItemTooltip("Display only: hidden objects still block and carry people (H toggles)");
+    }
     for (const std::string& key : keys) {
         const auto it = buffer_.find(key);
-        if (it.key() == "id" || it.key() == "kind" || it.key() == "asset" || it.key() == "parent") {
+        if (it.key() == "id" || it.key() == "kind" || it.key() == "asset" || it.key() == "parent" ||
+            it.key() == "hidden") {
             continue;
         }
         if (it.key() == "goal" && buffer_.value("kind", std::string()) == "spawner") {
@@ -754,6 +821,10 @@ void SceneEditor::handleShortcuts(const SceneEditorInput& in, std::vector<Json>&
             commands.push_back(makeCommand("AddEntity", {{"entity", e}}));
         }
     }
+    if (ImGui::IsKeyPressed(ImGuiKey_H, false) && selected_ != 0 &&
+        assets::entityKindOf(in.sim, selected_) != assets::EntityKind::None) {
+        commands.push_back(makeCommand("SetHidden", {{"id", selected_}, {"hidden", !in.sim.isHidden(selected_)}}));
+    }
     if (ImGui::IsKeyPressed(ImGuiKey_W, false)) {
         gizmoTranslate_ = true;
     }
@@ -812,6 +883,9 @@ void SceneEditor::drawRoutes(const SceneEditorInput& in) const {
 
     // Goals first (outlined once in their colour), then one arc per spawner.
     for (std::size_t g = 0; g < goalIds.size(); ++g) {
+        if (!in.sim.isVisible(goalIds[g])) {
+            continue;
+        }
         const sim::Goal* goal = in.sim.findGoal(goalIds[g]);
         const bool lit = !focus || selected_ == goalIds[g];
         const ImVec4 c = palette::series(g);
@@ -821,7 +895,7 @@ void SceneEditor::drawRoutes(const SceneEditorInput& in) const {
     for (const sim::SceneId sid : spawnerIds) {
         const sim::Spawner* s = in.sim.findSpawner(sid);
         const auto gi = std::find(goalIds.begin(), goalIds.end(), s->goal);
-        if (gi == goalIds.end()) {
+        if (gi == goalIds.end() || !in.sim.isVisible(sid)) {
             continue;
         }
         const std::size_t g = static_cast<std::size_t>(gi - goalIds.begin());

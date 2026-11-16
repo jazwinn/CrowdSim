@@ -172,6 +172,11 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "Put an entity (object, goal, spawner, link or group) in a group; parent 0 takes it out of any group.",
             schema({{"id", integer("entity id")}, {"parent", integer("group id, 0 = none")}}, {"id", "parent"}),
             "SetParent");
+    command("entity_set_hidden",
+            "Hide or show an entity in the editor view; hiding a group hides everything in it (e.g. a whole "
+            "level). Display only: the simulation is unaffected.",
+            schema({{"id", integer("entity id")}, {"hidden", Json{{"type", "boolean"}}}}, {"id", "hidden"}),
+            "SetHidden");
     command("object_update", "Merge-patch any entity (object, goal, spawner, link, group) by id; `parent` moves "
             "it into a group (null = none).",
             schema({{"id", integer("entity id")}, {"patch", object("fields to change")}}, {"id", "patch"}),

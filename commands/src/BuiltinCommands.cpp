@@ -89,6 +89,9 @@ CommandOutput updateEntity(sim::SceneId id, const Json& patch, CommandContext& c
     if (patch.contains("parent") && !before.contains("parent")) {
         before["parent"] = nullptr;  // undo takes it out of the group again
     }
+    if (patch.contains("hidden") && !before.contains("hidden")) {
+        before["hidden"] = false;  // undo shows it again
+    }
     CommandOutput out;
     out.result = Json{{"id", id}};
     out.undo = makeCommand("UpdateEntity", Json{{"id", id}, {"patch", before}});
@@ -268,6 +271,17 @@ void registerBuiltinCommands(CommandRegistry& r) {
                }
                CommandOutput out = updateEntity(requireId(p), Json{{"parent", parent}}, ctx);
                out.label = parent.is_null() ? "Ungroup " + out.label.substr(5) : "Group " + out.label.substr(5);
+               return out;
+           }});
+
+    r.add({"SetHidden",
+           "Hide or show an entity in the editor; hiding a group hides everything in it. Display only: hidden "
+           "objects still block and carry people, hidden goals and spawners keep working.",
+           obj({{"id", integer("entity id")}, {"hidden", Json{{"type", "boolean"}}}}, {"id", "hidden"}),
+           [](const Json& p, CommandContext& ctx) {
+               const bool hidden = p.at("hidden").get<bool>();
+               CommandOutput out = updateEntity(requireId(p), Json{{"hidden", hidden}}, ctx);
+               out.label = (hidden ? "Hide " : "Show ") + out.label.substr(5);
                return out;
            }});
 

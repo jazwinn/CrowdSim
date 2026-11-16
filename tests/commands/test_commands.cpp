@@ -10,6 +10,7 @@
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/sim/Scenarios.hpp"
 #include "crowdsim/sim/Simulation.hpp"
+#include "crowdsim/snapshot/RenderSnapshot.hpp"
 
 using namespace crowdsim;
 using commands::Json;
@@ -219,4 +220,53 @@ TEST_CASE("Groups: entities nest in groups, save and reload, and undo cleanly") 
     CHECK(e.sim.parentOf(goal) == sim::kNoSceneId);
     REQUIRE(e.dispatcher.undo(e.ctx).ok);
     CHECK(e.sim.parentOf(goal) == level);
+}
+
+TEST_CASE("Hiding: a hidden group hides everything in it, for display only") {
+    Engine e;
+    buildByCommands(e);
+    const sim::SceneId floor = e.sim.staticObjectIds()[0];
+    const sim::SceneId wall = e.sim.staticObjectIds()[1];
+    const sim::SceneId goal = e.sim.goalIds()[0];
+    const auto level = e.run("CreateGroup", {{"group", {{"name", "Level"}}}})["id"].get<sim::SceneId>();
+    e.run("SetParent", {{"id", wall}, {"parent", level}});
+    e.run("SetParent", {{"id", goal}, {"parent", level}});
+    e.run("RebuildNavmesh");
+
+    auto drawn = [&]() {
+        snapshot::RenderSnapshot snap;
+        e.sim.writeSnapshot(snap);
+        return std::pair{snap.staticScene->meshVertices.size(), snap.areas.size()};
+    };
+    const auto [allVertices, allAreas] = drawn();
+    const std::size_t wallVertices = 3 * e.sim.objectMesh(wall).triangleCount();
+
+    // Same simulation with and without hiding.
+    Engine plain;
+    buildByCommands(plain);
+    plain.run("RebuildNavmesh");
+
+    e.run("SetHidden", {{"id", level}, {"hidden", true}});
+    CHECK(e.sim.isHidden(level));
+    CHECK_FALSE(e.sim.isHidden(wall));
+    CHECK_FALSE(e.sim.isVisible(wall));  // hidden with its group
+    CHECK(e.sim.isVisible(floor));
+    const auto [vertices, areas] = drawn();
+    CHECK(vertices == allVertices - wallVertices);
+    CHECK(areas == allAreas - 1);  // the goal's marker
+
+    e.steps(300);
+    plain.steps(300);
+    CHECK(e.sim.stateHash() == plain.sim.stateHash());
+
+    // Saved, reloaded, and undone like any other edit.
+    const Json saved = assets::saveScene(e.sim, "x");
+    assets::loadScene(saved, e.sim, e.assets);
+    CHECK(e.sim.isHidden(level));
+    CHECK(assets::saveScene(e.sim, "x").dump() == saved.dump());
+    e.run("SetHidden", {{"id", floor}, {"hidden", true}});
+    CHECK_FALSE(e.sim.isVisible(floor));
+    REQUIRE(e.dispatcher.undo(e.ctx).ok);
+    CHECK(e.sim.isVisible(floor));
+    CHECK_FALSE(e.dispatcher.execute(makeCommand("SetHidden", {{"id", 9999}, {"hidden", true}}), e.ctx).ok);
 }

@@ -86,16 +86,29 @@ void EngineContext::syncScene() {
 
 std::optional<EntityHit> EngineContext::pick(glm::vec3 origin, glm::vec3 direction) const {
     std::optional<EntityHit> best;
-    if (const auto hit = physics_->raycast(origin, direction, 5000.0f)) {
-        if (const auto it = bodyToEntity_.find(hit->body.value); it != bodyToEntity_.end()) {
-            best = EntityHit{it->second, hit->position, hit->distance};
-        }
-    }
-    // Goals and spawners: intersect the ray with their rectangle's floor plane.
     const float len = std::sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
     const glm::vec3 d = direction / len;
+    // Hidden objects are looked through: cast again from just past each one hit.
+    float travelled = 0.0f;
+    for (int tries = 0; tries < 64; ++tries) {
+        const glm::vec3 from = origin + d * travelled;
+        const auto hit = physics_->raycast(from, d, 5000.0f - travelled);
+        if (!hit) {
+            break;
+        }
+        const auto it = bodyToEntity_.find(hit->body.value);
+        if (it != bodyToEntity_.end() && simulation_.isVisible(it->second)) {
+            best = EntityHit{it->second, hit->position, travelled + hit->distance};
+            break;
+        }
+        travelled += hit->distance + 0.01f;
+    }
+    // Goals and spawners: intersect the ray with their rectangle's floor plane.
     auto tryArea = [&](sim::SceneId id, const sim::Area& area) {
         if (std::abs(d.y) < 1e-4f) {
+            return;
+        }
+        if (!simulation_.isVisible(id)) {
             return;
         }
         const float t = (area.elevation + 0.05f - origin.y) / d.y;

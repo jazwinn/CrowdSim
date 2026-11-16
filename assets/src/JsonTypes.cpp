@@ -472,6 +472,9 @@ Json entityToJson(const sim::Simulation& sim, sim::SceneId id) {
     if (const sim::SceneId parent = sim.parentOf(id); parent != sim::kNoSceneId) {
         out["parent"] = parent;
     }
+    if (sim.isHidden(id)) {
+        out["hidden"] = true;
+    }
     return out;
 }
 
@@ -525,6 +528,9 @@ sim::SceneId addEntityFromJson(sim::Simulation& sim, const Json& j, AssetLibrary
             applyParent(sim, created, parent);  // throws with the reason
         }
     }
+    if (j.value("hidden", false)) {
+        sim.setHidden(created, true);
+    }
     return created;
 }
 
@@ -539,6 +545,13 @@ void patchEntity(sim::Simulation& sim, sim::SceneId id, const Json& patch, Asset
     if (p.contains("parent")) {
         applyParent(sim, id, parentField(p));
         p.erase("parent");
+    }
+    if (p.contains("hidden")) {
+        if (!p["hidden"].is_null() && !p["hidden"].is_boolean()) {
+            throw std::invalid_argument("hidden must be true or false");
+        }
+        sim.setHidden(id, p["hidden"].is_boolean() && p["hidden"].get<bool>());
+        p.erase("hidden");
     }
     current.merge_patch(p);
     switch (entityKindOf(sim, id)) {

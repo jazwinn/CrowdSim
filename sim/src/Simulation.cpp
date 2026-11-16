@@ -185,11 +185,40 @@ bool Simulation::updateGroup(SceneId id, const Group& group) {
     return true;
 }
 
+bool Simulation::setHidden(SceneId id, bool hidden) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null) {
+        return false;
+    }
+    if (hidden) {
+        registry_.emplace_or_replace<HiddenComponent>(e);
+    } else {
+        registry_.remove<HiddenComponent>(e);
+    }
+    ++displayVersion_;
+    return true;
+}
+
+bool Simulation::isHidden(SceneId id) const {
+    const entt::entity e = entityOf(id);
+    return e != entt::null && registry_.all_of<HiddenComponent>(e);
+}
+
+bool Simulation::isVisible(SceneId id) const {
+    for (SceneId p = id; p != kNoSceneId; p = parentOf(p)) {
+        if (isHidden(p)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 bool Simulation::setParent(SceneId id, SceneId parent) {
     const entt::entity e = entityOf(id);
     if (e == entt::null) {
         return false;
     }
+    ++displayVersion_;  // may move it into (or out of) a hidden group
     if (parent == kNoSceneId) {
         registry_.remove<ParentComponent>(e);
         return true;
@@ -303,6 +332,7 @@ bool Simulation::removeEntity(SceneId id) {
         }
         eraseFrom(groups_);
     }
+    ++displayVersion_;
     registry_.destroy(e);
     idToEntity_.erase(id);
     return true;
@@ -467,8 +497,12 @@ bool Simulation::updateNavigation() {
     if (navDirty_) {
         CS_PROFILE_ZONE_NAMED("BuildNavMesh");
         staticMesh_.clear();
+        objectTriangles_.clear();
         for (entt::entity e : staticObjects_) {
-            staticMesh_.append(objectMesh(registry_.get<SceneIdComponent>(e).id));
+            const SceneId id = registry_.get<SceneIdComponent>(e).id;
+            const std::uint32_t first = staticMesh_.triangleCount();
+            staticMesh_.append(objectMesh(id));
+            objectTriangles_.push_back({id, first, staticMesh_.triangleCount() - first});
         }
         std::vector<OffMeshLink> links;
         for (entt::entity e : offMeshLinks_) {
@@ -509,6 +543,7 @@ bool Simulation::updateNavigation() {
     }
     if (changed) {
         ++staticVersion_;
+        ++displayVersion_;
         staticSceneCache_.reset();
     }
     return changed;
@@ -1197,9 +1232,16 @@ std::uint64_t Simulation::stateHash() const noexcept {
 
 std::shared_ptr<const snapshot::StaticScene> Simulation::buildStaticScene() const {
     auto scene = std::make_shared<snapshot::StaticScene>();
-    scene->version = staticVersion_;
-    for (const geometry::RenderVertex& v : geometry::toRenderVertices(staticMesh_)) {
-        scene->meshVertices.push_back({v.x, v.y, v.z, v.nx, v.ny, v.nz, v.abgr});
+    scene->version = displayVersion_;
+    const std::vector<geometry::RenderVertex> vertices = geometry::toRenderVertices(staticMesh_);
+    for (const TriangleRange& r : objectTriangles_) {
+        if (!isVisible(r.object)) {
+            continue;
+        }
+        for (std::uint32_t v = 3 * r.first; v < 3 * (r.first + r.count) && v < vertices.size(); ++v) {
+            const geometry::RenderVertex& x = vertices[v];
+            scene->meshVertices.push_back({x.x, x.y, x.z, x.nx, x.ny, x.nz, x.abgr});
+        }
     }
     scene->navTriangles = navMesh_.debugTriangles();
     for (const WallSegment& w : navMesh_.walls()) {
@@ -1262,15 +1304,21 @@ void Simulation::writeSnapshot(snapshot::RenderSnapshot& out) const {
 
     out.areas.clear();
     for (entt::entity e : spawners_) {
+        if (!isVisible(registry_.get<SceneIdComponent>(e).id)) {
+            continue;
+        }
         const Area& area = registry_.get<Spawner>(e).area;
         out.areas.push_back({area.center3d(), area.halfExtents, glm::vec4(0.95f, 0.65f, 0.2f, 0.35f)});
     }
     for (entt::entity e : goals_) {
+        if (!isVisible(registry_.get<SceneIdComponent>(e).id)) {
+            continue;
+        }
         const Area& area = registry_.get<Goal>(e).area;
         out.areas.push_back({area.center3d(), area.halfExtents, glm::vec4(0.25f, 0.85f, 0.45f, 0.35f)});
     }
 
-    if (!staticSceneCache_ || staticSceneCache_->version != staticVersion_) {
+    if (!staticSceneCache_ || staticSceneCache_->version != displayVersion_) {
         staticSceneCache_ = buildStaticScene();
     }
     out.staticScene = staticSceneCache_;

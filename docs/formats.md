@@ -86,6 +86,10 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   Groups are organisation only: the simulation ignores them and children keep their world
   positions. Deleting a group moves its contents up into its parent. Groups are written
   parents first; when reading, their order in the file does not matter.
+- **Hidden** (`"hidden": true` on any entity) hides it in the editor; a hidden group hides
+  everything in it, however deep. Display only: hidden objects are not drawn or clicked (clicks
+  go through to what is behind) but still block and carry people, and hidden goals and spawners
+  keep working. The Scene list shows an eye per row; H toggles the selection.
 - **Ids** are stable and never reused (`nextId` keeps deleted ids retired). Spawners reference
   goals by id; commands also accept the goal's **name** (`"goal": "Exit"`).
 - Files are written in entity creation order with floats rounded to 6 significant digits, so
@@ -214,6 +218,7 @@ every command with its JSON Schema.
 | `CreateSpawner` / `CreateGoal` / `CreateOffMeshLink` | yes | Add an entity. Returns its id. |
 | `CreateGroup` | yes | Add a group `{"group": {"name", "parent"}}`. Returns its id. |
 | `SetParent` | yes | Put an entity in a group: `{"id": 12, "parent": 3}` (`parent` 0 = no group). |
+| `SetHidden` | yes | Hide or show an entity (a group with everything in it): `{"id": 3, "hidden": true}`. Display only. |
 | `AddEntity` | yes | Add any entity from its full JSON form (used by undo of deletes); `children` (ids) go back into a re-added group. |
 | `UpdateEntity` | yes | Merge-patch any entity: `{"id": 5, "patch": {"rate": 30}}` (`"parent"` moves it to a group, `null` = none). |
 | `TransformObject` | yes | Move / rotate / resize an object. |

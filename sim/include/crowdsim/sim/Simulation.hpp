@@ -202,6 +202,13 @@ public:
     bool setParent(SceneId id, SceneId parent);
     /// The group an entity is in, or kNoSceneId.
     [[nodiscard]] SceneId parentOf(SceneId id) const;
+    /// Hide or show an entity in the editor; a hidden group hides everything in it. Display
+    /// only (see HiddenComponent). Returns false if there is no such entity.
+    bool setHidden(SceneId id, bool hidden);
+    /// The entity's own hidden flag.
+    [[nodiscard]] bool isHidden(SceneId id) const;
+    /// Shown: neither it nor any group it is in is hidden.
+    [[nodiscard]] bool isVisible(SceneId id) const;
     /// Entities directly in a group, in creation order of their kinds (groups, objects,
     /// links, goals, spawners).
     [[nodiscard]] std::vector<SceneId> childrenOf(SceneId group) const;
@@ -314,6 +321,8 @@ public:
     [[nodiscard]] const geometry::TriangleMesh& staticMesh() const noexcept { return staticMesh_; }
     /// Increments whenever static geometry, navmesh or flow fields change.
     [[nodiscard]] std::uint64_t staticVersion() const noexcept { return staticVersion_; }
+    /// Changes whenever what is drawn of the static scene changes (geometry or visibility).
+    [[nodiscard]] std::uint64_t displayVersion() const noexcept { return displayVersion_; }
 
     /// Hash of all simulation state; equal hashes after equal inputs prove determinism.
     [[nodiscard]] std::uint64_t stateHash() const noexcept;
@@ -403,6 +412,15 @@ private:
     bool navDirty_ = true;
     bool flowDirty_ = true;
     std::uint64_t staticVersion_ = 0;
+    std::uint64_t displayVersion_ = 0;
+    /// Triangles of each static object in staticMesh_ (object id, first, count), so hidden
+    /// objects can be left out of the drawn scene without rebuilding anything.
+    struct TriangleRange {
+        SceneId object = kNoSceneId;
+        std::uint32_t first = 0;
+        std::uint32_t count = 0;
+    };
+    std::vector<TriangleRange> objectTriangles_;
     mutable std::shared_ptr<const snapshot::StaticScene> staticSceneCache_;
 
     AgentPool agents_;

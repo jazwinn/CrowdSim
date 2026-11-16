@@ -55,7 +55,7 @@ public:
     /// Draw the transform gizmo over the viewport (call once per frame, outside windows).
     void drawGizmo(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
 
-    /// Shortcuts: Delete removes the selection; Ctrl+D duplicates it.
+    /// Shortcuts: Delete removes the selection; Ctrl+D duplicates it; H hides or shows it.
     void handleShortcuts(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
 
     [[nodiscard]] std::uint32_t selected() const noexcept { return selected_; }

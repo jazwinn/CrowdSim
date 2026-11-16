@@ -48,7 +48,7 @@ stderr, so stdout carries only protocol messages in stdio mode.
 
 | Area | Tools |
 |---|---|
-| Scene | `scene_new`, `scene_load`, `scene_save`, `scene_describe`, `object_place`, `object_update`, `object_delete`, `group_create`, `entity_set_parent`, `gltf_import`, `navmesh_rebuild`, `link_create` |
+| Scene | `scene_new`, `scene_load`, `scene_save`, `scene_describe`, `object_place`, `object_update`, `object_delete`, `group_create`, `entity_set_parent`, `entity_set_hidden`, `gltf_import`, `navmesh_rebuild`, `link_create` |
 | Crowd | `goal_create`, `goal_update`, `spawner_create`, `spawner_update`, `agent_type_define`, `agent_type_list`, `agents_spawn`, `agents_query` |
 | Behaviour | `bt_list`, `bt_get`, `bt_set`, `bt_validate`, `bt_node_types` |
 | Scripting | `script_list`, `script_get`, `script_write`, `script_reload`, `script_eval` |
