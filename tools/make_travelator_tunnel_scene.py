@@ -4,13 +4,14 @@ trees (content/agents/tunnel_*.agent.json, content/behaviours/tunnel_*.bt.json).
 A long underground interchange tunnel (140 m x 16 m) between two station concourses,
 like the link tunnels of Singapore's MRT:
 
-  wall ads | travelator -> B | walkway | ad box (ads both sides) | walkway | travelator -> A | wall ads
+  wall ads | travelator -> B |   walkway with ad stands down the middle   | travelator -> A | wall ads
 
   - A moving walkway (travelator, 100 m, 0.75 m/s) along each wall, one each way. People
     keep left, so the one on the left as you face station B carries people towards B.
-  - An open walkway beside each travelator, between it and the ad box in the middle.
-  - The ad box: a long rectangular unit down the centre with ad panels on both long
-    sides, facing the travelators; more ads line the tunnel walls behind the travelators.
+  - An open walkway between the travelators.
+  - Down the middle of the walkway, a row of free-standing digital ad stands: a screen
+    about 1.2 m wide and 2 m tall on a plinth, showing on both faces, one face towards
+    each travelator. More ads line the tunnel walls behind the travelators.
 
 People arrive at both concourses. Some ride the travelator in their direction, standing
 on the left or walking past on the right; the rest walk the walkway. Which they do is
@@ -36,13 +37,15 @@ TRAV_X0, TRAV_X1 = 5.2, 7.6     # |x| of each travelator
 TRAV_SPEED = 0.75               # m/s
 BALUSTRADE = 0.2
 INSET = 0.6                     # balustrades stop short of the ends (see the mall)
-BOX_HALF = 1.6                  # central ad box |x| < 1.6
-BOX_Z0, BOX_Z1 = 24.0, 116.0
-BOX_H = 2.6
+STAND_Z0, STAND_Z1 = 26.0, 114.0  # ad stands down the middle, from .. to
+STAND_EVERY = 11.0                # m between ad stands
+STAND_W = 1.2                     # screen width (along the tunnel)
+STAND_D = 0.36                    # thickness (across the tunnel)
 
-FLOOR_C, WALL_C, BELT_C, RAIL_C, BOX_C, CONCOURSE_C = (
-    "#b9b2a6", "#c9c4bc", "#3b3f45", "#9aa1a9", "#5d6066", "#a59d90")
+FLOOR_C, WALL_C, BELT_C, RAIL_C, STAND_C, CONCOURSE_C = (
+    "#b9b2a6", "#c9c4bc", "#3b3f45", "#9aa1a9", "#1e2024", "#a59d90")
 ADS = ["#ff5a1f", "#ff5a1f", "#ff5a1f", "#f2f2f2"]  # mostly one campaign, the odd other one
+SCREENS = ["#2563d9", "#ff5a1f", "#1aa37a", "#7b3fe4"]  # what the ad stands are showing
 
 objects, goals, spawners, groups = [], [], [], []
 next_id = [1]
@@ -125,17 +128,19 @@ for sx, label, down in ((-1, "to B", False), (1, "to A", True)):
 
 # --- Ads ------------------------------------------------------------------------------------
 current[0] = group("Ads")
-box("Ad box", -BOX_HALF, BOX_HALF, 0.0, BOX_H, BOX_Z0, BOX_Z1, ["obstacle"], BOX_C)
-panel_len, gap = 8.0, 1.5
-z = BOX_Z0 + 1.0
+# Free-standing digital ad stands: plinth, dark body, a screen on both faces.
 k = 0
-while z + panel_len <= BOX_Z1 - 1.0:
-    colour = ADS[k % len(ADS)]
-    for sx in (-1, 1):
-        x = sx * BOX_HALF
-        box(f"Ad panel (box, {'west' if sx < 0 else 'east'} {k + 1})", min(x, x + sx * 0.05),
-            max(x, x + sx * 0.05), 0.3, BOX_H - 0.2, z, z + panel_len, ["obstacle"], colour)
-    z += panel_len + gap
+z = STAND_Z0
+while z <= STAND_Z1 + 1e-6:
+    name = f"Ad stand {k + 1}"
+    hw, hd = STAND_W / 2, STAND_D / 2
+    box(f"{name} plinth", -hd - 0.04, hd + 0.04, 0.0, 0.45, z - hw - 0.04, z + hw + 0.04, ["obstacle"], STAND_C)
+    box(f"{name} body", -hd, hd, 0.45, 2.55, z - hw, z + hw, ["obstacle"], STAND_C)
+    for sx, face in ((-1, "west"), (1, "east")):
+        x = sx * hd
+        box(f"{name} screen ({face})", min(x, x + sx * 0.02), max(x, x + sx * 0.02), 0.6, 2.4,
+            z - hw + 0.07, z + hw - 0.07, ["obstacle"], SCREENS[k % len(SCREENS)])
+    z += STAND_EVERY
     k += 1
 z = TRAV_Z0 + 2.0
 k = 0

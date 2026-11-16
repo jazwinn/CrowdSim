@@ -421,7 +421,7 @@
     "cellSize": 0.2,
     "tileSize": 64
   },
-  "nextId": 69,
+  "nextId": 86,
   "groups": [
     {
       "id": 1,
@@ -436,7 +436,7 @@
       "name": "Ads"
     },
     {
-      "id": 62,
+      "id": 79,
       "name": "Goals and arrivals"
     }
   ],
@@ -889,144 +889,144 @@
     },
     {
       "id": 25,
-      "name": "Ad box",
+      "name": "Ad stand 1 plinth",
       "type": "box",
       "position": [
         0.0,
         0.0,
-        70.0
+        26.0
       ],
       "rotationY": 0.0,
       "size": [
-        3.2,
-        2.6,
-        92.0
+        0.44,
+        0.45,
+        1.28
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#5d6066",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 26,
-      "name": "Ad panel (box, west 1)",
+      "name": "Ad stand 1 body",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        29.0
+        0.0,
+        0.45,
+        26.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
+        0.36,
         2.1,
-        8.0
+        1.2
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 27,
-      "name": "Ad panel (box, east 1)",
+      "name": "Ad stand 1 screen (west)",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        29.0
+        -0.19,
+        0.6,
+        26.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#2563d9",
       "parent": 24
     },
     {
       "id": 28,
-      "name": "Ad panel (box, west 2)",
+      "name": "Ad stand 1 screen (east)",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        38.5
+        0.19,
+        0.6,
+        26.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#2563d9",
       "parent": 24
     },
     {
       "id": 29,
-      "name": "Ad panel (box, east 2)",
+      "name": "Ad stand 2 plinth",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        38.5
+        0.0,
+        0.0,
+        37.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.44,
+        0.45,
+        1.28
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 30,
-      "name": "Ad panel (box, west 3)",
+      "name": "Ad stand 2 body",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        48.0
+        0.0,
+        0.45,
+        37.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
+        0.36,
         2.1,
-        8.0
+        1.2
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 31,
-      "name": "Ad panel (box, east 3)",
+      "name": "Ad stand 2 screen (west)",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        48.0
+        -0.19,
+        0.6,
+        37.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
@@ -1036,249 +1036,333 @@
     },
     {
       "id": 32,
-      "name": "Ad panel (box, west 4)",
+      "name": "Ad stand 2 screen (east)",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        57.5
+        0.19,
+        0.6,
+        37.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#f2f2f2",
+      "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 33,
-      "name": "Ad panel (box, east 4)",
+      "name": "Ad stand 3 plinth",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        57.5
+        0.0,
+        0.0,
+        48.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.44,
+        0.45,
+        1.28
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#f2f2f2",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 34,
-      "name": "Ad panel (box, west 5)",
+      "name": "Ad stand 3 body",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        67.0
+        0.0,
+        0.45,
+        48.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
+        0.36,
         2.1,
-        8.0
+        1.2
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 35,
-      "name": "Ad panel (box, east 5)",
+      "name": "Ad stand 3 screen (west)",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        67.0
+        -0.19,
+        0.6,
+        48.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1aa37a",
       "parent": 24
     },
     {
       "id": 36,
-      "name": "Ad panel (box, west 6)",
+      "name": "Ad stand 3 screen (east)",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        76.5
+        0.19,
+        0.6,
+        48.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1aa37a",
       "parent": 24
     },
     {
       "id": 37,
-      "name": "Ad panel (box, east 6)",
+      "name": "Ad stand 4 plinth",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        76.5
+        0.0,
+        0.0,
+        59.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.44,
+        0.45,
+        1.28
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 38,
-      "name": "Ad panel (box, west 7)",
+      "name": "Ad stand 4 body",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        86.0
+        0.0,
+        0.45,
+        59.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
+        0.36,
         2.1,
-        8.0
+        1.2
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 39,
-      "name": "Ad panel (box, east 7)",
+      "name": "Ad stand 4 screen (west)",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        86.0
+        -0.19,
+        0.6,
+        59.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#7b3fe4",
       "parent": 24
     },
     {
       "id": 40,
-      "name": "Ad panel (box, west 8)",
+      "name": "Ad stand 4 screen (east)",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        95.5
+        0.19,
+        0.6,
+        59.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#f2f2f2",
+      "color": "#7b3fe4",
       "parent": 24
     },
     {
       "id": 41,
-      "name": "Ad panel (box, east 8)",
+      "name": "Ad stand 5 plinth",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        95.5
+        0.0,
+        0.0,
+        70.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
-        2.1,
-        8.0
+        0.44,
+        0.45,
+        1.28
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#f2f2f2",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 42,
-      "name": "Ad panel (box, west 9)",
+      "name": "Ad stand 5 body",
       "type": "box",
       "position": [
-        -1.625,
-        0.3,
-        105.0
+        0.0,
+        0.45,
+        70.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
+        0.36,
         2.1,
-        8.0
+        1.2
       ],
       "tags": [
         "obstacle"
       ],
-      "color": "#ff5a1f",
+      "color": "#1e2024",
       "parent": 24
     },
     {
       "id": 43,
-      "name": "Ad panel (box, east 9)",
+      "name": "Ad stand 5 screen (west)",
       "type": "box",
       "position": [
-        1.625,
-        0.3,
-        105.0
+        -0.19,
+        0.6,
+        70.0
       ],
       "rotationY": 0.0,
       "size": [
-        0.05,
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#2563d9",
+      "parent": 24
+    },
+    {
+      "id": 44,
+      "name": "Ad stand 5 screen (east)",
+      "type": "box",
+      "position": [
+        0.19,
+        0.6,
+        70.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#2563d9",
+      "parent": 24
+    },
+    {
+      "id": 45,
+      "name": "Ad stand 6 plinth",
+      "type": "box",
+      "position": [
+        0.0,
+        0.0,
+        81.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.44,
+        0.45,
+        1.28
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 46,
+      "name": "Ad stand 6 body",
+      "type": "box",
+      "position": [
+        0.0,
+        0.45,
+        81.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.36,
         2.1,
-        8.0
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 47,
+      "name": "Ad stand 6 screen (west)",
+      "type": "box",
+      "position": [
+        -0.19,
+        0.6,
+        81.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
       ],
       "tags": [
         "obstacle"
@@ -1287,7 +1371,280 @@
       "parent": 24
     },
     {
-      "id": 44,
+      "id": 48,
+      "name": "Ad stand 6 screen (east)",
+      "type": "box",
+      "position": [
+        0.19,
+        0.6,
+        81.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#ff5a1f",
+      "parent": 24
+    },
+    {
+      "id": 49,
+      "name": "Ad stand 7 plinth",
+      "type": "box",
+      "position": [
+        0.0,
+        0.0,
+        92.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.44,
+        0.45,
+        1.28
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 50,
+      "name": "Ad stand 7 body",
+      "type": "box",
+      "position": [
+        0.0,
+        0.45,
+        92.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.36,
+        2.1,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 51,
+      "name": "Ad stand 7 screen (west)",
+      "type": "box",
+      "position": [
+        -0.19,
+        0.6,
+        92.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1aa37a",
+      "parent": 24
+    },
+    {
+      "id": 52,
+      "name": "Ad stand 7 screen (east)",
+      "type": "box",
+      "position": [
+        0.19,
+        0.6,
+        92.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1aa37a",
+      "parent": 24
+    },
+    {
+      "id": 53,
+      "name": "Ad stand 8 plinth",
+      "type": "box",
+      "position": [
+        0.0,
+        0.0,
+        103.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.44,
+        0.45,
+        1.28
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 54,
+      "name": "Ad stand 8 body",
+      "type": "box",
+      "position": [
+        0.0,
+        0.45,
+        103.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.36,
+        2.1,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 55,
+      "name": "Ad stand 8 screen (west)",
+      "type": "box",
+      "position": [
+        -0.19,
+        0.6,
+        103.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7b3fe4",
+      "parent": 24
+    },
+    {
+      "id": 56,
+      "name": "Ad stand 8 screen (east)",
+      "type": "box",
+      "position": [
+        0.19,
+        0.6,
+        103.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7b3fe4",
+      "parent": 24
+    },
+    {
+      "id": 57,
+      "name": "Ad stand 9 plinth",
+      "type": "box",
+      "position": [
+        0.0,
+        0.0,
+        114.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.44,
+        0.45,
+        1.28
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 58,
+      "name": "Ad stand 9 body",
+      "type": "box",
+      "position": [
+        0.0,
+        0.45,
+        114.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.36,
+        2.1,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#1e2024",
+      "parent": 24
+    },
+    {
+      "id": 59,
+      "name": "Ad stand 9 screen (west)",
+      "type": "box",
+      "position": [
+        -0.19,
+        0.6,
+        114.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#2563d9",
+      "parent": 24
+    },
+    {
+      "id": 60,
+      "name": "Ad stand 9 screen (east)",
+      "type": "box",
+      "position": [
+        0.19,
+        0.6,
+        114.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.02,
+        1.8,
+        1.06
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#2563d9",
+      "parent": 24
+    },
+    {
+      "id": 61,
       "name": "Ad panel (wall, west 1)",
       "type": "box",
       "position": [
@@ -1308,7 +1665,7 @@
       "parent": 24
     },
     {
-      "id": 45,
+      "id": 62,
       "name": "Ad panel (wall, east 1)",
       "type": "box",
       "position": [
@@ -1329,7 +1686,7 @@
       "parent": 24
     },
     {
-      "id": 46,
+      "id": 63,
       "name": "Ad panel (wall, west 2)",
       "type": "box",
       "position": [
@@ -1350,7 +1707,7 @@
       "parent": 24
     },
     {
-      "id": 47,
+      "id": 64,
       "name": "Ad panel (wall, east 2)",
       "type": "box",
       "position": [
@@ -1371,7 +1728,7 @@
       "parent": 24
     },
     {
-      "id": 48,
+      "id": 65,
       "name": "Ad panel (wall, west 3)",
       "type": "box",
       "position": [
@@ -1392,7 +1749,7 @@
       "parent": 24
     },
     {
-      "id": 49,
+      "id": 66,
       "name": "Ad panel (wall, east 3)",
       "type": "box",
       "position": [
@@ -1413,7 +1770,7 @@
       "parent": 24
     },
     {
-      "id": 50,
+      "id": 67,
       "name": "Ad panel (wall, west 4)",
       "type": "box",
       "position": [
@@ -1434,7 +1791,7 @@
       "parent": 24
     },
     {
-      "id": 51,
+      "id": 68,
       "name": "Ad panel (wall, east 4)",
       "type": "box",
       "position": [
@@ -1455,7 +1812,7 @@
       "parent": 24
     },
     {
-      "id": 52,
+      "id": 69,
       "name": "Ad panel (wall, west 5)",
       "type": "box",
       "position": [
@@ -1476,7 +1833,7 @@
       "parent": 24
     },
     {
-      "id": 53,
+      "id": 70,
       "name": "Ad panel (wall, east 5)",
       "type": "box",
       "position": [
@@ -1497,7 +1854,7 @@
       "parent": 24
     },
     {
-      "id": 54,
+      "id": 71,
       "name": "Ad panel (wall, west 6)",
       "type": "box",
       "position": [
@@ -1518,7 +1875,7 @@
       "parent": 24
     },
     {
-      "id": 55,
+      "id": 72,
       "name": "Ad panel (wall, east 6)",
       "type": "box",
       "position": [
@@ -1539,7 +1896,7 @@
       "parent": 24
     },
     {
-      "id": 56,
+      "id": 73,
       "name": "Ad panel (wall, west 7)",
       "type": "box",
       "position": [
@@ -1560,7 +1917,7 @@
       "parent": 24
     },
     {
-      "id": 57,
+      "id": 74,
       "name": "Ad panel (wall, east 7)",
       "type": "box",
       "position": [
@@ -1581,7 +1938,7 @@
       "parent": 24
     },
     {
-      "id": 58,
+      "id": 75,
       "name": "Ad panel (wall, west 8)",
       "type": "box",
       "position": [
@@ -1602,7 +1959,7 @@
       "parent": 24
     },
     {
-      "id": 59,
+      "id": 76,
       "name": "Ad panel (wall, east 8)",
       "type": "box",
       "position": [
@@ -1623,7 +1980,7 @@
       "parent": 24
     },
     {
-      "id": 60,
+      "id": 77,
       "name": "Ad panel (wall, west 9)",
       "type": "box",
       "position": [
@@ -1644,7 +2001,7 @@
       "parent": 24
     },
     {
-      "id": 61,
+      "id": 78,
       "name": "Ad panel (wall, east 9)",
       "type": "box",
       "position": [
@@ -1667,7 +2024,7 @@
   ],
   "goals": [
     {
-      "id": 63,
+      "id": 80,
       "name": "Station A",
       "area": {
         "center": [
@@ -1687,10 +2044,10 @@
         -1.0
       ],
       "queueSpacing": 0.8,
-      "parent": 62
+      "parent": 79
     },
     {
-      "id": 64,
+      "id": 81,
       "name": "Station B",
       "area": {
         "center": [
@@ -1710,10 +2067,10 @@
         -1.0
       ],
       "queueSpacing": 0.8,
-      "parent": 62
+      "parent": 79
     },
     {
-      "id": 65,
+      "id": 82,
       "name": "Travelator to B (start)",
       "area": {
         "center": [
@@ -1733,10 +2090,10 @@
         -1.0
       ],
       "queueSpacing": 0.8,
-      "parent": 62
+      "parent": 79
     },
     {
-      "id": 66,
+      "id": 83,
       "name": "Travelator to A (start)",
       "area": {
         "center": [
@@ -1756,12 +2113,12 @@
         -1.0
       ],
       "queueSpacing": 0.8,
-      "parent": 62
+      "parent": 79
     }
   ],
   "spawners": [
     {
-      "id": 67,
+      "id": 84,
       "name": "Arrivals at A (to B)",
       "area": {
         "center": [
@@ -1778,7 +2135,7 @@
       "total": 0,
       "startTime": 0.0,
       "stopTime": null,
-      "goal": 64,
+      "goal": 81,
       "groupSize": [
         1,
         1
@@ -1812,10 +2169,10 @@
           "weight": 0.45
         }
       ],
-      "parent": 62
+      "parent": 79
     },
     {
-      "id": 68,
+      "id": 85,
       "name": "Arrivals at B (to A)",
       "area": {
         "center": [
@@ -1832,7 +2189,7 @@
       "total": 0,
       "startTime": 0.0,
       "stopTime": null,
-      "goal": 63,
+      "goal": 80,
       "groupSize": [
         1,
         1
@@ -1866,7 +2223,7 @@
           "weight": 0.45
         }
       ],
-      "parent": 62
+      "parent": 79
     }
   ],
   "links": []
