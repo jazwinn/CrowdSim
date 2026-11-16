@@ -313,6 +313,9 @@ int runGui(EngineContext& engine) {
     if (config.overlays.find("metrics") != std::string::npos) {
         shell.focusMetrics();
     }
+    if (config.overlays.find("ads") != std::string::npos) {
+        shell.focusAds();
+    }
     shell.sceneEditor().select(config.selectId);
     if (!config.editBehaviour.empty()) {
         engine.dispatcher().submit(commands::makeCommand("GetBehaviorTree", {{"name", config.editBehaviour}}));
@@ -638,6 +641,7 @@ int runGui(EngineContext& engine) {
             .sceneFiles = sceneFiles,
             .sceneName = engine.sceneName(),
             .metrics = &engine.metrics(),
+            .ads = &engine.adAttention(),
         });
         updateCamera(camera, req.viewportHovered);
 

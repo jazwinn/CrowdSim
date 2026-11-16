@@ -14,6 +14,7 @@
 #include <nlohmann/json.hpp>
 
 #include "crowdsim/ui/BtEditor.hpp"
+#include "crowdsim/ui/AdsPanel.hpp"
 #include "crowdsim/ui/MetricsPanel.hpp"
 #include "crowdsim/ui/SceneEditor.hpp"
 #include "crowdsim/ui/Theme.hpp"
@@ -111,6 +112,7 @@ struct EditorFrameData {
     std::span<const std::string> sceneFiles;   ///< content-relative *.scene.json files
     std::string_view sceneName;
     const metrics::MetricsCollector* metrics = nullptr;  ///< for the Metrics panel
+    const metrics::AdAttention* ads = nullptr;           ///< for the Ads panel
 };
 
 /// Rectangle in framebuffer pixels.
@@ -170,6 +172,7 @@ public:
     void focusBehaviourEditor() noexcept { focusBehaviour_ = true; }
     /// Bring the Metrics panel to the front next frame.
     void focusMetrics() noexcept { focusMetrics_ = 3; }
+    void focusAds() noexcept { focusAds_ = 3; }
     /// Fonts for headings and code (from ui::loadFonts); also handed to the scene editor.
     void setFonts(const ThemeFonts& fonts) noexcept {
         fonts_ = fonts;
@@ -187,6 +190,7 @@ private:
     SceneEditor sceneEditor_;
     BtEditor btEditor_;
     MetricsPanel metricsPanel_;
+    AdsPanel adsPanel_;
     ThemeFonts fonts_;
     char saveAsName_[128] = "my_scene";
 
@@ -212,6 +216,7 @@ private:
     bool scriptStatusError_ = false;
     bool focusBehaviour_ = false;
     int focusMetrics_ = 0;  ///< frames left to keep the Metrics tab in front (docking settles first)
+    int focusAds_ = 0;
     OverlayToggles overlays_;
     bool viewportDragging_ = false;
     int pendingScenario_ = -1;

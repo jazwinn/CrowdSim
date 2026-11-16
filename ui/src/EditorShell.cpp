@@ -27,6 +27,7 @@ constexpr const char* kHistoryWindow = "History";
 constexpr const char* kScriptWindow = "Script";
 constexpr const char* kBehaviourWindow = "Behaviour";
 constexpr const char* kMetricsWindow = "Metrics";
+constexpr const char* kAdsWindow = "Ads";
 
 }  // namespace
 
@@ -49,6 +50,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kSimWindow, rightTop);
     ImGui::DockBuilderDockWindow(kStatsWindow, rightTop);
     ImGui::DockBuilderDockWindow(kMetricsWindow, rightTop);
+    ImGui::DockBuilderDockWindow(kAdsWindow, rightTop);
     ImGui::DockBuilderDockWindow(kInspectorWindow, rightBottom);
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
     ImGui::DockBuilderDockWindow(kHistoryWindow, bottom);
@@ -558,6 +560,22 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         const float gatePoint[2] = {data.editor != nullptr ? data.editor->cameraTarget[0] : 0.0f,
                                     data.editor != nullptr ? data.editor->cameraTarget[2] : 0.0f};
         metricsPanel_.draw(*data.metrics, gatePoint, fonts_, req.commands);
+    }
+    ImGui::End();
+
+    // Ads: how well each ad is seen. A tab beside Metrics.
+    if (statsDock != 0) {
+        ImGui::SetNextWindowDockID(statsDock, ImGuiCond_FirstUseEver);
+    }
+    if (focusAds_ > 0) {
+        ImGui::SetNextWindowFocus();
+        --focusAds_;
+    }
+    ImGui::Begin(kAdsWindow);
+    if (data.ads != nullptr) {
+        if (const std::uint32_t clicked = adsPanel_.draw(*data.ads, data.simTimeSeconds, sceneEditor_.selected(), fonts_, req.commands)) {
+            sceneEditor_.select(clicked);
+        }
     }
     ImGui::End();
 
