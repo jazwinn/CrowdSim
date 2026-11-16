@@ -107,6 +107,7 @@ private:
     char importPath_[256] = "models/test_room.gltf";
     nlohmann::json buffer_;  ///< inspector working copy of the selected entity
     std::uint32_t bufferId_ = 0;
+    bool showLists_ = false;      ///< Scene panel view: false = Hierarchy, true = Lists
     std::uint32_t revealed_ = 0;  ///< selection whose groups were last opened in the Scene list
     const std::set<std::uint32_t>* revealGroups_ = nullptr;  ///< groups to open this frame
 };

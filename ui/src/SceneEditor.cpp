@@ -228,20 +228,27 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
     }
     revealGroups_ = &reveal;
 
-    // Hierarchy: every entity, in its groups; what is in no group sits at the top level.
-    // Dropping an entity on the heading takes it out of its group.
-    std::vector<sim::SceneId> topLevel;
-    std::size_t total = 0;
-    for (const auto& ids : {in.sim.groupIds(), in.sim.goalIds(), in.sim.spawnerIds(), in.sim.offMeshLinkIds(),
-                            in.sim.staticObjectIds()}) {
-        total += ids.size();
-        for (sim::SceneId id : ids) {
-            if (in.sim.parentOf(id) == sim::kNoSceneId) {
-                topLevel.push_back(id);
-            }
+    // Two views of the same entities, picked with a two-way switch: Hierarchy, everything
+    // in its groups; Lists, every entity of each kind, flat.
+    auto segment = [&](const char* label, bool active, float width) {
+        if (active) {
+            const ImVec4 a = palette::accent();
+            ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(a.x, a.y, a.z, 0.85f));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, a);
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive, a);
         }
+        const bool clicked = ImGui::Button(label, ImVec2(width, 0.0f));
+        if (active) {
+            ImGui::PopStyleColor(3);
+        }
+        return clicked && !active;
+    };
+    const float half = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x * 0.5f) * 0.5f;
+    ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(ImGui::GetStyle().ItemSpacing.x * 0.5f, 0.0f));
+    if (segment("Hierarchy", !showLists_, half)) {
+        showLists_ = false;
     }
-    const bool hierarchyOpen = heading("Hierarchy");
+    // Dropping an entity on the Hierarchy switch takes it out of its group.
     if (ImGui::BeginDragDropTarget()) {
         if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kEntityPayload)) {
             const auto id = *static_cast<const sim::SceneId*>(payload->Data);
@@ -250,9 +257,25 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
         ImGui::EndDragDropTarget();
     }
     ImGui::SetItemTooltip("Everything in the scene, in its groups. Drop something here to take it out of its group.");
-    rightAlignedNote(std::to_string(total));
-    if (hierarchyOpen) {
-        ImGui::Indent();
+    ImGui::SameLine();
+    if (segment("Lists", showLists_, half)) {
+        showLists_ = true;
+    }
+    ImGui::SetItemTooltip("Every goal, spawner, link and object, wherever it is in the hierarchy");
+    ImGui::PopStyleVar();
+    ImGui::Spacing();
+    if (!showLists_) {
+        // What is in no group sits at the top level.
+        std::vector<sim::SceneId> topLevel;
+        for (const auto& ids : {in.sim.groupIds(), in.sim.goalIds(), in.sim.spawnerIds(), in.sim.offMeshLinkIds(),
+                                in.sim.staticObjectIds()}) {
+            for (sim::SceneId id : ids) {
+                if (in.sim.parentOf(id) == sim::kNoSceneId) {
+                    topLevel.push_back(id);
+                }
+            }
+        }
+        ImGui::Spacing();
         if (topLevel.empty()) {
             ImGui::TextDisabled("Empty scene");
         }
@@ -263,37 +286,32 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
                 entityRow(in, id, commands);
             }
         }
-        ImGui::Unindent();
-        ImGui::Spacing();
     }
     revealGroups_ = nullptr;
 
-    // Quick lists of every entity of a kind, wherever it is in the hierarchy.
-    ImGui::Spacing();
-    ImGui::Separator();
-    ImGui::Spacing();
-    ImGui::PushID("lists");
-    auto section = [&](const char* title, const std::vector<sim::SceneId>& ids) {
-        const bool open = heading(title);
-        rightAlignedNote(std::to_string(ids.size()));
-        if (!open) {
-            return;
-        }
-        ImGui::Indent();
-        if (ids.empty()) {
-            ImGui::TextDisabled("None");
-        }
-        for (sim::SceneId id : ids) {
-            entityRow(in, id, commands);
-        }
-        ImGui::Unindent();
+    if (showLists_) {
         ImGui::Spacing();
-    };
-    section("Goals", in.sim.goalIds());
-    section("Spawners", in.sim.spawnerIds());
-    section("Links", in.sim.offMeshLinkIds());
-    section("Objects", in.sim.staticObjectIds());
-    ImGui::PopID();
+        auto section = [&](const char* title, const std::vector<sim::SceneId>& ids) {
+            const bool open = heading(title);
+            rightAlignedNote(std::to_string(ids.size()));
+            if (!open) {
+                return;
+            }
+            ImGui::Indent();
+            if (ids.empty()) {
+                ImGui::TextDisabled("None");
+            }
+            for (sim::SceneId id : ids) {
+                entityRow(in, id, commands);
+            }
+            ImGui::Unindent();
+            ImGui::Spacing();
+        };
+        section("Goals", in.sim.goalIds());
+        section("Spawners", in.sim.spawnerIds());
+        section("Links", in.sim.offMeshLinkIds());
+        section("Objects", in.sim.staticObjectIds());
+    }
 }
 
 void SceneEditor::entityRow(const SceneEditorInput& in, sim::SceneId id, std::vector<Json>& commands) {
