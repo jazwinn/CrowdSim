@@ -269,6 +269,9 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
     revealGroups_ = nullptr;
 
     // Quick lists of every entity of a kind, wherever it is in the hierarchy.
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
     ImGui::PushID("lists");
     auto section = [&](const char* title, const std::vector<sim::SceneId>& ids) {
         const bool open = heading(title);
