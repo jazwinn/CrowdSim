@@ -6,6 +6,7 @@
 /// (JSON) for the app to submit, so the GUI, Lua, MCP and replay share one path.
 
 #include <cstdint>
+#include <set>
 #include <span>
 #include <string>
 #include <string_view>
@@ -83,6 +84,12 @@ public:
 
 private:
     void addMenu(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
+    /// One entity row in the Scene list: selectable, draggable into groups, context menu.
+    void entityRow(const SceneEditorInput& in, std::uint32_t id, std::vector<nlohmann::json>& commands);
+    /// A group and everything in it, as a tree node that entities can be dropped on.
+    void groupNode(const SceneEditorInput& in, std::uint32_t id, std::vector<nlohmann::json>& commands);
+    /// "Move to group" menu items for `id` (every group it may go in, and none).
+    void moveToGroupMenu(const SceneEditorInput& in, std::uint32_t id, std::vector<nlohmann::json>& commands);
     void drawAgentInspector(const SceneEditorInput& in);
     bool editJson(const char* label, nlohmann::json& value, nlohmann::json& patch, const std::string& path);
     bool agentTypeCombo(const char* id, nlohmann::json& value, bool byIndex);
@@ -100,6 +107,8 @@ private:
     char importPath_[256] = "models/test_room.gltf";
     nlohmann::json buffer_;  ///< inspector working copy of the selected entity
     std::uint32_t bufferId_ = 0;
+    std::uint32_t revealed_ = 0;  ///< selection whose groups were last opened in the Scene list
+    const std::set<std::uint32_t>* revealGroups_ = nullptr;  ///< groups to open this frame
 };
 
 }  // namespace crowdsim::ui

@@ -188,26 +188,40 @@ public:
     SceneId addOffMeshLink(const OffMeshLink& link, SceneId id = kNoSceneId);
     SceneId addGoal(const Goal& goal, SceneId id = kNoSceneId);
     SceneId addSpawner(const Spawner& spawner, SceneId id = kNoSceneId);
+    SceneId addGroup(const Group& group, SceneId id = kNoSceneId);
 
     /// Replace an entity's description. Returns false if `id` is not of that kind.
     bool updateStaticObject(SceneId id, const StaticObject& object);
     bool updateOffMeshLink(SceneId id, const OffMeshLink& link);
     bool updateGoal(SceneId id, const Goal& goal);     ///< keeps the arrival counter
     bool updateSpawner(SceneId id, const Spawner& s);  ///< keeps spawn progress
+    bool updateGroup(SceneId id, const Group& group);
 
-    /// Remove one entity. Removing a goal also removes the agents heading to it.
+    /// Put an entity in a group (kNoSceneId: in no group). Returns false if either does
+    /// not exist, `parent` is not a group, or it would make a group contain itself.
+    bool setParent(SceneId id, SceneId parent);
+    /// The group an entity is in, or kNoSceneId.
+    [[nodiscard]] SceneId parentOf(SceneId id) const;
+    /// Entities directly in a group, in creation order of their kinds (groups, objects,
+    /// links, goals, spawners).
+    [[nodiscard]] std::vector<SceneId> childrenOf(SceneId group) const;
+
+    /// Remove one entity. Removing a goal also removes the agents heading to it; removing a
+    /// group moves its children up into the group's own parent.
     bool removeEntity(SceneId id);
 
     [[nodiscard]] const StaticObject* findStaticObject(SceneId id) const;
     [[nodiscard]] const OffMeshLink* findOffMeshLink(SceneId id) const;
     [[nodiscard]] const Goal* findGoal(SceneId id) const;
     [[nodiscard]] const Spawner* findSpawner(SceneId id) const;
+    [[nodiscard]] const Group* findGroup(SceneId id) const;
 
     /// Ids in creation order.
     [[nodiscard]] std::vector<SceneId> staticObjectIds() const;
     [[nodiscard]] std::vector<SceneId> offMeshLinkIds() const;
     [[nodiscard]] std::vector<SceneId> goalIds() const;
     [[nodiscard]] std::vector<SceneId> spawnerIds() const;
+    [[nodiscard]] std::vector<SceneId> groupIds() const;
     [[nodiscard]] SceneId nextSceneId() const noexcept { return nextSceneId_; }
     /// Never allocate ids below `next` (keeps ids of deleted entities retired across save/load).
     void reserveSceneIds(SceneId next) noexcept { nextSceneId_ = std::max(nextSceneId_, next); }
@@ -376,6 +390,7 @@ private:
     SceneId nextSceneId_ = 1;
     std::vector<entt::entity> goals_;     ///< creation order = goal index
     std::vector<entt::entity> spawners_;  ///< creation order = processing order
+    std::vector<entt::entity> groups_;
     std::vector<Area> goalAreas_;         ///< per-step copy for the hot loops
     std::vector<Goal> goalsCache_;        ///< per-step copy of goal settings for the decision layer
 

@@ -174,3 +174,49 @@ TEST_CASE("M3: a scene built by commands saves, reloads and replays identically"
     CHECK(assets::saveScene(c.sim, "s").dump() == assets::saveScene(a.sim, "s").dump());
     std::filesystem::remove(file);
 }
+
+TEST_CASE("Groups: entities nest in groups, save and reload, and undo cleanly") {
+    Engine e;
+    buildByCommands(e);
+    const sim::SceneId floor = e.sim.staticObjectIds()[0];
+    const sim::SceneId wall = e.sim.staticObjectIds()[1];
+    const sim::SceneId goal = e.sim.goalIds()[0];
+    const auto level = e.run("CreateGroup", {{"group", {{"name", "Level 1"}}}})["id"].get<sim::SceneId>();
+    const auto walls =
+        e.run("CreateGroup", {{"group", {{"name", "Walls"}, {"parent", level}}}})["id"].get<sim::SceneId>();
+    e.run("SetParent", {{"id", floor}, {"parent", level}});
+    e.run("SetParent", {{"id", wall}, {"parent", walls}});
+    e.run("UpdateEntity", {{"id", goal}, {"patch", {{"parent", level}}}});
+    CHECK(e.sim.parentOf(walls) == level);
+    CHECK(e.sim.parentOf(wall) == walls);
+    CHECK(e.sim.childrenOf(level) == std::vector<sim::SceneId>{walls, floor, goal});
+
+    // Only groups hold things, and no group may end up inside itself.
+    CHECK_FALSE(e.dispatcher.execute(makeCommand("SetParent", {{"id", wall}, {"parent", floor}}), e.ctx).ok);
+    CHECK_FALSE(e.dispatcher.execute(makeCommand("SetParent", {{"id", level}, {"parent", walls}}), e.ctx).ok);
+    CHECK(e.sim.parentOf(level) == sim::kNoSceneId);
+
+    // Saved with the groups (parents first) and reloaded the same, whatever the file order.
+    const Json saved = assets::saveScene(e.sim, "x");
+    REQUIRE(saved["groups"].size() == 2);
+    CHECK(saved["groups"][0]["id"] == level);
+    Json shuffled = saved;
+    std::swap(shuffled["groups"][0], shuffled["groups"][1]);
+    assets::loadScene(shuffled, e.sim, e.assets);
+    CHECK(assets::saveScene(e.sim, "x").dump() == saved.dump());
+    CHECK(e.sim.parentOf(wall) == walls);
+
+    // Deleting a group keeps its contents (they move up); undo puts them back in it.
+    e.run("DeleteEntity", {{"id", walls}});
+    CHECK(e.sim.findGroup(walls) == nullptr);
+    CHECK(e.sim.parentOf(wall) == level);
+    REQUIRE(e.dispatcher.undo(e.ctx).ok);
+    CHECK(e.sim.parentOf(wall) == walls);
+    CHECK(assets::saveScene(e.sim, "x").dump() == saved.dump());
+
+    // Taking something out of a group undoes back into it.
+    e.run("SetParent", {{"id", goal}, {"parent", 0}});
+    CHECK(e.sim.parentOf(goal) == sim::kNoSceneId);
+    REQUIRE(e.dispatcher.undo(e.ctx).ok);
+    CHECK(e.sim.parentOf(goal) == level);
+}

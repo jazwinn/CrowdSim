@@ -13,6 +13,7 @@
 #include <format>
 #include <glm/geometric.hpp>
 #include <glm/vec3.hpp>
+#include <set>
 #include <string>
 
 #include "crowdsim/assets/JsonTypes.hpp"
@@ -49,13 +50,31 @@ Json v3(glm::vec3 v) {
 }
 
 /// Dim text drawn inside the right end of the last item, vertically centred on it.
-void rightAlignedNote(const std::string& text) {
+/// Drag-and-drop payload: a SceneId being moved into a group.
+constexpr const char* kEntityPayload = "CS_SCENE_ENTITY";
+
+/// "Level 1 / Shops": a group's name with the groups it is in.
+std::string groupPath(const sim::Simulation& sim, sim::SceneId id) {
+    std::string path;
+    for (sim::SceneId g = id; g != sim::kNoSceneId; g = sim.parentOf(g)) {
+        const sim::Group* group = sim.findGroup(g);
+        path = path.empty() ? group->name : group->name + " / " + path;
+    }
+    return path;
+}
+
+/// A dim note at the right end of the last item; left out where it would run into the
+/// item's own label, which ends at `labelEnd` (screen x; negative = do not check).
+void rightAlignedNote(const std::string& text, float labelEnd = -1.0f) {
     const ImVec2 size = ImGui::CalcTextSize(text.c_str());
     const ImVec2 min = ImGui::GetItemRectMin();
     const ImVec2 max = ImGui::GetItemRectMax();
-    ImGui::GetWindowDrawList()->AddText(
-        ImVec2(max.x - size.x - ImGui::GetStyle().FramePadding.x, (min.y + max.y - size.y) * 0.5f),
-        ImGui::GetColorU32(ImGuiCol_TextDisabled), text.c_str());
+    const float x = max.x - size.x - ImGui::GetStyle().FramePadding.x;
+    if (labelEnd >= 0.0f && labelEnd + ImGui::GetStyle().ItemSpacing.x > x) {
+        return;
+    }
+    ImGui::GetWindowDrawList()->AddText(ImVec2(x, (min.y + max.y - size.y) * 0.5f),
+                                        ImGui::GetColorU32(ImGuiCol_TextDisabled), text.c_str());
 }
 
 }  // namespace
@@ -106,6 +125,14 @@ void SceneEditor::addMenu(const SceneEditorInput& in, std::vector<Json>& command
                                 {"total", 200},
                                 {"goal", goals.empty() ? 0u : goals.front()}}}}));
     }
+    if (ImGui::MenuItem("Group")) {
+        Json group{{"name", "Group"}};
+        if (in.sim.findGroup(selected_) != nullptr) {
+            group["parent"] = selected_;
+        }
+        commands.push_back(makeCommand("CreateGroup", {{"group", group}}));
+    }
+    ImGui::SetItemTooltip("A folder for scene entities (inside the selected group, if any)");
     if (ImGui::MenuItem("Ladder link (up 4 m)")) {
         commands.push_back(makeCommand(
             "CreateOffMeshLink",
@@ -151,44 +178,184 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
                           static_cast<double>(rotateSnapDegrees));
     ImGui::Spacing();
 
-    auto section = [&](const char* title, const std::vector<sim::SceneId>& ids) {
+    // Dropping an entity on a section heading takes it out of its group.
+    auto ungroupTarget = [&]() {
+        if (ImGui::BeginDragDropTarget()) {
+            if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kEntityPayload)) {
+                const auto id = *static_cast<const sim::SceneId*>(payload->Data);
+                commands.push_back(makeCommand("SetParent", {{"id", id}, {"parent", 0}}));
+            }
+            ImGui::EndDragDropTarget();
+        }
+    };
+    auto heading = [&](const char* title, std::size_t count) {
         ImGui::PushFont(fonts_.strong, 0.0f);
         const bool open = ImGui::TreeNodeEx(title, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth |
                                                        ImGuiTreeNodeFlags_NoTreePushOnOpen);
         ImGui::PopFont();
-        rightAlignedNote(std::to_string(ids.size()));
-        if (!open) {
+        ungroupTarget();
+        rightAlignedNote(std::to_string(count));
+        return open;
+    };
+    auto ungrouped = [&](std::vector<sim::SceneId> ids) {
+        std::erase_if(ids, [&](sim::SceneId id) { return in.sim.parentOf(id) != sim::kNoSceneId; });
+        return ids;
+    };
+
+    // Open the groups around a newly selected entity (picked in the viewport, say) once.
+    std::set<sim::SceneId> reveal;
+    if (selected_ != revealed_) {
+        for (sim::SceneId p = in.sim.parentOf(selected_); p != sim::kNoSceneId; p = in.sim.parentOf(p)) {
+            reveal.insert(p);
+        }
+        revealed_ = selected_;
+    }
+    revealGroups_ = &reveal;
+
+    const auto groups = ungrouped(in.sim.groupIds());
+    if (!in.sim.groupIds().empty() && heading("Groups", in.sim.groupIds().size())) {
+        ImGui::Indent();
+        for (sim::SceneId g : groups) {
+            groupNode(in, g, commands);
+        }
+        ImGui::Unindent();
+        ImGui::Spacing();
+    }
+    revealGroups_ = nullptr;
+
+    auto section = [&](const char* title, const std::vector<sim::SceneId>& all) {
+        const std::vector<sim::SceneId> ids = ungrouped(all);
+        if (!heading(title, ids.size())) {
             return;
         }
+        ImGui::Indent();
         if (ids.empty()) {
-            ImGui::Indent();
-            ImGui::TextDisabled("None");
-            ImGui::Unindent();
+            ImGui::TextDisabled(all.empty() ? "None" : "All in groups");
         }
         for (sim::SceneId id : ids) {
-            const Json e = assets::entityToJson(in.sim, id);
-            ImGui::PushID(static_cast<int>(id));
-            ImGui::Indent();
-            if (ImGui::Selectable(e.value("name", std::string("(unnamed)")).c_str(), selected_ == id)) {
-                selected_ = id;
-                selectedAgent_ = kNoAgentSelected;
-            }
-            rightAlignedNote(std::format("#{}", id));
-            ImGui::Unindent();
-            if (ImGui::BeginPopupContextItem()) {
-                if (ImGui::MenuItem("Delete")) {
-                    commands.push_back(makeCommand("DeleteEntity", {{"id", id}}));
-                }
-                ImGui::EndPopup();
-            }
-            ImGui::PopID();
+            entityRow(in, id, commands);
         }
+        ImGui::Unindent();
         ImGui::Spacing();
     };
     section("Goals", in.sim.goalIds());
     section("Spawners", in.sim.spawnerIds());
     section("Links", in.sim.offMeshLinkIds());
     section("Objects", in.sim.staticObjectIds());
+}
+
+void SceneEditor::entityRow(const SceneEditorInput& in, sim::SceneId id, std::vector<Json>& commands) {
+    const assets::EntityKind kind = assets::entityKindOf(in.sim, id);
+    const Json e = assets::entityToJson(in.sim, id);
+    const std::string name = e.value("name", std::string("(unnamed)"));
+    ImGui::PushID(static_cast<int>(id));
+    if (ImGui::Selectable(name.c_str(), selected_ == id)) {
+        selected_ = id;
+        selectedAgent_ = kNoAgentSelected;
+    }
+    const float labelEnd = ImGui::GetItemRectMin().x + ImGui::CalcTextSize(name.c_str()).x;
+    if (labelEnd > ImGui::GetItemRectMax().x) {
+        ImGui::SetItemTooltip("%s", name.c_str());  // cut off by the panel edge
+    }
+    if (ImGui::BeginDragDropSource()) {
+        ImGui::SetDragDropPayload(kEntityPayload, &id, sizeof(id));
+        ImGui::Text("Move '%s' to a group", e.value("name", std::string("(unnamed)")).c_str());
+        ImGui::EndDragDropSource();
+    }
+    rightAlignedNote(std::format("{} #{}", assets::entityKindName(kind), id), labelEnd);
+    if (ImGui::BeginPopupContextItem()) {
+        moveToGroupMenu(in, id, commands);
+        if (ImGui::MenuItem("Delete")) {
+            commands.push_back(makeCommand("DeleteEntity", {{"id", id}}));
+        }
+        ImGui::EndPopup();
+    }
+    ImGui::PopID();
+}
+
+void SceneEditor::groupNode(const SceneEditorInput& in, sim::SceneId id, std::vector<Json>& commands) {
+    const sim::Group* group = in.sim.findGroup(id);
+    const std::vector<sim::SceneId> children = in.sim.childrenOf(id);
+    ImGui::PushID(static_cast<int>(id));
+    if (revealGroups_ != nullptr && revealGroups_->contains(id)) {
+        ImGui::SetNextItemOpen(true);
+    }
+    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow |
+                               ImGuiTreeNodeFlags_OpenOnDoubleClick;
+    if (selected_ == id) {
+        flags |= ImGuiTreeNodeFlags_Selected;
+    }
+    if (children.empty()) {
+        flags |= ImGuiTreeNodeFlags_Leaf;
+    }
+    const bool open = ImGui::TreeNodeEx("##group", flags, "%s", group->name.c_str());
+    if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen()) {
+        selected_ = id;
+        selectedAgent_ = kNoAgentSelected;
+    }
+    if (ImGui::BeginDragDropSource()) {
+        ImGui::SetDragDropPayload(kEntityPayload, &id, sizeof(id));
+        ImGui::Text("Move group '%s'", group->name.c_str());
+        ImGui::EndDragDropSource();
+    }
+    if (ImGui::BeginDragDropTarget()) {
+        if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(kEntityPayload)) {
+            const auto child = *static_cast<const sim::SceneId*>(payload->Data);
+            if (child != id) {
+                commands.push_back(makeCommand("SetParent", {{"id", child}, {"parent", id}}));
+            }
+        }
+        ImGui::EndDragDropTarget();
+    }
+    rightAlignedNote(std::to_string(children.size()), ImGui::GetItemRectMin().x + ImGui::GetTreeNodeToLabelSpacing() +
+                                                          ImGui::CalcTextSize(group->name.c_str()).x);
+    if (ImGui::BeginPopupContextItem()) {
+        if (ImGui::MenuItem("New group inside")) {
+            commands.push_back(makeCommand("CreateGroup", {{"group", {{"name", "Group"}, {"parent", id}}}}));
+        }
+        moveToGroupMenu(in, id, commands);
+        if (ImGui::MenuItem("Delete group (keep contents)")) {
+            commands.push_back(makeCommand("DeleteEntity", {{"id", id}}));
+        }
+        ImGui::EndPopup();
+    }
+    if (open) {
+        for (sim::SceneId child : children) {
+            if (in.sim.findGroup(child) != nullptr) {
+                groupNode(in, child, commands);
+            } else {
+                entityRow(in, child, commands);
+            }
+        }
+        ImGui::TreePop();
+    }
+    ImGui::PopID();
+}
+
+void SceneEditor::moveToGroupMenu(const SceneEditorInput& in, sim::SceneId id, std::vector<Json>& commands) {
+    const sim::SceneId current = in.sim.parentOf(id);
+    if (!ImGui::BeginMenu("Move to group")) {
+        return;
+    }
+    if (ImGui::MenuItem("(no group)", nullptr, current == sim::kNoSceneId, current != sim::kNoSceneId)) {
+        commands.push_back(makeCommand("SetParent", {{"id", id}, {"parent", 0}}));
+    }
+    for (sim::SceneId g : in.sim.groupIds()) {
+        // Not into itself or anything inside it.
+        bool inside = false;
+        for (sim::SceneId p = g; p != sim::kNoSceneId && !inside; p = in.sim.parentOf(p)) {
+            inside = p == id;
+        }
+        if (inside) {
+            continue;
+        }
+        ImGui::PushID(static_cast<int>(g));
+        if (ImGui::MenuItem(groupPath(in.sim, g).c_str(), nullptr, current == g, current != g)) {
+            commands.push_back(makeCommand("SetParent", {{"id", id}, {"parent", g}}));
+        }
+        ImGui::PopID();
+    }
+    ImGui::EndMenu();
 }
 
 bool SceneEditor::agentTypeCombo(const char* id, Json& value, bool byIndex) {
@@ -490,9 +657,33 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
             keys.push_back(it.key());
         }
     }
+    {
+        const sim::SceneId parent = in.sim.parentOf(selected_);
+        propertyLabel("Group");
+        if (ImGui::BeginCombo("##parent", parent == sim::kNoSceneId ? "(none)" : groupPath(in.sim, parent).c_str())) {
+            if (ImGui::Selectable("(none)", parent == sim::kNoSceneId) && parent != sim::kNoSceneId) {
+                commands.push_back(makeCommand("SetParent", {{"id", selected_}, {"parent", 0}}));
+            }
+            for (sim::SceneId g : in.sim.groupIds()) {
+                bool inside = false;
+                for (sim::SceneId p = g; p != sim::kNoSceneId && !inside; p = in.sim.parentOf(p)) {
+                    inside = p == selected_;
+                }
+                if (inside) {
+                    continue;
+                }
+                ImGui::PushID(static_cast<int>(g));
+                if (ImGui::Selectable(groupPath(in.sim, g).c_str(), g == parent) && g != parent) {
+                    commands.push_back(makeCommand("SetParent", {{"id", selected_}, {"parent", g}}));
+                }
+                ImGui::PopID();
+            }
+            ImGui::EndCombo();
+        }
+    }
     for (const std::string& key : keys) {
         const auto it = buffer_.find(key);
-        if (it.key() == "id" || it.key() == "kind" || it.key() == "asset") {
+        if (it.key() == "id" || it.key() == "kind" || it.key() == "asset" || it.key() == "parent") {
             continue;
         }
         if (it.key() == "goal" && buffer_.value("kind", std::string()) == "spawner") {
@@ -697,7 +888,8 @@ void SceneEditor::drawGizmo(const SceneEditorInput& in, std::vector<Json>& comma
     ImGuizmo::BeginFrame();
     gizmoActive_ = false;
     const assets::EntityKind kind = assets::entityKindOf(in.sim, selected_);
-    if (selected_ == 0 || kind == assets::EntityKind::None || kind == assets::EntityKind::Link || in.view == nullptr) {
+    if (selected_ == 0 || kind == assets::EntityKind::None || kind == assets::EntityKind::Link ||
+        kind == assets::EntityKind::Group || in.view == nullptr) {
         wasUsingGizmo_ = false;
         return;
     }

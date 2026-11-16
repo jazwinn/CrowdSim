@@ -86,6 +86,9 @@ CommandOutput updateEntity(sim::SceneId id, const Json& patch, CommandContext& c
     assets::patchEntity(ctx.sim, id, patch, &ctx.assets);
     before.erase("id");
     before.erase("kind");
+    if (patch.contains("parent") && !before.contains("parent")) {
+        before["parent"] = nullptr;  // undo takes it out of the group again
+    }
     CommandOutput out;
     out.result = Json{{"id", id}};
     out.undo = makeCommand("UpdateEntity", Json{{"id", id}, {"patch", before}});
@@ -250,16 +253,42 @@ void registerBuiltinCommands(CommandRegistry& r) {
            obj({{"link", any("{start:[x,y,z], end:[x,y,z], radius, bidirectional, extraCost}")}}, {"link"}),
            [](const Json& p, CommandContext& ctx) { return addEntity(p, ctx, "link", "link", "CreateOffMeshLink"); }});
 
-    r.add({"AddEntity", "Add any entity from its full JSON form {kind, id, ...} (used by undo).",
-           obj({{"entity", any("entity JSON with kind")}}, {"entity"}), [](const Json& p, CommandContext& ctx) {
+    r.add({"CreateGroup",
+           "Add a group (a folder of scene entities, e.g. one level of a building). Returns its id. Put entities "
+           "in it with SetParent.",
+           obj({{"group", any("{name, parent: <group id, optional>}")}}, {"group"}),
+           [](const Json& p, CommandContext& ctx) { return addEntity(p, ctx, "group", "group", "CreateGroup"); }});
+
+    r.add({"SetParent", "Put an entity (object, goal, spawner, link or group) in a group; parent 0 or null takes it out.",
+           obj({{"id", integer("entity id")}, {"parent", integer("group id; 0 = no group")}}, {"id"}),
+           [](const Json& p, CommandContext& ctx) {
+               Json parent = p.value("parent", Json(nullptr));
+               if (parent.is_number_integer() && parent.get<sim::SceneId>() == sim::kNoSceneId) {
+                   parent = nullptr;
+               }
+               CommandOutput out = updateEntity(requireId(p), Json{{"parent", parent}}, ctx);
+               out.label = parent.is_null() ? "Ungroup " + out.label.substr(5) : "Group " + out.label.substr(5);
+               return out;
+           }});
+
+    r.add({"AddEntity",
+           "Add any entity from its full JSON form {kind, id, ...} (used by undo); `children` (ids) are put "
+           "back in it when it is a group.",
+           obj({{"entity", any("entity JSON with kind")},
+                {"children", Json{{"type", "array"}, {"items", {{"type", "integer"}}}}}},
+               {"entity"}),
+           [](const Json& p, CommandContext& ctx) {
                const Json& e = p.at("entity");
                const sim::SceneId id = assets::addEntityFromJson(ctx.sim, e, &ctx.assets);
+               for (const Json& child : p.value("children", Json::array())) {
+                   ctx.sim.setParent(child.get<sim::SceneId>(), id);
+               }
                CommandOutput out;
                out.result = Json{{"id", id}};
                out.undo = makeCommand("DeleteEntity", Json{{"id", id}});
-               Json logged = e;
-               logged["id"] = id;
-               out.logAs = makeCommand("AddEntity", Json{{"entity", logged}});
+               Json logged = p;
+               logged["entity"]["id"] = id;
+               out.logAs = makeCommand("AddEntity", logged);
                out.label = std::format("Add '{}'", e.value("name", std::to_string(id)));
                return out;
            }});
@@ -305,15 +334,22 @@ void registerBuiltinCommands(CommandRegistry& r) {
                return updateEntity(requireId(p), p.at("config"), ctx);
            }});
 
-    r.add({"DeleteEntity", "Delete any scene entity (object, spawner, goal, link) by id.",
+    r.add({"DeleteEntity",
+           "Delete any scene entity (object, spawner, goal, link, group) by id. Deleting a group keeps its "
+           "contents: they move up into the group's parent.",
            obj({{"id", integer("entity id")}}, {"id"}), [](const Json& p, CommandContext& ctx) {
                const sim::SceneId id = requireId(p);
                Json before = assets::entityToJson(ctx.sim, id);
+               const std::vector<sim::SceneId> children = ctx.sim.childrenOf(id);
                if (before.is_null() || !ctx.sim.removeEntity(id)) {
                    throw std::invalid_argument(std::format("no scene entity with id {}", id));
                }
                CommandOutput out;
-               out.undo = makeCommand("AddEntity", Json{{"entity", before}});
+               Json undo{{"entity", before}};
+               if (!children.empty()) {
+                   undo["children"] = children;
+               }
+               out.undo = makeCommand("AddEntity", undo);
                out.label = std::format("Delete '{}'", before.value("name", std::to_string(id)));
                return out;
            }});

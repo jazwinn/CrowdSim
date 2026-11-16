@@ -165,6 +165,69 @@ SceneId Simulation::addSpawner(const Spawner& spawner, SceneId id) {
     return id;
 }
 
+SceneId Simulation::addGroup(const Group& group, SceneId id) {
+    id = claimId(id);
+    if (id == kNoSceneId) {
+        return kNoSceneId;
+    }
+    const entt::entity e = createEntity(id);
+    registry_.emplace<Group>(e, group);
+    groups_.push_back(e);
+    return id;
+}
+
+bool Simulation::updateGroup(SceneId id, const Group& group) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null || !registry_.all_of<Group>(e)) {
+        return false;
+    }
+    registry_.get<Group>(e) = group;
+    return true;
+}
+
+bool Simulation::setParent(SceneId id, SceneId parent) {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null) {
+        return false;
+    }
+    if (parent == kNoSceneId) {
+        registry_.remove<ParentComponent>(e);
+        return true;
+    }
+    if (findGroup(parent) == nullptr) {
+        return false;
+    }
+    for (SceneId p = parent; p != kNoSceneId; p = parentOf(p)) {
+        if (p == id) {
+            return false;  // a group inside itself
+        }
+    }
+    registry_.emplace_or_replace<ParentComponent>(e, parent);
+    return true;
+}
+
+SceneId Simulation::parentOf(SceneId id) const {
+    const entt::entity e = entityOf(id);
+    if (e == entt::null) {
+        return kNoSceneId;
+    }
+    const ParentComponent* p = registry_.try_get<ParentComponent>(e);
+    return p == nullptr ? kNoSceneId : p->parent;
+}
+
+std::vector<SceneId> Simulation::childrenOf(SceneId group) const {
+    std::vector<SceneId> out;
+    for (const std::vector<entt::entity>* list : {&groups_, &staticObjects_, &offMeshLinks_, &goals_, &spawners_}) {
+        for (entt::entity e : *list) {
+            const ParentComponent* p = registry_.try_get<ParentComponent>(e);
+            if (p != nullptr && p->parent == group) {
+                out.push_back(registry_.get<SceneIdComponent>(e).id);
+            }
+        }
+    }
+    return out;
+}
+
 bool Simulation::updateStaticObject(SceneId id, const StaticObject& object) {
     const entt::entity e = entityOf(id);
     if (e == entt::null || !registry_.all_of<StaticObject>(e)) {
@@ -233,6 +296,12 @@ bool Simulation::removeEntity(SceneId id) {
         flowDirty_ = true;
     } else if (registry_.all_of<Spawner>(e)) {
         eraseFrom(spawners_);
+    } else if (registry_.all_of<Group>(e)) {
+        const SceneId up = parentOf(id);
+        for (SceneId child : childrenOf(id)) {
+            setParent(child, up);
+        }
+        eraseFrom(groups_);
     }
     registry_.destroy(e);
     idToEntity_.erase(id);
@@ -288,6 +357,11 @@ const Spawner* Simulation::findSpawner(SceneId id) const {
     return e == entt::null ? nullptr : registry_.try_get<Spawner>(e);
 }
 
+const Group* Simulation::findGroup(SceneId id) const {
+    const entt::entity e = entityOf(id);
+    return e == entt::null ? nullptr : registry_.try_get<Group>(e);
+}
+
 std::vector<SceneId> Simulation::staticObjectIds() const {
     return idsOf<StaticObject>(staticObjects_);
 }
@@ -299,6 +373,9 @@ std::vector<SceneId> Simulation::goalIds() const {
 }
 std::vector<SceneId> Simulation::spawnerIds() const {
     return idsOf<Spawner>(spawners_);
+}
+std::vector<SceneId> Simulation::groupIds() const {
+    return idsOf<Group>(groups_);
 }
 
 geometry::TriangleMesh Simulation::objectMesh(SceneId id) const {
@@ -333,6 +410,7 @@ void Simulation::clearScene() {
     offMeshLinks_.clear();
     goals_.clear();
     spawners_.clear();
+    groups_.clear();
     idToEntity_.clear();
     nextSceneId_ = 1;
     navDirty_ = true;

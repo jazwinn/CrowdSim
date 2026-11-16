@@ -66,6 +66,17 @@ struct SceneIdComponent {
     SceneId id = kNoSceneId;
 };
 
+/// A named folder of scene entities (levels of a building, say). Groups only organise
+/// the scene: the simulation ignores them, and children keep their world positions.
+struct Group {
+    std::string name;
+};
+
+/// ECS component: the group an entity belongs to (only groups can be parents).
+struct ParentComponent {
+    SceneId parent = kNoSceneId;
+};
+
 struct Goal {
     std::string name;
     Area area;

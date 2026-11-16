@@ -123,8 +123,9 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "SaveScene");
     server.addTool(
         {"scene_describe",
-         "Structured summary of the scene: objects, goals (with arrivals), spawners, links, navmesh, "
-         "behaviours and agent types. Lists are capped at 100 entries.",
+         "Structured summary of the scene: groups, objects, goals (with arrivals), spawners, links, navmesh, "
+         "behaviours and agent types. Entities in a group carry its id as `parent`. Lists are capped at 100 "
+         "entries.",
          schema(),
          [&svc](const Json&) {
              const sim::Simulation& sim = svc.sim;
@@ -148,6 +149,7 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
                       {"time", sim.simTimeSeconds()},
                       {"agentsAlive", sim.agents().size()},
                       {"navmesh", {{"polygons", sim.navMesh().polyCount()}, {"tiles", sim.navMesh().tileCount()}}},
+                      {"groups", list(sim.groupIds())},
                       {"objectCount", sim.staticObjectIds().size()},
                       {"objects", list(sim.staticObjectIds())},
                       {"goals", list(sim.goalIds())},
@@ -162,10 +164,19 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "rotationY (deg), color '#rrggbb', tags: ['walkable'|'obstacle', ...], steps (stairs), asset (mesh)}. "
             "position is the footprint centre at its lowest point. Returns its id.",
             schema({{"object", object("object fields (see description)")}}, {"object"}), "PlaceObject");
-    command("object_update", "Merge-patch any entity (object, goal, spawner, link) by id.",
+    command("group_create",
+            "Add a group: a folder of scene entities, e.g. one level of a building. group: {name, parent (group "
+            "id, optional)}. Returns its id.",
+            schema({{"group", object("group fields")}}, {"group"}), "CreateGroup");
+    command("entity_set_parent",
+            "Put an entity (object, goal, spawner, link or group) in a group; parent 0 takes it out of any group.",
+            schema({{"id", integer("entity id")}, {"parent", integer("group id, 0 = none")}}, {"id", "parent"}),
+            "SetParent");
+    command("object_update", "Merge-patch any entity (object, goal, spawner, link, group) by id; `parent` moves "
+            "it into a group (null = none).",
             schema({{"id", integer("entity id")}, {"patch", object("fields to change")}}, {"id", "patch"}),
             "UpdateEntity", patchArgs);
-    command("object_delete", "Delete any entity by id.", schema({{"id", integer("entity id")}}, {"id"}),
+    command("object_delete", "Delete any entity by id (a deleted group's contents move up to its parent).", schema({{"id", integer("entity id")}}, {"id"}),
             "DeleteEntity");
     command("gltf_import",
             "Import a glTF/GLB (content-relative path) as a mesh object; node names/extras mark walkable/obstacle.",

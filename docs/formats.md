@@ -80,6 +80,12 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   Metrics then report pressure (peak, p90, people above the critical 1000 N/m and how many spent
   30 s or more above it) and falls; `GetHeatmap {kind: "pressure"}` maps the peak pressure. See
   `scenes/itaewon_2022*.scene.json`.
+- **Groups** (optional `"groups": [{"id", "name", "parent"}]`) are folders for organising a scene,
+  e.g. one per level of a building. Any entity (object, link, goal, spawner or group) may name
+  the group it is in with `"parent": <group id>`; groups nest, and only groups can be parents.
+  Groups are organisation only: the simulation ignores them and children keep their world
+  positions. Deleting a group moves its contents up into its parent. Groups are written
+  parents first; when reading, their order in the file does not matter.
 - **Ids** are stable and never reused (`nextId` keeps deleted ids retired). Spawners reference
   goals by id; commands also accept the goal's **name** (`"goal": "Exit"`).
 - Files are written in entity creation order with floats rounded to 6 significant digits, so
@@ -206,11 +212,13 @@ every command with its JSON Schema.
 | `PlaceObject` | yes | Add a static object (primitive or imported mesh). Returns its id. |
 | `ImportGltf` | yes (as `PlaceObject`) | Import a glTF file as a mesh object; reports per-node tags. |
 | `CreateSpawner` / `CreateGoal` / `CreateOffMeshLink` | yes | Add an entity. Returns its id. |
-| `AddEntity` | yes | Add any entity from its full JSON form (used by undo of deletes). |
-| `UpdateEntity` | yes | Merge-patch any entity: `{"id": 5, "patch": {"rate": 30}}`. |
+| `CreateGroup` | yes | Add a group `{"group": {"name", "parent"}}`. Returns its id. |
+| `SetParent` | yes | Put an entity in a group: `{"id": 12, "parent": 3}` (`parent` 0 = no group). |
+| `AddEntity` | yes | Add any entity from its full JSON form (used by undo of deletes); `children` (ids) go back into a re-added group. |
+| `UpdateEntity` | yes | Merge-patch any entity: `{"id": 5, "patch": {"rate": 30}}` (`"parent"` moves it to a group, `null` = none). |
 | `TransformObject` | yes | Move / rotate / resize an object. |
 | `SetSpawnerConfig` / `SetGoalConfig` | yes | Merge-patch a spawner / goal. |
-| `DeleteEntity` | yes | Delete any entity by id. |
+| `DeleteEntity` | yes | Delete any entity by id (a group's contents move up to its parent). |
 | `SetBehaviorTree` | yes | Add or replace (hot reload) a behaviour tree from `*.bt.json` content. |
 | `ValidateBehaviorTree` | no | Check a tree; returns `valid`, node / slot counts or the error. |
 | `ListBehaviorNodeTypes` | no | Node types with parameter schemas. |

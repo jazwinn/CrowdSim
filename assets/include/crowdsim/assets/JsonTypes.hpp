@@ -18,7 +18,7 @@ class AssetLibrary;
 using Json = nlohmann::json;
 
 /// Entity kinds as they appear in JSON ("kind" field and command names).
-enum class EntityKind { Object, Link, Goal, Spawner, None };
+enum class EntityKind { Object, Link, Goal, Spawner, Group, None };
 [[nodiscard]] const char* entityKindName(EntityKind kind);
 [[nodiscard]] EntityKind entityKindOf(const sim::Simulation& sim, sim::SceneId id);
 

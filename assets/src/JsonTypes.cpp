@@ -136,6 +136,8 @@ const char* entityKindName(EntityKind kind) {
             return "goal";
         case EntityKind::Spawner:
             return "spawner";
+        case EntityKind::Group:
+            return "group";
         case EntityKind::None:
             return "none";
     }
@@ -151,6 +153,8 @@ EntityKind entityKindOf(const sim::Simulation& sim, sim::SceneId id) {
         return EntityKind::Goal;
     if (sim.findSpawner(id) != nullptr)
         return EntityKind::Spawner;
+    if (sim.findGroup(id) != nullptr)
+        return EntityKind::Group;
     return EntityKind::None;
 }
 
@@ -457,13 +461,41 @@ Json entityToJson(const sim::Simulation& sim, sim::SceneId id) {
         case EntityKind::Spawner:
             j = toJson(*sim.findSpawner(id));
             break;
+        case EntityKind::Group:
+            j = Json{{"name", sim.findGroup(id)->name}};
+            break;
         case EntityKind::None:
             return nullptr;
     }
     Json out{{"kind", entityKindName(entityKindOf(sim, id))}, {"id", id}};
     out.update(j);
+    if (const sim::SceneId parent = sim.parentOf(id); parent != sim::kNoSceneId) {
+        out["parent"] = parent;
+    }
     return out;
 }
+
+namespace {
+
+/// "parent" of an entity document: a group id, or kNoSceneId when absent or null.
+sim::SceneId parentField(const Json& j) {
+    if (!j.contains("parent") || j["parent"].is_null()) {
+        return sim::kNoSceneId;
+    }
+    if (!j["parent"].is_number_integer()) {
+        throw std::invalid_argument("parent must be a group id");
+    }
+    return j["parent"].get<sim::SceneId>();
+}
+
+void applyParent(sim::Simulation& sim, sim::SceneId id, sim::SceneId parent) {
+    if (!sim.setParent(id, parent)) {
+        throw std::invalid_argument(
+            std::format("cannot put {} in {}: not a group, or it would contain itself", id, parent));
+    }
+}
+
+}  // namespace
 
 sim::SceneId addEntityFromJson(sim::Simulation& sim, const Json& j, AssetLibrary* assets) {
     const std::string kind = value<std::string>(j, "kind", "object");
@@ -479,11 +511,19 @@ sim::SceneId addEntityFromJson(sim::Simulation& sim, const Json& j, AssetLibrary
         Json resolved = j;
         resolveGoalReference(sim, resolved);
         created = sim.addSpawner(spawnerFromJson(resolved), id);
+    } else if (kind == "group") {
+        created = sim.addGroup(sim::Group{value<std::string>(j, "name", "Group")}, id);
     } else {
-        throw std::invalid_argument("unknown entity kind '" + kind + "' (object, link, goal, spawner)");
+        throw std::invalid_argument("unknown entity kind '" + kind + "' (object, link, goal, spawner, group)");
     }
     if (created == sim::kNoSceneId) {
         throw std::invalid_argument(std::format("id {} is already in use", id));
+    }
+    if (const sim::SceneId parent = parentField(j); parent != sim::kNoSceneId) {
+        if (!sim.setParent(created, parent)) {
+            sim.removeEntity(created);
+            applyParent(sim, created, parent);  // throws with the reason
+        }
     }
     return created;
 }
@@ -496,6 +536,10 @@ void patchEntity(sim::Simulation& sim, sim::SceneId id, const Json& patch, Asset
     Json p = patch;
     p.erase("id");
     p.erase("kind");
+    if (p.contains("parent")) {
+        applyParent(sim, id, parentField(p));
+        p.erase("parent");
+    }
     current.merge_patch(p);
     switch (entityKindOf(sim, id)) {
         case EntityKind::Object:
@@ -510,6 +554,9 @@ void patchEntity(sim::Simulation& sim, sim::SceneId id, const Json& patch, Asset
         case EntityKind::Spawner:
             resolveGoalReference(sim, current);
             sim.updateSpawner(id, spawnerFromJson(current));
+            break;
+        case EntityKind::Group:
+            sim.updateGroup(id, sim::Group{value<std::string>(current, "name", "Group")});
             break;
         case EntityKind::None:
             break;

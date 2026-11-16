@@ -1,6 +1,7 @@
 #include "crowdsim/assets/SceneSerializer.hpp"
 
 #include <fstream>
+#include <functional>
 #include <set>
 #include <stdexcept>
 #include <string>
@@ -65,6 +66,20 @@ nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name) {
     if (!types.empty()) {
         j["agentTypes"] = types;
     }
+    // Groups parents-first, so a file can be read in order.
+    std::vector<sim::SceneId> groups;
+    std::function<void(sim::SceneId)> addGroups = [&](sim::SceneId parent) {
+        for (sim::SceneId id : sim.groupIds()) {
+            if (sim.parentOf(id) == parent) {
+                groups.push_back(id);
+                addGroups(id);
+            }
+        }
+    };
+    addGroups(sim::kNoSceneId);
+    if (!groups.empty()) {
+        j["groups"] = list(groups);
+    }
     j["objects"] = list(sim.staticObjectIds());
     j["links"] = list(sim.offMeshLinkIds());
     j["goals"] = list(sim.goalIds());
@@ -110,6 +125,19 @@ std::string loadScene(const nlohmann::json& input, sim::Simulation& sim, AssetLi
             addEntityFromJson(sim, e, &assets);
         }
     };
+    // Groups first, then their parents (any order in the file), so entities can join them.
+    if (scene.contains("groups")) {
+        for (Json g : scene["groups"]) {
+            g["kind"] = "group";
+            g.erase("parent");
+            addEntityFromJson(sim, g, &assets);
+        }
+        for (const Json& g : scene["groups"]) {
+            if (g.contains("parent")) {
+                patchEntity(sim, g.value<sim::SceneId>("id", sim::kNoSceneId), Json{{"parent", g["parent"]}}, &assets);
+            }
+        }
+    }
     // Goals before spawners so spawner goal references resolve; order within a kind is preserved.
     addAll("objects", "object");
     addAll("links", "link");
