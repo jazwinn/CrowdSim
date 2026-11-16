@@ -14,7 +14,8 @@ like the link tunnels of Singapore's MRT:
     each travelator. More ads line the tunnel walls behind the travelators.
 
 People arrive at both concourses. Some ride the travelator in their direction, standing
-on the left or walking past on the right; the rest walk the walkway. Which they do is
+on the left or walking past on the right; the rest walk the walkway, keeping to its left
+half (waypoints on that side between the ad stands). Which they do is
 behaviour: riders head for the start of their travelator first (a goal on its first
 metres), walkers go straight for the far concourse. The travelators themselves only say
 that their surface moves (a box tagged "escalator"), and routing never sends anyone
@@ -160,6 +161,24 @@ exit_b = goal("Station B", 0.0, LENGTH - 4.0, HALF + 4.0, 2.5)
 # The first metres of each travelator: riders head here first.
 board_b = goal("Travelator to B (start)", -(TRAV_X0 + TRAV_X1) / 2, TRAV_Z0 + 1.5, 0.6, 1.0)
 board_a = goal("Travelator to A (start)", (TRAV_X0 + TRAV_X1) / 2, TRAV_Z1 - 1.5, 0.6, 1.0)
+# Walkers keep left too: past each ad stand on their left-hand side. A waypoint on that
+# side of the walkway before the first stand, in every gap and after the last; each hop
+# is then straightest along that side. (One waypoint is not enough: routes follow chains
+# of navmesh polygons, which cross from side to side between the stands.)
+WALK_SIDE = 2.6  # |x| of the middle of each half of the walkway
+stand_zs = []
+z = STAND_Z0
+while z <= STAND_Z1 + 1e-6:
+    stand_zs.append(z)
+    z += STAND_EVERY
+waypoint_zs = [stand_zs[0] - 4.0] + [(a + b) / 2 for a, b in zip(stand_zs, stand_zs[1:])] + [stand_zs[-1] + 4.0]
+keep_left = {"b": [], "a": []}
+for i, wz in enumerate(waypoint_zs):
+    keep_left["b"].append(f"Walkway west {i + 1} (to B)")
+    goal(keep_left["b"][-1], -WALK_SIDE, wz, 1.8, 0.8)
+for i, wz in enumerate(reversed(waypoint_zs)):
+    keep_left["a"].append(f"Walkway east {i + 1} (to A)")
+    goal(keep_left["a"][-1], WALK_SIDE, wz, 1.8, 0.8)
 
 MIX = {  # role: weight
     "stand": 0.35,  # rides, standing on the left
@@ -198,7 +217,9 @@ for to in ("b", "a"):
     for role in MIX:
         name = f"tunnel_{role}_to_{to}"
         steps = [node("SetState", "label", {"name": "walking" if role == "foot" else "to the travelator"})]
-        if role != "foot":
+        if role == "foot":
+            steps += [node("MoveToGoal", f"keep_left_{i + 1}", {"goal": g}) for i, g in enumerate(keep_left[to])]
+        else:
             steps += [
                 node("SetEscalatorStyle", "style",
                      {"side": "left" if role == "stand" else "right", "walk": 0.0 if role == "stand" else 0.7,

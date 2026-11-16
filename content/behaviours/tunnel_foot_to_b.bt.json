@@ -15,6 +15,76 @@
       },
       {
         "type": "MoveToGoal",
+        "id": "keep_left_1",
+        "params": {
+          "goal": "Walkway west 1 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_2",
+        "params": {
+          "goal": "Walkway west 2 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_3",
+        "params": {
+          "goal": "Walkway west 3 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_4",
+        "params": {
+          "goal": "Walkway west 4 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_5",
+        "params": {
+          "goal": "Walkway west 5 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_6",
+        "params": {
+          "goal": "Walkway west 6 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_7",
+        "params": {
+          "goal": "Walkway west 7 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_8",
+        "params": {
+          "goal": "Walkway west 8 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_9",
+        "params": {
+          "goal": "Walkway west 9 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "keep_left_10",
+        "params": {
+          "goal": "Walkway west 10 (to B)"
+        }
+      },
+      {
+        "type": "MoveToGoal",
         "id": "out"
       },
       {

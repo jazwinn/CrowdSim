@@ -134,6 +134,76 @@
           },
           {
             "type": "MoveToGoal",
+            "id": "keep_left_1",
+            "params": {
+              "goal": "Walkway west 1 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_2",
+            "params": {
+              "goal": "Walkway west 2 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_3",
+            "params": {
+              "goal": "Walkway west 3 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_4",
+            "params": {
+              "goal": "Walkway west 4 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_5",
+            "params": {
+              "goal": "Walkway west 5 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_6",
+            "params": {
+              "goal": "Walkway west 6 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_7",
+            "params": {
+              "goal": "Walkway west 7 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_8",
+            "params": {
+              "goal": "Walkway west 8 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_9",
+            "params": {
+              "goal": "Walkway west 9 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_10",
+            "params": {
+              "goal": "Walkway west 10 (to B)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
             "id": "out"
           },
           {
@@ -270,6 +340,76 @@
             "id": "label",
             "params": {
               "name": "walking"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_1",
+            "params": {
+              "goal": "Walkway east 1 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_2",
+            "params": {
+              "goal": "Walkway east 2 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_3",
+            "params": {
+              "goal": "Walkway east 3 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_4",
+            "params": {
+              "goal": "Walkway east 4 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_5",
+            "params": {
+              "goal": "Walkway east 5 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_6",
+            "params": {
+              "goal": "Walkway east 6 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_7",
+            "params": {
+              "goal": "Walkway east 7 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_8",
+            "params": {
+              "goal": "Walkway east 8 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_9",
+            "params": {
+              "goal": "Walkway east 9 (to A)"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "keep_left_10",
+            "params": {
+              "goal": "Walkway east 10 (to A)"
             }
           },
           {
@@ -421,7 +561,7 @@
     "cellSize": 0.2,
     "tileSize": 64
   },
-  "nextId": 86,
+  "nextId": 106,
   "groups": [
     {
       "id": 1,
@@ -2114,11 +2254,471 @@
       ],
       "queueSpacing": 0.8,
       "parent": 79
+    },
+    {
+      "id": 84,
+      "name": "Walkway west 1 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          22.0
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 85,
+      "name": "Walkway west 2 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          31.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 86,
+      "name": "Walkway west 3 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          42.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 87,
+      "name": "Walkway west 4 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          53.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 88,
+      "name": "Walkway west 5 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          64.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 89,
+      "name": "Walkway west 6 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          75.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 90,
+      "name": "Walkway west 7 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          86.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 91,
+      "name": "Walkway west 8 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          97.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 92,
+      "name": "Walkway west 9 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          108.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 93,
+      "name": "Walkway west 10 (to B)",
+      "area": {
+        "center": [
+          -2.6,
+          118.0
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 94,
+      "name": "Walkway east 1 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          118.0
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 95,
+      "name": "Walkway east 2 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          108.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 96,
+      "name": "Walkway east 3 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          97.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 97,
+      "name": "Walkway east 4 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          86.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 98,
+      "name": "Walkway east 5 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          75.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 99,
+      "name": "Walkway east 6 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          64.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 100,
+      "name": "Walkway east 7 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          53.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 101,
+      "name": "Walkway east 8 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          42.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 102,
+      "name": "Walkway east 9 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          31.5
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
+    },
+    {
+      "id": 103,
+      "name": "Walkway east 10 (to A)",
+      "area": {
+        "center": [
+          2.6,
+          22.0
+        ],
+        "halfExtents": [
+          1.8,
+          0.8
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8,
+      "parent": 79
     }
   ],
   "spawners": [
     {
-      "id": 84,
+      "id": 104,
       "name": "Arrivals at A (to B)",
       "area": {
         "center": [
@@ -2172,7 +2772,7 @@
       "parent": 79
     },
     {
-      "id": 85,
+      "id": 105,
       "name": "Arrivals at B (to A)",
       "area": {
         "center": [
