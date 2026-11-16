@@ -19,6 +19,14 @@
             }
           },
           {
+            "type": "SetAttention",
+            "id": "attention",
+            "params": {
+              "phone": 0.45,
+              "interest": 1.0
+            }
+          },
+          {
             "type": "SetEscalatorStyle",
             "id": "style",
             "params": {
@@ -76,6 +84,14 @@
             }
           },
           {
+            "type": "SetAttention",
+            "id": "attention",
+            "params": {
+              "phone": 0.15,
+              "interest": 0.7
+            }
+          },
+          {
             "type": "SetEscalatorStyle",
             "id": "style",
             "params": {
@@ -130,6 +146,14 @@
             "id": "label",
             "params": {
               "name": "walking"
+            }
+          },
+          {
+            "type": "SetAttention",
+            "id": "attention",
+            "params": {
+              "phone": 0.3,
+              "interest": 0.8
             }
           },
           {
@@ -229,6 +253,14 @@
             }
           },
           {
+            "type": "SetAttention",
+            "id": "attention",
+            "params": {
+              "phone": 0.45,
+              "interest": 1.0
+            }
+          },
+          {
             "type": "SetEscalatorStyle",
             "id": "style",
             "params": {
@@ -286,6 +318,14 @@
             }
           },
           {
+            "type": "SetAttention",
+            "id": "attention",
+            "params": {
+              "phone": 0.15,
+              "interest": 0.7
+            }
+          },
+          {
             "type": "SetEscalatorStyle",
             "id": "style",
             "params": {
@@ -340,6 +380,14 @@
             "id": "label",
             "params": {
               "name": "walking"
+            }
+          },
+          {
+            "type": "SetAttention",
+            "id": "attention",
+            "params": {
+              "phone": 0.3,
+              "interest": 0.8
             }
           },
           {
@@ -1071,7 +1119,7 @@
     },
     {
       "id": 27,
-      "name": "Ad stand 1 screen (west)",
+      "name": "Stand 1 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1085,14 +1133,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#2563d9",
       "parent": 24
     },
     {
       "id": 28,
-      "name": "Ad stand 1 screen (east)",
+      "name": "Stand 1 E",
       "type": "box",
       "position": [
         0.19,
@@ -1106,7 +1156,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#2563d9",
       "parent": 24
@@ -1155,7 +1207,7 @@
     },
     {
       "id": 31,
-      "name": "Ad stand 2 screen (west)",
+      "name": "Stand 2 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1169,14 +1221,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 32,
-      "name": "Ad stand 2 screen (east)",
+      "name": "Stand 2 E",
       "type": "box",
       "position": [
         0.19,
@@ -1190,7 +1244,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#ff5a1f",
       "parent": 24
@@ -1239,7 +1295,7 @@
     },
     {
       "id": 35,
-      "name": "Ad stand 3 screen (west)",
+      "name": "Stand 3 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1253,14 +1309,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#1aa37a",
       "parent": 24
     },
     {
       "id": 36,
-      "name": "Ad stand 3 screen (east)",
+      "name": "Stand 3 E",
       "type": "box",
       "position": [
         0.19,
@@ -1274,7 +1332,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#1aa37a",
       "parent": 24
@@ -1323,7 +1383,7 @@
     },
     {
       "id": 39,
-      "name": "Ad stand 4 screen (west)",
+      "name": "Stand 4 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1337,14 +1397,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#7b3fe4",
       "parent": 24
     },
     {
       "id": 40,
-      "name": "Ad stand 4 screen (east)",
+      "name": "Stand 4 E",
       "type": "box",
       "position": [
         0.19,
@@ -1358,7 +1420,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#7b3fe4",
       "parent": 24
@@ -1407,7 +1471,7 @@
     },
     {
       "id": 43,
-      "name": "Ad stand 5 screen (west)",
+      "name": "Stand 5 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1421,14 +1485,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#2563d9",
       "parent": 24
     },
     {
       "id": 44,
-      "name": "Ad stand 5 screen (east)",
+      "name": "Stand 5 E",
       "type": "box",
       "position": [
         0.19,
@@ -1442,7 +1508,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#2563d9",
       "parent": 24
@@ -1491,7 +1559,7 @@
     },
     {
       "id": 47,
-      "name": "Ad stand 6 screen (west)",
+      "name": "Stand 6 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1505,14 +1573,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 48,
-      "name": "Ad stand 6 screen (east)",
+      "name": "Stand 6 E",
       "type": "box",
       "position": [
         0.19,
@@ -1526,7 +1596,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#ff5a1f",
       "parent": 24
@@ -1575,7 +1647,7 @@
     },
     {
       "id": 51,
-      "name": "Ad stand 7 screen (west)",
+      "name": "Stand 7 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1589,14 +1661,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#1aa37a",
       "parent": 24
     },
     {
       "id": 52,
-      "name": "Ad stand 7 screen (east)",
+      "name": "Stand 7 E",
       "type": "box",
       "position": [
         0.19,
@@ -1610,7 +1684,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#1aa37a",
       "parent": 24
@@ -1659,7 +1735,7 @@
     },
     {
       "id": 55,
-      "name": "Ad stand 8 screen (west)",
+      "name": "Stand 8 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1673,14 +1749,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#7b3fe4",
       "parent": 24
     },
     {
       "id": 56,
-      "name": "Ad stand 8 screen (east)",
+      "name": "Stand 8 E",
       "type": "box",
       "position": [
         0.19,
@@ -1694,7 +1772,9 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#7b3fe4",
       "parent": 24
@@ -1743,7 +1823,7 @@
     },
     {
       "id": 59,
-      "name": "Ad stand 9 screen (west)",
+      "name": "Stand 9 W",
       "type": "box",
       "position": [
         -0.19,
@@ -1757,14 +1837,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#2563d9",
       "parent": 24
     },
     {
       "id": 60,
-      "name": "Ad stand 9 screen (east)",
+      "name": "Stand 9 E",
       "type": "box",
       "position": [
         0.19,
@@ -1778,14 +1860,16 @@
         1.06
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.9"
       ],
       "color": "#2563d9",
       "parent": 24
     },
     {
       "id": 61,
-      "name": "Ad panel (wall, west 1)",
+      "name": "Wall W 1",
       "type": "box",
       "position": [
         -7.975,
@@ -1799,14 +1883,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 62,
-      "name": "Ad panel (wall, east 1)",
+      "name": "Wall E 1",
       "type": "box",
       "position": [
         7.975,
@@ -1820,14 +1906,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 63,
-      "name": "Ad panel (wall, west 2)",
+      "name": "Wall W 2",
       "type": "box",
       "position": [
         -7.975,
@@ -1841,14 +1929,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 64,
-      "name": "Ad panel (wall, east 2)",
+      "name": "Wall E 2",
       "type": "box",
       "position": [
         7.975,
@@ -1862,14 +1952,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 65,
-      "name": "Ad panel (wall, west 3)",
+      "name": "Wall W 3",
       "type": "box",
       "position": [
         -7.975,
@@ -1883,14 +1975,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#f2f2f2",
       "parent": 24
     },
     {
       "id": 66,
-      "name": "Ad panel (wall, east 3)",
+      "name": "Wall E 3",
       "type": "box",
       "position": [
         7.975,
@@ -1904,14 +1998,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#f2f2f2",
       "parent": 24
     },
     {
       "id": 67,
-      "name": "Ad panel (wall, west 4)",
+      "name": "Wall W 4",
       "type": "box",
       "position": [
         -7.975,
@@ -1925,14 +2021,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 68,
-      "name": "Ad panel (wall, east 4)",
+      "name": "Wall E 4",
       "type": "box",
       "position": [
         7.975,
@@ -1946,14 +2044,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 69,
-      "name": "Ad panel (wall, west 5)",
+      "name": "Wall W 5",
       "type": "box",
       "position": [
         -7.975,
@@ -1967,14 +2067,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 70,
-      "name": "Ad panel (wall, east 5)",
+      "name": "Wall E 5",
       "type": "box",
       "position": [
         7.975,
@@ -1988,14 +2090,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 71,
-      "name": "Ad panel (wall, west 6)",
+      "name": "Wall W 6",
       "type": "box",
       "position": [
         -7.975,
@@ -2009,14 +2113,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 72,
-      "name": "Ad panel (wall, east 6)",
+      "name": "Wall E 6",
       "type": "box",
       "position": [
         7.975,
@@ -2030,14 +2136,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 73,
-      "name": "Ad panel (wall, west 7)",
+      "name": "Wall W 7",
       "type": "box",
       "position": [
         -7.975,
@@ -2051,14 +2159,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#f2f2f2",
       "parent": 24
     },
     {
       "id": 74,
-      "name": "Ad panel (wall, east 7)",
+      "name": "Wall E 7",
       "type": "box",
       "position": [
         7.975,
@@ -2072,14 +2182,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#f2f2f2",
       "parent": 24
     },
     {
       "id": 75,
-      "name": "Ad panel (wall, west 8)",
+      "name": "Wall W 8",
       "type": "box",
       "position": [
         -7.975,
@@ -2093,14 +2205,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 76,
-      "name": "Ad panel (wall, east 8)",
+      "name": "Wall E 8",
       "type": "box",
       "position": [
         7.975,
@@ -2114,14 +2228,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 77,
-      "name": "Ad panel (wall, west 9)",
+      "name": "Wall W 9",
       "type": "box",
       "position": [
         -7.975,
@@ -2135,14 +2251,16 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24
     },
     {
       "id": 78,
-      "name": "Ad panel (wall, east 9)",
+      "name": "Wall E 9",
       "type": "box",
       "position": [
         7.975,
@@ -2156,7 +2274,9 @@
         9.0
       ],
       "tags": [
-        "obstacle"
+        "obstacle",
+        "ad",
+        "ad:salience=0.6"
       ],
       "color": "#ff5a1f",
       "parent": 24

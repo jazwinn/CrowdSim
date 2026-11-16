@@ -6,6 +6,9 @@ like the link tunnels of Singapore's MRT:
 
   wall ads | travelator -> B |   walkway with ad stands down the middle   | travelator -> A | wall ads
 
+Every ad (each face of each stand, each wall poster) is tagged `ad`, so the ad-attention
+model measures how well it is seen; scripts/ad_report.lua ranks them.
+
   - A moving walkway (travelator, 100 m, 0.75 m/s) along each wall, one each way. People
     keep left, so the one on the left as you face station B carries people towards B.
   - An open walkway between the travelators.
@@ -21,11 +24,26 @@ metres), walkers go straight for the far concourse. The travelators themselves o
 that their surface moves (a box tagged "escalator"), and routing never sends anyone
 against them.
 
+Variant `facing_flow` (travelator_tunnel_stands_facing_flow.scene.json) turns the stands so
+their screens face up and down the tunnel, towards people walking at them.
+
 Run from the repository root:  python tools/make_travelator_tunnel_scene.py
 """
 
 import json
+import subprocess
+import sys
 from pathlib import Path
+
+# Variants (placement studies): how the ad stands are turned.
+#   across       screens face across the walkway, towards the travelators (as built)
+#   facing_flow  screens face up and down the tunnel, towards people walking at them
+VARIANTS = {"across": "travelator_tunnel", "facing_flow": "travelator_tunnel_stands_facing_flow"}
+if len(sys.argv) < 2:
+    for v in VARIANTS:
+        subprocess.run([sys.executable, __file__, v], check=True)
+    sys.exit(0)
+VARIANT = sys.argv[1]
 
 ROOT = Path(__file__).resolve().parent.parent
 CONTENT = ROOT / "content"
@@ -47,6 +65,14 @@ FLOOR_C, WALL_C, BELT_C, RAIL_C, STAND_C, CONCOURSE_C = (
     "#b9b2a6", "#c9c4bc", "#3b3f45", "#9aa1a9", "#1e2024", "#a59d90")
 ADS = ["#ff5a1f", "#ff5a1f", "#ff5a1f", "#f2f2f2"]  # mostly one campaign, the odd other one
 SCREENS = ["#2563d9", "#ff5a1f", "#1aa37a", "#7b3fe4"]  # what the ad stands are showing
+# How eye-catching each kind of ad is (ad attention, see AdAttention.hpp): the stands are
+# bright moving screens; the wall posters are large but printed.
+SCREEN_SALIENCE = 0.9
+POSTER_SALIENCE = 0.6
+# Attention by role: (share of the time on the phone, inclination to look around).
+# Standing riders have time to kill and look at their phones; walking riders and walkers
+# are on their way somewhere.
+ATTENTION = {"stand": (0.45, 1.0), "walk": (0.15, 0.7), "foot": (0.3, 0.8)}
 
 objects, goals, spawners, groups = [], [], [], []
 next_id = [1]
@@ -135,12 +161,22 @@ z = STAND_Z0
 while z <= STAND_Z1 + 1e-6:
     name = f"Ad stand {k + 1}"
     hw, hd = STAND_W / 2, STAND_D / 2
-    box(f"{name} plinth", -hd - 0.04, hd + 0.04, 0.0, 0.45, z - hw - 0.04, z + hw + 0.04, ["obstacle"], STAND_C)
-    box(f"{name} body", -hd, hd, 0.45, 2.55, z - hw, z + hw, ["obstacle"], STAND_C)
-    for sx, face in ((-1, "west"), (1, "east")):
-        x = sx * hd
-        box(f"{name} screen ({face})", min(x, x + sx * 0.02), max(x, x + sx * 0.02), 0.6, 2.4,
-            z - hw + 0.07, z + hw - 0.07, ["obstacle"], SCREENS[k % len(SCREENS)])
+    tags = ["obstacle", "ad", f"ad:salience={SCREEN_SALIENCE}"]
+    colour = SCREENS[k % len(SCREENS)]
+    if VARIANT == "across":
+        box(f"{name} plinth", -hd - 0.04, hd + 0.04, 0.0, 0.45, z - hw - 0.04, z + hw + 0.04, ["obstacle"], STAND_C)
+        box(f"{name} body", -hd, hd, 0.45, 2.55, z - hw, z + hw, ["obstacle"], STAND_C)
+        for sx, face in ((-1, "W"), (1, "E")):
+            x = sx * hd
+            box(f"Stand {k + 1} {face}", min(x, x + sx * 0.02), max(x, x + sx * 0.02), 0.6, 2.4,
+                z - hw + 0.07, z + hw - 0.07, tags, colour)
+    else:
+        box(f"{name} plinth", -hw - 0.04, hw + 0.04, 0.0, 0.45, z - hd - 0.04, z + hd + 0.04, ["obstacle"], STAND_C)
+        box(f"{name} body", -hw, hw, 0.45, 2.55, z - hd, z + hd, ["obstacle"], STAND_C)
+        for sz, face in ((-1, "S"), (1, "N")):  # S faces people walking to B, N those walking to A
+            zz = z + sz * hd
+            box(f"Stand {k + 1} {face}", -hw + 0.07, hw - 0.07, 0.6, 2.4, min(zz, zz + sz * 0.02),
+                max(zz, zz + sz * 0.02), tags, colour)
     z += STAND_EVERY
     k += 1
 z = TRAV_Z0 + 2.0
@@ -149,8 +185,8 @@ while z + 9.0 <= TRAV_Z1 - 2.0:
     colour = ADS[(k + 1) % len(ADS)]
     for sx in (-1, 1):
         x = sx * HALF
-        box(f"Ad panel (wall, {'west' if sx < 0 else 'east'} {k + 1})", min(x, x - sx * 0.05),
-            max(x, x - sx * 0.05), 1.0, 3.6, z, z + 9.0, ["obstacle"], colour)
+        box(f"Wall {'W' if sx < 0 else 'E'} {k + 1}", min(x, x - sx * 0.05),
+            max(x, x - sx * 0.05), 1.0, 3.6, z, z + 9.0, ["obstacle", "ad", f"ad:salience={POSTER_SALIENCE}"], colour)
     z += 10.0
     k += 1
 
@@ -216,7 +252,9 @@ for to in ("b", "a"):
     start = "Travelator to B (start)" if to == "b" else "Travelator to A (start)"
     for role in MIX:
         name = f"tunnel_{role}_to_{to}"
-        steps = [node("SetState", "label", {"name": "walking" if role == "foot" else "to the travelator"})]
+        phone, interest = ATTENTION[role]
+        steps = [node("SetState", "label", {"name": "walking" if role == "foot" else "to the travelator"}),
+                 node("SetAttention", "attention", {"phone": phone, "interest": interest})]
         if role == "foot":
             steps += [node("MoveToGoal", f"keep_left_{i + 1}", {"goal": g}) for i, g in enumerate(keep_left[to])]
         else:
@@ -243,13 +281,13 @@ for a in agent_json:
     (CONTENT / "agents" / f"{a['name']}.agent.json").write_text(json.dumps(a, indent=2) + "\n", encoding="utf-8")
 
 scene = {
-    "format": "crowdsim.scene", "version": 1, "name": "travelator_tunnel",
+    "format": "crowdsim.scene", "version": 1, "name": VARIANTS[VARIANT],
     "behaviours": trees, "agentTypes": agent_json,
     "navigation": {"agentHeight": 1.9, "agentMaxClimb": 0.45, "agentMaxSlope": 45.0, "agentRadius": 0.3,
                    "cellHeight": 0.1, "cellSize": 0.2, "tileSize": 64},
     "nextId": next_id[0],
     "groups": groups, "objects": objects, "goals": goals, "spawners": spawners, "links": [],
 }
-out = CONTENT / "scenes" / "travelator_tunnel.scene.json"
+out = CONTENT / "scenes" / f"{VARIANTS[VARIANT]}.scene.json"
 out.write_text(json.dumps(scene, indent=2) + "\n", encoding="utf-8")
 print(f"wrote {out}: {len(objects)} objects, {len(goals)} goals")

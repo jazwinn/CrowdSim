@@ -14,6 +14,14 @@
         }
       },
       {
+        "type": "SetAttention",
+        "id": "attention",
+        "params": {
+          "phone": 0.45,
+          "interest": 1.0
+        }
+      },
+      {
         "type": "SetEscalatorStyle",
         "id": "style",
         "params": {
