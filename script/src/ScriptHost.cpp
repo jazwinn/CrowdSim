@@ -597,9 +597,13 @@ struct ScriptHost::Impl {
         agents.set_function("count", [this]() { return ctx.sim.agents().size(); });
         agents.set_function(
             "count_near", [this](float x, float y, float z, float r) { return ctx.sim.countAgentsNear({x, y, z}, r); });
-        // Crowd conditions inside an axis-aligned box on the ground (x, z): how many people,
-        // how dense, the pressure on them and how many are on the ground.
-        agents.set_function("region", [this](float x0, float z0, float x1, float z1) {
+        // Crowd conditions inside an axis-aligned box (x, z; optionally only between floor
+        // heights y0 and y1, for one storey of a building): how many people, how dense, the
+        // pressure on them and how many are on the ground.
+        agents.set_function("region", [this](float x0, float z0, float x1, float z1, sol::optional<float> y0,
+                                             sol::optional<float> y1) {
+            const float minY = std::min(y0.value_or(-1e9f), y1.value_or(1e9f));
+            const float maxY = std::max(y0.value_or(-1e9f), y1.value_or(1e9f));
             const sim::AgentPool& a = ctx.sim.agents();
             const float minX = std::min(x0, x1);
             const float maxX = std::max(x0, x1);
@@ -611,7 +615,8 @@ struct ScriptHost::Impl {
             double sum = 0.0;
             for (std::uint32_t i = 0; i < a.size(); ++i) {
                 const glm::vec2 p = a.position[i];
-                if (p.x < minX || p.x > maxX || p.y < minZ || p.y > maxZ) {
+                if (p.x < minX || p.x > maxX || p.y < minZ || p.y > maxZ || a.height[i] < minY ||
+                    a.height[i] > maxY) {
                     continue;
                 }
                 ++count;

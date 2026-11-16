@@ -124,7 +124,7 @@ Keep per-agent state in a Lua table keyed by `ctx:id(a)`, and clear it on comple
 | `agents.register_type{name, behaviour, radius, preferredSpeed, color, ...}` | `DefineAgentType` (fields as in `*.agent.json`). |
 | `agents.count()` | Agents alive. |
 | `agents.count_near(x, y, z, radius)` | Agents within `radius` on that floor. |
-| `agents.region(x0, z0, x1, z1)` | Crowd in a box on the ground: `{count, density, peak_pressure, mean_pressure, fallen}` (pressure in N/m with scene bodies). |
+| `agents.region(x0, z0, x1, z1 [, y0, y1])` | Crowd in a box on the ground (only those standing between heights `y0` and `y1` when given, e.g. one storey): `{count, density, peak_pressure, mean_pressure, fallen}` (pressure in N/m with scene bodies). |
 | `agents.get(id)` | `{id, type, behaviour, state, goal, position, speed}` or `nil`. |
 
 ### `sim`, `metrics`, `events`, `log`
