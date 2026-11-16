@@ -29,6 +29,8 @@ they decide is in their behaviour trees; the escalators only move their steps, a
 goal routing never sends anyone up a down escalator.
 
 Walls are a little over head height (cut away) so the shops can be seen from above.
+Everything is grouped by level (G, L1, L2, L3, each with structure, shops and stores,
+the escalators rising from it and its fire stairs) and Outside.
 
 Run from the repository root:  python tools/make_mall_scene.py
 """
@@ -539,6 +541,54 @@ for name, t in trees.items():
 for a in agent_json:
     (CONTENT / "agents" / f"{a['name']}.agent.json").write_text(json.dumps(a, indent=2) + "\n", encoding="utf-8")
 
+# --- Groups: one per level, so a whole level can be picked out (or hidden) at once ------------
+groups = []
+
+
+def group(name, parent=None):
+    g = {"id": new_id(), "name": name}
+    if parent is not None:
+        g["parent"] = parent
+    groups.append(g)
+    return g["id"]
+
+
+LEVEL_TITLES = ["G (ground floor)", "L1", "L2", "L3 (top floor)"]
+PARTS = ["Structure", "Shops and stores", "Escalators", "Fire stairs"]
+level_groups = []
+for k, title in enumerate(LEVEL_TITLES):
+    lid = group(title)
+    level_groups.append({part: group(part, lid) for part in PARTS})
+outside = group("Outside")
+outside_exits = group("Emergency exits", outside)
+
+
+def classify(e):
+    """The group an entity belongs in, from its name (every name starts with its level)."""
+    name = e["name"]
+    words = name.replace("-", " ").split()
+    level = next((FLOOR_NAMES.index(w) for w in words if w in FLOOR_NAMES), None)
+    if name.startswith("Emergency exit") or name.endswith("apron"):
+        return outside_exits
+    if name.startswith(("South plaza", "North plaza", "Arrivals", "South entrance", "North entrance")):
+        return outside
+    if name.startswith("Fire stairs"):
+        # Full-height enclosure walls stand on the ground floor.
+        return level_groups[0 if level is None else level]["Fire stairs"]
+    if name.startswith(("Escalator", "Balustrade")):
+        # By the lower of the two floors (down escalators are named top floor first).
+        return level_groups[min(FLOOR_NAMES.index(w) for w in words if w in FLOOR_NAMES)]["Escalators"]
+    if name.startswith(("Food court", "Cinema")):
+        return level_groups[FLOORS - 1]["Shops and stores"]
+    if level is not None and words[0] == FLOOR_NAMES[level]:
+        structural = any(w in name for w in ("floor", "bridge", "void railing", "outer wall"))
+        return level_groups[level]["Structure" if structural else "Shops and stores"]
+    raise ValueError(f"no group for '{name}'")
+
+
+for e in objects + goals + spawners:
+    e["parent"] = classify(e)
+
 scene = {
     "format": "crowdsim.scene", "version": 1, "name": "shopping_mall",
     # Embedded so the scene also loads without content/.
@@ -547,7 +597,7 @@ scene = {
     "navigation": {"agentHeight": 1.9, "agentMaxClimb": 0.45, "agentMaxSlope": 45.0, "agentRadius": 0.3,
                    "cellHeight": 0.1, "cellSize": 0.2, "tileSize": 64},
     "nextId": next_id[0],
-    "objects": objects, "goals": goals, "spawners": spawners, "links": [],
+    "groups": groups, "objects": objects, "goals": goals, "spawners": spawners, "links": [],
 }
 out = CONTENT / "scenes" / "shopping_mall.scene.json"
 out.write_text(json.dumps(scene, indent=2) + "\n", encoding="utf-8")
