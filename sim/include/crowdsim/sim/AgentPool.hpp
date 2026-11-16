@@ -50,6 +50,13 @@ struct QueueManners {
     float ease = 0.5f;  ///< m over which to slow down before that
 };
 
+/// Where an agent's attention goes while walking (SetAttention). Read by observers such
+/// as the ad-attention model; it never changes how the agent moves.
+struct Attention {
+    float phone = 0.0f;     ///< share of the time looking down at a phone, 0..1
+    float interest = 1.0f;  ///< inclination to look around at things (ads), x the usual
+};
+
 /// How hard an agent presses forward when bodies touch (SetPushing), newtons. The
 /// default is the light pressure of someone moving with a packed crowd.
 inline constexpr float kDefaultPush = 100.0f;
@@ -120,6 +127,7 @@ public:
     std::vector<QueueManners> manners;
     std::vector<float> push;  ///< N pressed forward when touching others (SetPushing)
     std::vector<std::uint8_t> emergencyRoutes;  ///< 1 = routes may use emergency routes (UseEmergencyRoutes)
+    std::vector<Attention> attention;           ///< SetAttention
 
     // --- Bodies in dense crowds (only when the scene enables BodyParams) ---
     std::vector<float> pressure;         ///< N/m: compressive force on the body per metre of its width
@@ -205,6 +213,7 @@ public:
         manners.push_back(QueueManners{});
         push.push_back(kDefaultPush);
         emergencyRoutes.push_back(0);
+        attention.push_back(Attention{});
         pressure.push_back(0.0f);
         bodyForce.push_back(glm::vec2(0.0f));
         wallForce.push_back(glm::vec2(0.0f));
@@ -295,6 +304,7 @@ private:
         f(manners);
         f(push);
         f(emergencyRoutes);
+        f(attention);
         f(pressure);
         f(bodyForce);
         f(wallForce);

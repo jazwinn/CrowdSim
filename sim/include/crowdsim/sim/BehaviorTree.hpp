@@ -50,6 +50,7 @@ enum class BtNodeType : std::uint8_t {
     SetQueueManners,
     SetPushing,
     UseEmergencyRoutes,
+    SetAttention,
     Despawn,
     // Conditions
     IsNearGoal,

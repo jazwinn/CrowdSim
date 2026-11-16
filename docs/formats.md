@@ -56,6 +56,28 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   and `behaviours/escalator_*.bt.json`; `scenes/shopping_mall.scene.json` chains escalator pairs
   up a four-storey atrium (`tools/make_mall_scene.py`); `scenes/travelator_tunnel.scene.json` has
   a moving walkway each way along an interchange tunnel (`tools/make_travelator_tunnel_scene.py`).
+- **Ads**: a thin `box` tagged `ad` is an advertisement; its large vertical face (either side)
+  is the ad. `ad:salience=<0..1>` says how eye-catching it is (bright, backlit or moving: high;
+  default 0.5) and `ad:range=<m>` how far its zone reaches (default 20 m). Every agent gets a
+  gaze model (metrics/AdAttention.hpp), evaluated 5 times a second:
+  - the head points the way the agent walks, 12 deg down (watching the footing); a central
+    (foveal) cone 15 deg wide is for reading, a 120 deg field of view for viewability, and the
+    180 deg periphery can draw a glance: a head turn (up to 60 deg from the walking direction)
+    towards an ad, more likely the more salient and bigger it is, less likely the more ads
+    compete in view (clutter), scaled by the agent's `interest` (SetAttention);
+  - agents spend a share of the time looking at a phone (SetAttention `phone`): no reading, no
+    glances;
+  - lines of sight run from the eyes to the four corners and the centre of the ad, blocked by
+    static objects and by other people's bodies.
+
+  Per ad it reports: **OTS** (opportunity to see: agents entering the zone, whichever way they
+  face), **viewability** (at least 50% of the ad unobstructed inside the field of view for a
+  continuous second), **noticed** (a 0.4 s fixation at a readable angle, 60 deg or less, and
+  size, 1% of the field of view or more), **dwell** (time in central vision; mean and median per
+  viewer, mean per OTS), **glances** drawn, **viewing angle** (0 = head-on; share of the visible
+  time steeper than 60 deg) and **angular size** (% of the field of view; share below 1%). See
+  `GetAdMetrics`, the Ads panel and `scripts/ad_report.lua`. The model only observes: it never
+  changes the simulation, and its results do not depend on the thread count.
 - **Bodies** (optional `"bodies": {...}`; off when absent): physical contact in packed crowds.
   Below contact density agents avoid each other as usual. When bodies touch (a crowd packed past
   what avoidance can keep apart, or people held up for a few seconds pressing into the gaps),
@@ -169,6 +191,7 @@ reloaded tree restart from its root. Scene files embed the trees they use under 
 | `SetState` | action | 0 | `name` ("walking") | Set the state label (debugger, metrics). |
 | `SetQueueManners` | action | 0 | `gap` (0.6), `ease` (0.5) | From now on, slow to a stop `gap` m behind whoever is ahead in your line instead of pressing into them (0 = off, the default). |
 | `SetPushing` | action | 0 | `force` (100) | From now on, press this hard (N) towards where you are going once bodies touch (scene bodies). Agents that never run it push with 100 N; 0 = only shuffle along. |
+| `SetAttention` | action | 0 | `phone` (0), `interest` (1) | From now on, spend `phone` (0..1) of the time looking at a phone and look around at ads `interest` times as readily as usual (0 = never). Ad attention only; movement is unchanged. |
 | `UseEmergencyRoutes` | action | 0 | `use` (1) | From now on, find the way to goals through emergency routes too (objects tagged `emergency`: fire stairs, exit doors); 0 = everyday routes only, the default. |
 | `SetEscalatorStyle` | action | 0 | `side` ("either"), `walk` (0), `clear` (2) | How to ride escalators from now on: `side` `left`, `right`, `either` (your side; near the middle the shorter line) or `shorter`; `walk` = own pace on the steps × preferred speed (0 = stand); walk `clear` m straight off before turning. Without it: either side, pace 0.45. |
 | `SetEscalatorBoarding` | action | 0 | `gap` (0.9), `squeeze` (1) | How to step onto escalators: standers wait until the person ahead in their lane is `gap` m away; `squeeze` 1 = when pushed to the front on the wrong side, step on (or switch lanes) anyway. |
@@ -247,6 +270,9 @@ every command with its JSON Schema.
 | `StartRecording` / `StopRecording` | yes | Trajectory recording at `hz` samples/s. |
 | `ExportRecording` / `ExportMetrics` | no | CSV of trajectories / of the metrics time series (`recordings/` by default). |
 | `ResetMetrics` | yes | Clear accumulated metrics (gates kept). |
+| `GetAdMetrics` | no | Ad effectiveness per ad (see Ads above): `{ads: [{id, name, salience, ots, viewable, viewabilityRate, noticed, noticeRate, glances, dwellSeconds, meanDwellPerOts, meanDwellPerViewer, medianDwellPerViewer, visibleSeconds, meanAngularSize, meanViewingAngle, steepShare, smallShare}], agentsSeen, params}` (rates and shares in %). |
+| `ExportAdMetrics` | no | Write the ad report (`path`, default `recordings/ads.csv`) and one row per agent and ad seen (`viewersPath`, default `recordings/ad_viewers.csv`). |
+| `ResetAdMetrics` | yes | Clear the ad attention record and start counting again. |
 | `RebuildNavmesh` | yes | Rebuild navmesh + flow fields now; returns polygon/tile/wall counts. |
 | `SetNavigationSettings` | yes | Change navmesh build settings. |
 | `SetSimParams` | yes | Locomotion parameters and/or seed. |

@@ -53,7 +53,7 @@ stderr, so stdout carries only protocol messages in stdio mode.
 | Behaviour | `bt_list`, `bt_get`, `bt_set`, `bt_validate`, `bt_node_types` |
 | Scripting | `script_list`, `script_get`, `script_write`, `script_reload`, `script_eval` |
 | Simulation | `sim_play`, `sim_pause`, `sim_step`, `sim_run_for`, `sim_reset`, `sim_set_params` |
-| Analysis | `metrics_get`, `heatmap_get`, `gate_add`, `recording_start`, `recording_stop`, `recording_export`, `metrics_export` |
+| Analysis | `metrics_get`, `ads_get`, `heatmap_get`, `gate_add`, `recording_start`, `recording_stop`, `recording_export`, `metrics_export` |
 | Logs | `log_tail`, `errors_get` |
 | Vision (editor only) | `screenshot` (PNG; optional camera `{target:[x,z], distance, yaw, pitch}`) |
 | Video (editor only) | `video_start` (`fps`, `seconds`, `name`), `video_stop`: the 3D view without UI as an MJPEG `.avi` in `content/recordings` (`recording_*` are the trajectory tools) |

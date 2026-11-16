@@ -15,7 +15,7 @@ constexpr BtParamSpec kNone{"", K::Number, 0.0f, "", ""};
 // Composite children limit: kBtMaxNodes bounds the tree anyway.
 constexpr std::uint8_t kMany = 32;
 
-constexpr std::array<BtNodeTypeInfo, 32> kNodeTypes = {{
+constexpr std::array<BtNodeTypeInfo, 33> kNodeTypes = {{
     {BtNodeType::Sequence,
      "Sequence",
      BtCategory::Composite,
@@ -230,6 +230,17 @@ constexpr std::array<BtNodeTypeInfo, 32> kNodeTypes = {{
       kNone},
      "From now on, find the way to goals through emergency routes too (objects tagged emergency: fire stairs, exit "
      "doors); everyone else keeps out of them."},
+    {BtNodeType::SetAttention,
+     "SetAttention",
+     BtCategory::Action,
+     0,
+     0,
+     2,
+     {BtParamSpec{"phone", K::Number, 0.0f, "", "share of the time spent looking at a phone, 0..1"},
+      BtParamSpec{"interest", K::Number, 1.0f, "", "inclination to look around at ads, x the usual (0 = never)"},
+      kNone},
+     "From now on, spend this share of the time on the phone and look around this much (ad attention; does not "
+     "change movement)."},
     {BtNodeType::Despawn,
      "Despawn",
      BtCategory::Action,
@@ -411,10 +422,13 @@ public:
         }
         if ((node.type == BtNodeType::SetEscalatorStyle || node.type == BtNodeType::SetEscalatorBoarding ||
              node.type == BtNodeType::SetQueueManners || node.type == BtNodeType::SetPushing ||
-             node.type == BtNodeType::UseEmergencyRoutes ||
+             node.type == BtNodeType::UseEmergencyRoutes || node.type == BtNodeType::SetAttention ||
              node.type == BtNodeType::IsBlocked) &&
             (node.number[0] < 0.0f || node.number[1] < 0.0f)) {
             throw std::invalid_argument(std::format("{}: {} parameters must not be negative", path, info->name));
+        }
+        if (node.type == BtNodeType::SetAttention && node.number[0] > 1.0f) {
+            throw std::invalid_argument(std::format("{}: SetAttention phone is a share of the time, 0..1", path));
         }
         // Script nodes: leaves whose parameters are checked against the registered spec
         // and stored (with defaults filled in) for the script to read.

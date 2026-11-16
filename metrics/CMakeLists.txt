@@ -1,13 +1,15 @@
 # metrics/: crowd metrics and analysis (gates, time series, time to goal, stuck
-# detection, heatmaps, trajectory recording) as a read-only simulation observer,
-# plus the commands that expose it.
+# detection, heatmaps, trajectory recording, ad attention) as read-only simulation
+# observers, plus the commands that expose them.
 crowdsim_add_library(metrics
   SOURCES
     src/Metrics.cpp
     src/MetricsCommands.cpp
+    src/AdAttention.cpp
   DEPS
     CrowdSim::core
     CrowdSim::sim
+    CrowdSim::physics
     CrowdSim::assets
     CrowdSim::commands
     glm::glm

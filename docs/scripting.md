@@ -135,6 +135,7 @@ Keep per-agent state in a Lua table keyed by `ctx:id(a)`, and clear it on comple
 | `sim.random()` | World-seeded random number in [0, 1). |
 | `sim.play()`, `sim.pause()`, `sim.step(n)`, `sim.command(name, params)` | Playback through commands. |
 | `metrics.get()` | `{alive, spawned, arrived, despawned, average_speed, fallen, falls, peak_pressure, time}`. |
+| `sim.command("GetAdMetrics")` | Ad effectiveness per ad (see `docs/formats.md`, Ads); `scripts/ad_report.lua` logs a ranking every 60 s. |
 | `events.on(name, fn)` | `agent_spawned(id)`, `agent_arrived(id, goal)`, `agent_despawned(id)`, `step(index, time)`. Handlers belong to the registering script and are replaced when it reloads. |
 | `events.clear([name])` | Remove handlers. |
 | `print(...)`, `log.info/warn/error(msg)` | To the Log panel (and the console output). |
