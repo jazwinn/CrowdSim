@@ -1,0 +1,405 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "mall_shopper",
+  "root": {
+    "type": "Sequence",
+    "id": "root",
+    "children": [
+      {
+        "type": "SetState",
+        "id": "start",
+        "params": {
+          "name": "shopping"
+        }
+      },
+      {
+        "type": "Repeat",
+        "id": "visits",
+        "params": {
+          "count": 3
+        },
+        "children": [
+          {
+            "type": "Sequence",
+            "id": "visit",
+            "children": [
+              {
+                "type": "SetState",
+                "id": "walk_state",
+                "params": {
+                  "name": "shopping"
+                }
+              },
+              {
+                "type": "WeightedRandom",
+                "id": "where",
+                "params": {
+                  "weights": "4,3,2,1"
+                },
+                "children": [
+                  {
+                    "type": "RandomSelector",
+                    "id": "where_G",
+                    "children": [
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_0",
+                        "params": {
+                          "goal": "G Pharmacy (north 1)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_1",
+                        "params": {
+                          "goal": "G Bank (north 2)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_2",
+                        "params": {
+                          "goal": "G Florist (north 3)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_3",
+                        "params": {
+                          "goal": "G Phones (north 4)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_4",
+                        "params": {
+                          "goal": "G Bakery (south 5)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_5",
+                        "params": {
+                          "goal": "G Optician (south 6)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_6",
+                        "params": {
+                          "goal": "G Newsagent (south 7)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_7",
+                        "params": {
+                          "goal": "G Shoes (south 8)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_8",
+                        "params": {
+                          "goal": "G Supermarket"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_G_9",
+                        "params": {
+                          "goal": "G Home store"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "RandomSelector",
+                    "id": "where_L1",
+                    "children": [
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_0",
+                        "params": {
+                          "goal": "L1 Fashion (north 1)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_1",
+                        "params": {
+                          "goal": "L1 Fashion (north 2)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_2",
+                        "params": {
+                          "goal": "L1 Shoes (north 3)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_3",
+                        "params": {
+                          "goal": "L1 Jewellery (north 4)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_4",
+                        "params": {
+                          "goal": "L1 Fashion (south 5)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_5",
+                        "params": {
+                          "goal": "L1 Cosmetics (south 6)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_6",
+                        "params": {
+                          "goal": "L1 Kidswear (south 7)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_7",
+                        "params": {
+                          "goal": "L1 Bags (south 8)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_8",
+                        "params": {
+                          "goal": "L1 Department store"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L1_9",
+                        "params": {
+                          "goal": "L1 Electronics"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "RandomSelector",
+                    "id": "where_L2",
+                    "children": [
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_0",
+                        "params": {
+                          "goal": "L2 Books (north 1)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_1",
+                        "params": {
+                          "goal": "L2 Toys (north 2)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_2",
+                        "params": {
+                          "goal": "L2 Homeware (north 3)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_3",
+                        "params": {
+                          "goal": "L2 Music (north 4)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_4",
+                        "params": {
+                          "goal": "L2 Outdoor (south 5)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_5",
+                        "params": {
+                          "goal": "L2 Games (south 6)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_6",
+                        "params": {
+                          "goal": "L2 Lighting (south 7)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_7",
+                        "params": {
+                          "goal": "L2 Gifts (south 8)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_8",
+                        "params": {
+                          "goal": "L2 Department store (upper)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L2_9",
+                        "params": {
+                          "goal": "L2 Sports"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "type": "RandomSelector",
+                    "id": "where_L3",
+                    "children": [
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_0",
+                        "params": {
+                          "goal": "L3 Restaurant (north 1)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_1",
+                        "params": {
+                          "goal": "L3 Restaurant (north 2)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_2",
+                        "params": {
+                          "goal": "L3 Cafe (north 3)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_3",
+                        "params": {
+                          "goal": "L3 Bar (north 4)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_4",
+                        "params": {
+                          "goal": "L3 Restaurant (south 5)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_5",
+                        "params": {
+                          "goal": "L3 Dessert (south 6)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_6",
+                        "params": {
+                          "goal": "L3 Arcade (south 7)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_7",
+                        "params": {
+                          "goal": "L3 Bowling (south 8)"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_8",
+                        "params": {
+                          "goal": "L3 Food court"
+                        }
+                      },
+                      {
+                        "type": "MoveToGoal",
+                        "id": "where_L3_9",
+                        "params": {
+                          "goal": "L3 Cinema"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "SetState",
+                "id": "shop_state",
+                "params": {
+                  "name": "browsing"
+                }
+              },
+              {
+                "type": "Wander",
+                "id": "shop_look1",
+                "params": {
+                  "radius": 4
+                }
+              },
+              {
+                "type": "Wait",
+                "id": "shop_wait1",
+                "params": {
+                  "seconds": 30,
+                  "jitter": 60
+                }
+              },
+              {
+                "type": "Wander",
+                "id": "shop_look2",
+                "params": {
+                  "radius": 4
+                }
+              },
+              {
+                "type": "Wait",
+                "id": "shop_wait2",
+                "params": {
+                  "seconds": 15.0,
+                  "jitter": 30.0
+                }
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "SetState",
+        "id": "leaving_state",
+        "params": {
+          "name": "leaving"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "exit"
+      },
+      {
+        "type": "Despawn",
+        "id": "gone"
+      }
+    ]
+  }
+}

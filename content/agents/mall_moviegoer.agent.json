@@ -1,0 +1,21 @@
+{
+  "format": "crowdsim.agent",
+  "version": 1,
+  "name": "mall_moviegoer",
+  "behaviour": "mall_moviegoer",
+  "radius": [
+    0.22,
+    0.27
+  ],
+  "preferredSpeed": [
+    1.1,
+    1.45
+  ],
+  "maxSpeedFactor": 1.35,
+  "maxAcceleration": 3,
+  "personalSpace": 0.1,
+  "height": 1.75,
+  "color": "#c46ad6",
+  "colorJitter": 0.1,
+  "tags": []
+}

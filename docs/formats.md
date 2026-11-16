@@ -48,7 +48,8 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   navmesh loses about 0.5 m per side). Everything about how people ride is behaviour, set by tree nodes:
   `SetEscalatorStyle` (side, walking pace, clearing the landing), `SetEscalatorBoarding` (gap,
   squeezing on) and the general `SetQueueManners`. See `scenes/escalator_etiquette.scene.json`
-  and `behaviours/escalator_*.bt.json`.
+  and `behaviours/escalator_*.bt.json`; `scenes/shopping_mall.scene.json` chains escalator pairs
+  up a four-storey atrium (`tools/make_mall_scene.py`).
 - **Bodies** (optional `"bodies": {...}`; off when absent): physical contact in packed crowds.
   Below contact density agents avoid each other as usual. When bodies touch (a crowd packed past
   what avoidance can keep apart, or people held up for a few seconds pressing into the gaps),

@@ -1,0 +1,62 @@
+{
+  "format": "crowdsim.bt",
+  "version": 1,
+  "name": "mall_moviegoer",
+  "root": {
+    "type": "Sequence",
+    "id": "root",
+    "children": [
+      {
+        "type": "SetState",
+        "id": "start",
+        "params": {
+          "name": "to the cinema"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "cinema",
+        "params": {
+          "goal": "L3 Cinema"
+        }
+      },
+      {
+        "type": "SetState",
+        "id": "film",
+        "params": {
+          "name": "watching"
+        }
+      },
+      {
+        "type": "Wander",
+        "id": "seat",
+        "params": {
+          "radius": 5
+        }
+      },
+      {
+        "type": "Wait",
+        "id": "watch",
+        "params": {
+          "seconds": 900,
+          "jitter": 900
+        }
+      },
+      {
+        "type": "SetState",
+        "id": "leaving_state",
+        "params": {
+          "name": "leaving"
+        }
+      },
+      {
+        "type": "MoveToGoal",
+        "id": "exit"
+      },
+      {
+        "type": "Despawn",
+        "id": "gone"
+      }
+    ]
+  }
+}

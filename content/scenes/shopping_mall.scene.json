@@ -1,0 +1,10486 @@
+{
+  "format": "crowdsim.scene",
+  "version": 1,
+  "name": "shopping_mall",
+  "behaviours": [
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "mall_shopper",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "start",
+            "params": {
+              "name": "shopping"
+            }
+          },
+          {
+            "type": "Repeat",
+            "id": "visits",
+            "params": {
+              "count": 3
+            },
+            "children": [
+              {
+                "type": "Sequence",
+                "id": "visit",
+                "children": [
+                  {
+                    "type": "SetState",
+                    "id": "walk_state",
+                    "params": {
+                      "name": "shopping"
+                    }
+                  },
+                  {
+                    "type": "WeightedRandom",
+                    "id": "where",
+                    "params": {
+                      "weights": "4,3,2,1"
+                    },
+                    "children": [
+                      {
+                        "type": "RandomSelector",
+                        "id": "where_G",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_0",
+                            "params": {
+                              "goal": "G Pharmacy (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_1",
+                            "params": {
+                              "goal": "G Bank (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_2",
+                            "params": {
+                              "goal": "G Florist (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_3",
+                            "params": {
+                              "goal": "G Phones (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_4",
+                            "params": {
+                              "goal": "G Bakery (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_5",
+                            "params": {
+                              "goal": "G Optician (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_6",
+                            "params": {
+                              "goal": "G Newsagent (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_7",
+                            "params": {
+                              "goal": "G Shoes (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_8",
+                            "params": {
+                              "goal": "G Supermarket"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_G_9",
+                            "params": {
+                              "goal": "G Home store"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "RandomSelector",
+                        "id": "where_L1",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_0",
+                            "params": {
+                              "goal": "L1 Fashion (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_1",
+                            "params": {
+                              "goal": "L1 Fashion (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_2",
+                            "params": {
+                              "goal": "L1 Shoes (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_3",
+                            "params": {
+                              "goal": "L1 Jewellery (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_4",
+                            "params": {
+                              "goal": "L1 Fashion (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_5",
+                            "params": {
+                              "goal": "L1 Cosmetics (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_6",
+                            "params": {
+                              "goal": "L1 Kidswear (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_7",
+                            "params": {
+                              "goal": "L1 Bags (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_8",
+                            "params": {
+                              "goal": "L1 Department store"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L1_9",
+                            "params": {
+                              "goal": "L1 Electronics"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "RandomSelector",
+                        "id": "where_L2",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_0",
+                            "params": {
+                              "goal": "L2 Books (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_1",
+                            "params": {
+                              "goal": "L2 Toys (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_2",
+                            "params": {
+                              "goal": "L2 Homeware (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_3",
+                            "params": {
+                              "goal": "L2 Music (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_4",
+                            "params": {
+                              "goal": "L2 Outdoor (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_5",
+                            "params": {
+                              "goal": "L2 Games (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_6",
+                            "params": {
+                              "goal": "L2 Lighting (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_7",
+                            "params": {
+                              "goal": "L2 Gifts (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_8",
+                            "params": {
+                              "goal": "L2 Department store (upper)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L2_9",
+                            "params": {
+                              "goal": "L2 Sports"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "RandomSelector",
+                        "id": "where_L3",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_0",
+                            "params": {
+                              "goal": "L3 Restaurant (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_1",
+                            "params": {
+                              "goal": "L3 Restaurant (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_2",
+                            "params": {
+                              "goal": "L3 Cafe (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_3",
+                            "params": {
+                              "goal": "L3 Bar (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_4",
+                            "params": {
+                              "goal": "L3 Restaurant (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_5",
+                            "params": {
+                              "goal": "L3 Dessert (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_6",
+                            "params": {
+                              "goal": "L3 Arcade (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_7",
+                            "params": {
+                              "goal": "L3 Bowling (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_8",
+                            "params": {
+                              "goal": "L3 Food court"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "where_L3_9",
+                            "params": {
+                              "goal": "L3 Cinema"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "SetState",
+                    "id": "shop_state",
+                    "params": {
+                      "name": "browsing"
+                    }
+                  },
+                  {
+                    "type": "Wander",
+                    "id": "shop_look1",
+                    "params": {
+                      "radius": 4
+                    }
+                  },
+                  {
+                    "type": "Wait",
+                    "id": "shop_wait1",
+                    "params": {
+                      "seconds": 30,
+                      "jitter": 60
+                    }
+                  },
+                  {
+                    "type": "Wander",
+                    "id": "shop_look2",
+                    "params": {
+                      "radius": 4
+                    }
+                  },
+                  {
+                    "type": "Wait",
+                    "id": "shop_wait2",
+                    "params": {
+                      "seconds": 15.0,
+                      "jitter": 30.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "SetState",
+            "id": "leaving_state",
+            "params": {
+              "name": "leaving"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "exit"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "mall_diner",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "start",
+            "params": {
+              "name": "dining"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "food",
+            "params": {
+              "goal": "L3 Food court"
+            }
+          },
+          {
+            "type": "Wander",
+            "id": "find_table",
+            "params": {
+              "radius": 6
+            }
+          },
+          {
+            "type": "Wait",
+            "id": "eat",
+            "params": {
+              "seconds": 420,
+              "jitter": 600
+            }
+          },
+          {
+            "type": "Succeeder",
+            "id": "maybe",
+            "children": [
+              {
+                "type": "Sequence",
+                "id": "after",
+                "children": [
+                  {
+                    "type": "RandomChance",
+                    "id": "half",
+                    "params": {
+                      "probability": 0.5
+                    }
+                  },
+                  {
+                    "type": "WeightedRandom",
+                    "id": "then",
+                    "params": {
+                      "weights": "1,1,1,1"
+                    },
+                    "children": [
+                      {
+                        "type": "RandomSelector",
+                        "id": "then_G",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_0",
+                            "params": {
+                              "goal": "G Pharmacy (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_1",
+                            "params": {
+                              "goal": "G Bank (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_2",
+                            "params": {
+                              "goal": "G Florist (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_3",
+                            "params": {
+                              "goal": "G Phones (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_4",
+                            "params": {
+                              "goal": "G Bakery (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_5",
+                            "params": {
+                              "goal": "G Optician (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_6",
+                            "params": {
+                              "goal": "G Newsagent (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_7",
+                            "params": {
+                              "goal": "G Shoes (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_8",
+                            "params": {
+                              "goal": "G Supermarket"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_G_9",
+                            "params": {
+                              "goal": "G Home store"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "RandomSelector",
+                        "id": "then_L1",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_0",
+                            "params": {
+                              "goal": "L1 Fashion (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_1",
+                            "params": {
+                              "goal": "L1 Fashion (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_2",
+                            "params": {
+                              "goal": "L1 Shoes (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_3",
+                            "params": {
+                              "goal": "L1 Jewellery (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_4",
+                            "params": {
+                              "goal": "L1 Fashion (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_5",
+                            "params": {
+                              "goal": "L1 Cosmetics (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_6",
+                            "params": {
+                              "goal": "L1 Kidswear (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_7",
+                            "params": {
+                              "goal": "L1 Bags (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_8",
+                            "params": {
+                              "goal": "L1 Department store"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L1_9",
+                            "params": {
+                              "goal": "L1 Electronics"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "RandomSelector",
+                        "id": "then_L2",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_0",
+                            "params": {
+                              "goal": "L2 Books (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_1",
+                            "params": {
+                              "goal": "L2 Toys (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_2",
+                            "params": {
+                              "goal": "L2 Homeware (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_3",
+                            "params": {
+                              "goal": "L2 Music (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_4",
+                            "params": {
+                              "goal": "L2 Outdoor (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_5",
+                            "params": {
+                              "goal": "L2 Games (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_6",
+                            "params": {
+                              "goal": "L2 Lighting (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_7",
+                            "params": {
+                              "goal": "L2 Gifts (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_8",
+                            "params": {
+                              "goal": "L2 Department store (upper)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L2_9",
+                            "params": {
+                              "goal": "L2 Sports"
+                            }
+                          }
+                        ]
+                      },
+                      {
+                        "type": "RandomSelector",
+                        "id": "then_L3",
+                        "children": [
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_0",
+                            "params": {
+                              "goal": "L3 Restaurant (north 1)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_1",
+                            "params": {
+                              "goal": "L3 Restaurant (north 2)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_2",
+                            "params": {
+                              "goal": "L3 Cafe (north 3)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_3",
+                            "params": {
+                              "goal": "L3 Bar (north 4)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_4",
+                            "params": {
+                              "goal": "L3 Restaurant (south 5)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_5",
+                            "params": {
+                              "goal": "L3 Dessert (south 6)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_6",
+                            "params": {
+                              "goal": "L3 Arcade (south 7)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_7",
+                            "params": {
+                              "goal": "L3 Bowling (south 8)"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_8",
+                            "params": {
+                              "goal": "L3 Food court"
+                            }
+                          },
+                          {
+                            "type": "MoveToGoal",
+                            "id": "then_L3_9",
+                            "params": {
+                              "goal": "L3 Cinema"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "SetState",
+                    "id": "after_state",
+                    "params": {
+                      "name": "browsing"
+                    }
+                  },
+                  {
+                    "type": "Wander",
+                    "id": "after_look1",
+                    "params": {
+                      "radius": 4
+                    }
+                  },
+                  {
+                    "type": "Wait",
+                    "id": "after_wait1",
+                    "params": {
+                      "seconds": 20,
+                      "jitter": 40
+                    }
+                  },
+                  {
+                    "type": "Wander",
+                    "id": "after_look2",
+                    "params": {
+                      "radius": 4
+                    }
+                  },
+                  {
+                    "type": "Wait",
+                    "id": "after_wait2",
+                    "params": {
+                      "seconds": 10.0,
+                      "jitter": 20.0
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "SetState",
+            "id": "leaving_state",
+            "params": {
+              "name": "leaving"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "exit"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    },
+    {
+      "format": "crowdsim.bt",
+      "version": 1,
+      "name": "mall_moviegoer",
+      "root": {
+        "type": "Sequence",
+        "id": "root",
+        "children": [
+          {
+            "type": "SetState",
+            "id": "start",
+            "params": {
+              "name": "to the cinema"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "cinema",
+            "params": {
+              "goal": "L3 Cinema"
+            }
+          },
+          {
+            "type": "SetState",
+            "id": "film",
+            "params": {
+              "name": "watching"
+            }
+          },
+          {
+            "type": "Wander",
+            "id": "seat",
+            "params": {
+              "radius": 5
+            }
+          },
+          {
+            "type": "Wait",
+            "id": "watch",
+            "params": {
+              "seconds": 900,
+              "jitter": 900
+            }
+          },
+          {
+            "type": "SetState",
+            "id": "leaving_state",
+            "params": {
+              "name": "leaving"
+            }
+          },
+          {
+            "type": "MoveToGoal",
+            "id": "exit"
+          },
+          {
+            "type": "Despawn",
+            "id": "gone"
+          }
+        ]
+      }
+    }
+  ],
+  "agentTypes": [
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "mall_shopper",
+      "behaviour": "mall_shopper",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.0,
+        1.4
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.1,
+      "height": 1.75,
+      "color": "#4aa3df",
+      "colorJitter": 0.1,
+      "tags": []
+    },
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "mall_diner",
+      "behaviour": "mall_diner",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.0,
+        1.35
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.1,
+      "height": 1.75,
+      "color": "#e8b04a",
+      "colorJitter": 0.1,
+      "tags": []
+    },
+    {
+      "format": "crowdsim.agent",
+      "version": 1,
+      "name": "mall_moviegoer",
+      "behaviour": "mall_moviegoer",
+      "radius": [
+        0.22,
+        0.27
+      ],
+      "preferredSpeed": [
+        1.1,
+        1.45
+      ],
+      "maxSpeedFactor": 1.35,
+      "maxAcceleration": 3,
+      "personalSpace": 0.1,
+      "height": 1.75,
+      "color": "#c46ad6",
+      "colorJitter": 0.1,
+      "tags": []
+    }
+  ],
+  "navigation": {
+    "agentHeight": 1.9,
+    "agentMaxClimb": 0.45,
+    "agentMaxSlope": 45.0,
+    "agentRadius": 0.3,
+    "cellHeight": 0.1,
+    "cellSize": 0.2,
+    "tileSize": 64
+  },
+  "nextId": 464,
+  "objects": [
+    {
+      "id": 1,
+      "name": "G floor",
+      "type": "box",
+      "position": [
+        0.0,
+        -0.2,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.0,
+        0.2,
+        60.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 2,
+      "name": "L1 floor (north)",
+      "type": "box",
+      "position": [
+        0.0,
+        4.8,
+        18.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.0,
+        0.2,
+        23.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 3,
+      "name": "L1 floor (south)",
+      "type": "box",
+      "position": [
+        0.0,
+        4.8,
+        -18.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.0,
+        0.2,
+        23.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 4,
+      "name": "L1 floor (west)",
+      "type": "box",
+      "position": [
+        -56.0,
+        4.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        20.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 5,
+      "name": "L1 floor (east)",
+      "type": "box",
+      "position": [
+        56.0,
+        4.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        20.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 6,
+      "name": "L2 floor (north)",
+      "type": "box",
+      "position": [
+        0.0,
+        9.8,
+        18.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.0,
+        0.2,
+        23.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 7,
+      "name": "L2 floor (south)",
+      "type": "box",
+      "position": [
+        0.0,
+        9.8,
+        -18.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.0,
+        0.2,
+        23.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 8,
+      "name": "L2 floor (west)",
+      "type": "box",
+      "position": [
+        -56.0,
+        9.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        20.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 9,
+      "name": "L2 floor (east)",
+      "type": "box",
+      "position": [
+        56.0,
+        9.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        20.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 10,
+      "name": "L3 floor (north)",
+      "type": "box",
+      "position": [
+        0.0,
+        14.8,
+        18.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.0,
+        0.2,
+        23.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 11,
+      "name": "L3 floor (south)",
+      "type": "box",
+      "position": [
+        0.0,
+        14.8,
+        -18.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.0,
+        0.2,
+        23.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 12,
+      "name": "L3 floor (west)",
+      "type": "box",
+      "position": [
+        -56.0,
+        14.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        20.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 13,
+      "name": "L3 floor (east)",
+      "type": "box",
+      "position": [
+        56.0,
+        14.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        20.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 14,
+      "name": "South plaza",
+      "type": "box",
+      "position": [
+        0.0,
+        -0.2,
+        -38.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        44.0,
+        0.2,
+        16.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#5a6e5a"
+    },
+    {
+      "id": 15,
+      "name": "North plaza",
+      "type": "box",
+      "position": [
+        0.0,
+        -0.2,
+        37.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        44.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#5a6e5a"
+    },
+    {
+      "id": 16,
+      "name": "Escalator G-L1 west south (up)",
+      "type": "stairs",
+      "position": [
+        -40.67,
+        0.0,
+        -4.2
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 17,
+      "name": "Escalator L1-G west south (down)",
+      "type": "stairs",
+      "position": [
+        -40.67,
+        0.0,
+        -1.4
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 18,
+      "name": "Escalator G-L1 west north (up)",
+      "type": "stairs",
+      "position": [
+        -40.67,
+        0.0,
+        4.2
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 19,
+      "name": "Escalator L1-G west north (down)",
+      "type": "stairs",
+      "position": [
+        -40.67,
+        0.0,
+        1.4
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 20,
+      "name": "Balustrade G-L1 west",
+      "type": "ramp",
+      "position": [
+        -40.67,
+        0.9,
+        -5.48
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 21,
+      "name": "Balustrade G-L1 west",
+      "type": "ramp",
+      "position": [
+        -40.67,
+        0.9,
+        -2.8
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 22,
+      "name": "Balustrade G-L1 west",
+      "type": "ramp",
+      "position": [
+        -40.67,
+        0.9,
+        0.0
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 23,
+      "name": "Balustrade G-L1 west",
+      "type": "ramp",
+      "position": [
+        -40.67,
+        0.9,
+        2.8
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 24,
+      "name": "Balustrade G-L1 west",
+      "type": "ramp",
+      "position": [
+        -40.67,
+        0.9,
+        5.48
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 25,
+      "name": "L1 bridge west",
+      "type": "box",
+      "position": [
+        -33.34,
+        4.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 26,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        -36.34,
+        5.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 27,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        -36.34,
+        5.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 28,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        -30.34,
+        5.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 29,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        -30.34,
+        5.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 30,
+      "name": "Escalator L1-L2 west south (up)",
+      "type": "stairs",
+      "position": [
+        -26.01,
+        5.0,
+        -4.2
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 31,
+      "name": "Escalator L2-L1 west south (down)",
+      "type": "stairs",
+      "position": [
+        -26.01,
+        5.0,
+        -1.4
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 32,
+      "name": "Escalator L1-L2 west north (up)",
+      "type": "stairs",
+      "position": [
+        -26.01,
+        5.0,
+        4.2
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 33,
+      "name": "Escalator L2-L1 west north (down)",
+      "type": "stairs",
+      "position": [
+        -26.01,
+        5.0,
+        1.4
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 34,
+      "name": "Balustrade L1-L2 west",
+      "type": "ramp",
+      "position": [
+        -26.01,
+        5.9,
+        -5.48
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 35,
+      "name": "Balustrade L1-L2 west",
+      "type": "ramp",
+      "position": [
+        -26.01,
+        5.9,
+        -2.8
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 36,
+      "name": "Balustrade L1-L2 west",
+      "type": "ramp",
+      "position": [
+        -26.01,
+        5.9,
+        0.0
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 37,
+      "name": "Balustrade L1-L2 west",
+      "type": "ramp",
+      "position": [
+        -26.01,
+        5.9,
+        2.8
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 38,
+      "name": "Balustrade L1-L2 west",
+      "type": "ramp",
+      "position": [
+        -26.01,
+        5.9,
+        5.48
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 39,
+      "name": "L2 bridge west",
+      "type": "box",
+      "position": [
+        -18.679,
+        9.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 40,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        -21.679,
+        10.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 41,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        -21.679,
+        10.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 42,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        -15.679,
+        10.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 43,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        -15.679,
+        10.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 44,
+      "name": "Escalator L2-L3 west south (up)",
+      "type": "stairs",
+      "position": [
+        -11.349,
+        10.0,
+        -4.2
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 45,
+      "name": "Escalator L3-L2 west south (down)",
+      "type": "stairs",
+      "position": [
+        -11.349,
+        10.0,
+        -1.4
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 46,
+      "name": "Escalator L2-L3 west north (up)",
+      "type": "stairs",
+      "position": [
+        -11.349,
+        10.0,
+        4.2
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 47,
+      "name": "Escalator L3-L2 west north (down)",
+      "type": "stairs",
+      "position": [
+        -11.349,
+        10.0,
+        1.4
+      ],
+      "rotationY": 90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 48,
+      "name": "Balustrade L2-L3 west",
+      "type": "ramp",
+      "position": [
+        -11.349,
+        10.9,
+        -5.48
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 49,
+      "name": "Balustrade L2-L3 west",
+      "type": "ramp",
+      "position": [
+        -11.349,
+        10.9,
+        -2.8
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 50,
+      "name": "Balustrade L2-L3 west",
+      "type": "ramp",
+      "position": [
+        -11.349,
+        10.9,
+        0.0
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 51,
+      "name": "Balustrade L2-L3 west",
+      "type": "ramp",
+      "position": [
+        -11.349,
+        10.9,
+        2.8
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 52,
+      "name": "Balustrade L2-L3 west",
+      "type": "ramp",
+      "position": [
+        -11.349,
+        10.9,
+        5.48
+      ],
+      "rotationY": 90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 53,
+      "name": "L3 bridge west",
+      "type": "box",
+      "position": [
+        -3.51,
+        14.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.019,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 54,
+      "name": "L3 bridge railing",
+      "type": "box",
+      "position": [
+        -7.019,
+        15.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 55,
+      "name": "L3 bridge railing",
+      "type": "box",
+      "position": [
+        -7.019,
+        15.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 56,
+      "name": "Escalator G-L1 east south (up)",
+      "type": "stairs",
+      "position": [
+        40.67,
+        0.0,
+        -4.2
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 57,
+      "name": "Escalator L1-G east south (down)",
+      "type": "stairs",
+      "position": [
+        40.67,
+        0.0,
+        -1.4
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 58,
+      "name": "Escalator G-L1 east north (up)",
+      "type": "stairs",
+      "position": [
+        40.67,
+        0.0,
+        4.2
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 59,
+      "name": "Escalator L1-G east north (down)",
+      "type": "stairs",
+      "position": [
+        40.67,
+        0.0,
+        1.4
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 60,
+      "name": "Balustrade G-L1 east",
+      "type": "ramp",
+      "position": [
+        40.67,
+        0.9,
+        -5.48
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 61,
+      "name": "Balustrade G-L1 east",
+      "type": "ramp",
+      "position": [
+        40.67,
+        0.9,
+        -2.8
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 62,
+      "name": "Balustrade G-L1 east",
+      "type": "ramp",
+      "position": [
+        40.67,
+        0.9,
+        0.0
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 63,
+      "name": "Balustrade G-L1 east",
+      "type": "ramp",
+      "position": [
+        40.67,
+        0.9,
+        2.8
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 64,
+      "name": "Balustrade G-L1 east",
+      "type": "ramp",
+      "position": [
+        40.67,
+        0.9,
+        5.48
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 65,
+      "name": "L1 bridge east",
+      "type": "box",
+      "position": [
+        33.34,
+        4.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 66,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        30.34,
+        5.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 67,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        30.34,
+        5.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 68,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        36.34,
+        5.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 69,
+      "name": "L1 bridge railing",
+      "type": "box",
+      "position": [
+        36.34,
+        5.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 70,
+      "name": "Escalator L1-L2 east south (up)",
+      "type": "stairs",
+      "position": [
+        26.01,
+        5.0,
+        -4.2
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 71,
+      "name": "Escalator L2-L1 east south (down)",
+      "type": "stairs",
+      "position": [
+        26.01,
+        5.0,
+        -1.4
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 72,
+      "name": "Escalator L1-L2 east north (up)",
+      "type": "stairs",
+      "position": [
+        26.01,
+        5.0,
+        4.2
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 73,
+      "name": "Escalator L2-L1 east north (down)",
+      "type": "stairs",
+      "position": [
+        26.01,
+        5.0,
+        1.4
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 74,
+      "name": "Balustrade L1-L2 east",
+      "type": "ramp",
+      "position": [
+        26.01,
+        5.9,
+        -5.48
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 75,
+      "name": "Balustrade L1-L2 east",
+      "type": "ramp",
+      "position": [
+        26.01,
+        5.9,
+        -2.8
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 76,
+      "name": "Balustrade L1-L2 east",
+      "type": "ramp",
+      "position": [
+        26.01,
+        5.9,
+        0.0
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 77,
+      "name": "Balustrade L1-L2 east",
+      "type": "ramp",
+      "position": [
+        26.01,
+        5.9,
+        2.8
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 78,
+      "name": "Balustrade L1-L2 east",
+      "type": "ramp",
+      "position": [
+        26.01,
+        5.9,
+        5.48
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 79,
+      "name": "L2 bridge east",
+      "type": "box",
+      "position": [
+        18.679,
+        9.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 80,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        15.679,
+        10.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 81,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        15.679,
+        10.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 82,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        21.679,
+        10.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 83,
+      "name": "L2 bridge railing",
+      "type": "box",
+      "position": [
+        21.679,
+        10.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 84,
+      "name": "Escalator L2-L3 east south (up)",
+      "type": "stairs",
+      "position": [
+        11.349,
+        10.0,
+        -4.2
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 85,
+      "name": "Escalator L3-L2 east south (down)",
+      "type": "stairs",
+      "position": [
+        11.349,
+        10.0,
+        -1.4
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 86,
+      "name": "Escalator L2-L3 east north (up)",
+      "type": "stairs",
+      "position": [
+        11.349,
+        10.0,
+        4.2
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 87,
+      "name": "Escalator L3-L2 east north (down)",
+      "type": "stairs",
+      "position": [
+        11.349,
+        10.0,
+        1.4
+      ],
+      "rotationY": -90.0,
+      "size": [
+        2.4,
+        5.0,
+        8.66
+      ],
+      "steps": 26,
+      "tags": [
+        "walkable",
+        "escalator",
+        "escalator:speed=0.5",
+        "escalator:down"
+      ],
+      "color": "#3d4249"
+    },
+    {
+      "id": 88,
+      "name": "Balustrade L2-L3 east",
+      "type": "ramp",
+      "position": [
+        11.349,
+        10.9,
+        -5.48
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 89,
+      "name": "Balustrade L2-L3 east",
+      "type": "ramp",
+      "position": [
+        11.349,
+        10.9,
+        -2.8
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 90,
+      "name": "Balustrade L2-L3 east",
+      "type": "ramp",
+      "position": [
+        11.349,
+        10.9,
+        0.0
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 91,
+      "name": "Balustrade L2-L3 east",
+      "type": "ramp",
+      "position": [
+        11.349,
+        10.9,
+        2.8
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 92,
+      "name": "Balustrade L2-L3 east",
+      "type": "ramp",
+      "position": [
+        11.349,
+        10.9,
+        5.48
+      ],
+      "rotationY": -90.0,
+      "size": [
+        0.14,
+        5.0,
+        8.66
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 93,
+      "name": "L3 bridge east",
+      "type": "box",
+      "position": [
+        3.51,
+        14.8,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.019,
+        0.2,
+        14.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#6a6f76"
+    },
+    {
+      "id": 94,
+      "name": "L3 bridge railing",
+      "type": "box",
+      "position": [
+        7.019,
+        15.0,
+        -6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 95,
+      "name": "L3 bridge railing",
+      "type": "box",
+      "position": [
+        7.019,
+        15.0,
+        6.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.15,
+        1.1,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 96,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        -41.17,
+        5.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.66,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 97,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        0.0,
+        5.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        60.68,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 98,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        41.17,
+        5.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.66,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 99,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        -41.17,
+        5.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.66,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 100,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        0.0,
+        5.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        60.68,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 101,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        41.17,
+        5.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.66,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 102,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        -46.0,
+        5.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        1.1,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 103,
+      "name": "L1 void railing",
+      "type": "box",
+      "position": [
+        46.0,
+        5.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        1.1,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 104,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        -33.84,
+        10.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        24.321,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 105,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        0.0,
+        10.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        31.358,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 106,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        33.84,
+        10.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        24.321,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 107,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        -33.84,
+        10.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        24.321,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 108,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        0.0,
+        10.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        31.358,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 109,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        33.84,
+        10.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        24.321,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 110,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        -46.0,
+        10.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        1.1,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 111,
+      "name": "L2 void railing",
+      "type": "box",
+      "position": [
+        46.0,
+        10.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        1.1,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 112,
+      "name": "L3 void railing",
+      "type": "box",
+      "position": [
+        -26.51,
+        15.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        38.98,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 113,
+      "name": "L3 void railing",
+      "type": "box",
+      "position": [
+        26.51,
+        15.0,
+        -7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        38.98,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 114,
+      "name": "L3 void railing",
+      "type": "box",
+      "position": [
+        -26.51,
+        15.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        38.98,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 115,
+      "name": "L3 void railing",
+      "type": "box",
+      "position": [
+        26.51,
+        15.0,
+        7.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        38.98,
+        1.1,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 116,
+      "name": "L3 void railing",
+      "type": "box",
+      "position": [
+        -46.0,
+        15.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        1.1,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 117,
+      "name": "L3 void railing",
+      "type": "box",
+      "position": [
+        46.0,
+        15.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        1.1,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#7d858f"
+    },
+    {
+      "id": 118,
+      "name": "G north passage wall",
+      "type": "box",
+      "position": [
+        -31.5,
+        0.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 119,
+      "name": "G Pharmacy (north 1) front",
+      "type": "box",
+      "position": [
+        -50.375,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 120,
+      "name": "G Pharmacy (north 1) front",
+      "type": "box",
+      "position": [
+        -35.125,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 122,
+      "name": "G Pharmacy (north 1) display",
+      "type": "box",
+      "position": [
+        -48.375,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 123,
+      "name": "G Pharmacy (north 1) display",
+      "type": "box",
+      "position": [
+        -37.125,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 124,
+      "name": "G north passage wall",
+      "type": "box",
+      "position": [
+        -28.5,
+        0.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 125,
+      "name": "G north passage wall",
+      "type": "box",
+      "position": [
+        -4.0,
+        0.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 126,
+      "name": "G Bank (north 2) front",
+      "type": "box",
+      "position": [
+        -24.375,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 127,
+      "name": "G Bank (north 2) front",
+      "type": "box",
+      "position": [
+        -8.125,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 129,
+      "name": "G Bank (north 2) display",
+      "type": "box",
+      "position": [
+        -22.375,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 130,
+      "name": "G Bank (north 2) display",
+      "type": "box",
+      "position": [
+        -10.125,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 131,
+      "name": "G north passage wall",
+      "type": "box",
+      "position": [
+        4.0,
+        0.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 132,
+      "name": "G north passage wall",
+      "type": "box",
+      "position": [
+        28.5,
+        0.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 133,
+      "name": "G Florist (north 3) front",
+      "type": "box",
+      "position": [
+        8.125,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 134,
+      "name": "G Florist (north 3) front",
+      "type": "box",
+      "position": [
+        24.375,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 136,
+      "name": "G Florist (north 3) display",
+      "type": "box",
+      "position": [
+        10.125,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 137,
+      "name": "G Florist (north 3) display",
+      "type": "box",
+      "position": [
+        22.375,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 138,
+      "name": "G north passage wall",
+      "type": "box",
+      "position": [
+        31.5,
+        0.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 139,
+      "name": "G Phones (north 4) front",
+      "type": "box",
+      "position": [
+        35.125,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 140,
+      "name": "G Phones (north 4) front",
+      "type": "box",
+      "position": [
+        50.375,
+        0.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 142,
+      "name": "G Phones (north 4) display",
+      "type": "box",
+      "position": [
+        37.125,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 143,
+      "name": "G Phones (north 4) display",
+      "type": "box",
+      "position": [
+        48.375,
+        0.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 144,
+      "name": "G south passage wall",
+      "type": "box",
+      "position": [
+        -4.0,
+        0.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 145,
+      "name": "G Bakery (south 5) front",
+      "type": "box",
+      "position": [
+        -49.75,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 146,
+      "name": "G Bakery (south 5) front",
+      "type": "box",
+      "position": [
+        -33.25,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 148,
+      "name": "G Bakery (south 5) display",
+      "type": "box",
+      "position": [
+        -47.75,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 149,
+      "name": "G Bakery (south 5) display",
+      "type": "box",
+      "position": [
+        -35.25,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 150,
+      "name": "G south shop partition",
+      "type": "box",
+      "position": [
+        -29.0,
+        0.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 151,
+      "name": "G Optician (south 6) front",
+      "type": "box",
+      "position": [
+        -24.75,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 152,
+      "name": "G Optician (south 6) front",
+      "type": "box",
+      "position": [
+        -8.25,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 154,
+      "name": "G Optician (south 6) display",
+      "type": "box",
+      "position": [
+        -22.75,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 155,
+      "name": "G Optician (south 6) display",
+      "type": "box",
+      "position": [
+        -10.25,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 156,
+      "name": "G south passage wall",
+      "type": "box",
+      "position": [
+        4.0,
+        0.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 157,
+      "name": "G Newsagent (south 7) front",
+      "type": "box",
+      "position": [
+        8.25,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 158,
+      "name": "G Newsagent (south 7) front",
+      "type": "box",
+      "position": [
+        24.75,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 160,
+      "name": "G Newsagent (south 7) display",
+      "type": "box",
+      "position": [
+        10.25,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 161,
+      "name": "G Newsagent (south 7) display",
+      "type": "box",
+      "position": [
+        22.75,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 162,
+      "name": "G south shop partition",
+      "type": "box",
+      "position": [
+        29.0,
+        0.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 163,
+      "name": "G Shoes (south 8) front",
+      "type": "box",
+      "position": [
+        33.25,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 164,
+      "name": "G Shoes (south 8) front",
+      "type": "box",
+      "position": [
+        49.75,
+        0.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        8.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 166,
+      "name": "G Shoes (south 8) display",
+      "type": "box",
+      "position": [
+        35.25,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 167,
+      "name": "G Shoes (south 8) display",
+      "type": "box",
+      "position": [
+        47.75,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 168,
+      "name": "G Supermarket front",
+      "type": "box",
+      "position": [
+        -54.0,
+        0.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 169,
+      "name": "G Supermarket front",
+      "type": "box",
+      "position": [
+        -54.0,
+        0.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 171,
+      "name": "G Supermarket shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 172,
+      "name": "G Supermarket shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        0.0,
+        -14.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 173,
+      "name": "G Supermarket shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        0.0,
+        -6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 174,
+      "name": "G Supermarket shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        0.0,
+        2.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 175,
+      "name": "G Supermarket shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        0.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 176,
+      "name": "G Supermarket shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        0.0,
+        18.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 177,
+      "name": "G Home store front",
+      "type": "box",
+      "position": [
+        54.0,
+        0.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 178,
+      "name": "G Home store front",
+      "type": "box",
+      "position": [
+        54.0,
+        0.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 180,
+      "name": "G Home store shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        0.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 181,
+      "name": "G Home store shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        0.0,
+        -14.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 182,
+      "name": "G Home store shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        0.0,
+        -6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 183,
+      "name": "G Home store shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        0.0,
+        2.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 184,
+      "name": "G Home store shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        0.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 185,
+      "name": "G Home store shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        0.0,
+        18.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 186,
+      "name": "G outer wall south",
+      "type": "box",
+      "position": [
+        -35.15,
+        0.0,
+        -30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        62.3,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 187,
+      "name": "G outer wall south",
+      "type": "box",
+      "position": [
+        35.15,
+        0.0,
+        -30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        62.3,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 188,
+      "name": "G outer wall north",
+      "type": "box",
+      "position": [
+        -48.9,
+        0.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 189,
+      "name": "G outer wall north",
+      "type": "box",
+      "position": [
+        -16.25,
+        0.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        24.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 190,
+      "name": "G outer wall north",
+      "type": "box",
+      "position": [
+        16.25,
+        0.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        24.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 191,
+      "name": "G outer wall north",
+      "type": "box",
+      "position": [
+        48.9,
+        0.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 192,
+      "name": "G outer wall west",
+      "type": "box",
+      "position": [
+        -66.15,
+        0.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 193,
+      "name": "G outer wall east",
+      "type": "box",
+      "position": [
+        66.15,
+        0.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 194,
+      "name": "L1 north passage wall",
+      "type": "box",
+      "position": [
+        -31.5,
+        5.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 195,
+      "name": "L1 Fashion (north 1) front",
+      "type": "box",
+      "position": [
+        -50.375,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 196,
+      "name": "L1 Fashion (north 1) front",
+      "type": "box",
+      "position": [
+        -35.125,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 198,
+      "name": "L1 Fashion (north 1) display",
+      "type": "box",
+      "position": [
+        -48.375,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 199,
+      "name": "L1 Fashion (north 1) display",
+      "type": "box",
+      "position": [
+        -37.125,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 200,
+      "name": "L1 north passage wall",
+      "type": "box",
+      "position": [
+        -28.5,
+        5.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 201,
+      "name": "L1 north passage wall",
+      "type": "box",
+      "position": [
+        28.5,
+        5.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 202,
+      "name": "L1 Fashion (north 2) front",
+      "type": "box",
+      "position": [
+        -23.375,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 203,
+      "name": "L1 Fashion (north 2) front",
+      "type": "box",
+      "position": [
+        -5.125,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 205,
+      "name": "L1 Fashion (north 2) display",
+      "type": "box",
+      "position": [
+        -21.375,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 206,
+      "name": "L1 Fashion (north 2) display",
+      "type": "box",
+      "position": [
+        -7.125,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 207,
+      "name": "L1 north shop partition",
+      "type": "box",
+      "position": [
+        0.0,
+        5.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 208,
+      "name": "L1 Shoes (north 3) front",
+      "type": "box",
+      "position": [
+        5.125,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 209,
+      "name": "L1 Shoes (north 3) front",
+      "type": "box",
+      "position": [
+        23.375,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 211,
+      "name": "L1 Shoes (north 3) display",
+      "type": "box",
+      "position": [
+        7.125,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 212,
+      "name": "L1 Shoes (north 3) display",
+      "type": "box",
+      "position": [
+        21.375,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 213,
+      "name": "L1 north passage wall",
+      "type": "box",
+      "position": [
+        31.5,
+        5.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 214,
+      "name": "L1 Jewellery (north 4) front",
+      "type": "box",
+      "position": [
+        35.125,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 215,
+      "name": "L1 Jewellery (north 4) front",
+      "type": "box",
+      "position": [
+        50.375,
+        5.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 217,
+      "name": "L1 Jewellery (north 4) display",
+      "type": "box",
+      "position": [
+        37.125,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 218,
+      "name": "L1 Jewellery (north 4) display",
+      "type": "box",
+      "position": [
+        48.375,
+        5.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 219,
+      "name": "L1 Fashion (south 5) front",
+      "type": "box",
+      "position": [
+        -49.25,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 220,
+      "name": "L1 Fashion (south 5) front",
+      "type": "box",
+      "position": [
+        -31.75,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 222,
+      "name": "L1 Fashion (south 5) display",
+      "type": "box",
+      "position": [
+        -47.25,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 223,
+      "name": "L1 Fashion (south 5) display",
+      "type": "box",
+      "position": [
+        -33.75,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 224,
+      "name": "L1 south shop partition",
+      "type": "box",
+      "position": [
+        -27.0,
+        5.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 225,
+      "name": "L1 Cosmetics (south 6) front",
+      "type": "box",
+      "position": [
+        -22.25,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 226,
+      "name": "L1 Cosmetics (south 6) front",
+      "type": "box",
+      "position": [
+        -4.75,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 228,
+      "name": "L1 Cosmetics (south 6) display",
+      "type": "box",
+      "position": [
+        -20.25,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 229,
+      "name": "L1 Cosmetics (south 6) display",
+      "type": "box",
+      "position": [
+        -6.75,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 230,
+      "name": "L1 south shop partition",
+      "type": "box",
+      "position": [
+        0.0,
+        5.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 231,
+      "name": "L1 Kidswear (south 7) front",
+      "type": "box",
+      "position": [
+        4.75,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 232,
+      "name": "L1 Kidswear (south 7) front",
+      "type": "box",
+      "position": [
+        22.25,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 234,
+      "name": "L1 Kidswear (south 7) display",
+      "type": "box",
+      "position": [
+        6.75,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 235,
+      "name": "L1 Kidswear (south 7) display",
+      "type": "box",
+      "position": [
+        20.25,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 236,
+      "name": "L1 south shop partition",
+      "type": "box",
+      "position": [
+        27.0,
+        5.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 237,
+      "name": "L1 Bags (south 8) front",
+      "type": "box",
+      "position": [
+        31.75,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 238,
+      "name": "L1 Bags (south 8) front",
+      "type": "box",
+      "position": [
+        49.25,
+        5.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 240,
+      "name": "L1 Bags (south 8) display",
+      "type": "box",
+      "position": [
+        33.75,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 241,
+      "name": "L1 Bags (south 8) display",
+      "type": "box",
+      "position": [
+        47.25,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 242,
+      "name": "L1 Department store front",
+      "type": "box",
+      "position": [
+        -54.0,
+        5.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 243,
+      "name": "L1 Department store front",
+      "type": "box",
+      "position": [
+        -54.0,
+        5.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 245,
+      "name": "L1 Department store shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 246,
+      "name": "L1 Department store shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        5.0,
+        -14.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 247,
+      "name": "L1 Department store shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        5.0,
+        -6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 248,
+      "name": "L1 Department store shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        5.0,
+        2.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 249,
+      "name": "L1 Department store shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        5.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 250,
+      "name": "L1 Department store shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        5.0,
+        18.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 251,
+      "name": "L1 Electronics front",
+      "type": "box",
+      "position": [
+        54.0,
+        5.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 252,
+      "name": "L1 Electronics front",
+      "type": "box",
+      "position": [
+        54.0,
+        5.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 254,
+      "name": "L1 Electronics shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        5.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 255,
+      "name": "L1 Electronics shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        5.0,
+        -14.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 256,
+      "name": "L1 Electronics shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        5.0,
+        -6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 257,
+      "name": "L1 Electronics shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        5.0,
+        2.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 258,
+      "name": "L1 Electronics shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        5.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 259,
+      "name": "L1 Electronics shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        5.0,
+        18.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 260,
+      "name": "L1 outer wall south",
+      "type": "box",
+      "position": [
+        0.0,
+        5.0,
+        -30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.6,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 261,
+      "name": "L1 outer wall north",
+      "type": "box",
+      "position": [
+        -48.9,
+        5.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 262,
+      "name": "L1 outer wall north",
+      "type": "box",
+      "position": [
+        0.0,
+        5.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        57.0,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 263,
+      "name": "L1 outer wall north",
+      "type": "box",
+      "position": [
+        48.9,
+        5.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 264,
+      "name": "L1 outer wall west",
+      "type": "box",
+      "position": [
+        -66.15,
+        5.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 265,
+      "name": "L1 outer wall east",
+      "type": "box",
+      "position": [
+        66.15,
+        5.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 266,
+      "name": "L2 north passage wall",
+      "type": "box",
+      "position": [
+        -31.5,
+        10.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 267,
+      "name": "L2 Books (north 1) front",
+      "type": "box",
+      "position": [
+        -50.375,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 268,
+      "name": "L2 Books (north 1) front",
+      "type": "box",
+      "position": [
+        -35.125,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 270,
+      "name": "L2 Books (north 1) display",
+      "type": "box",
+      "position": [
+        -48.375,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 271,
+      "name": "L2 Books (north 1) display",
+      "type": "box",
+      "position": [
+        -37.125,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 272,
+      "name": "L2 north passage wall",
+      "type": "box",
+      "position": [
+        -28.5,
+        10.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 273,
+      "name": "L2 north passage wall",
+      "type": "box",
+      "position": [
+        28.5,
+        10.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 274,
+      "name": "L2 Toys (north 2) front",
+      "type": "box",
+      "position": [
+        -23.375,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 275,
+      "name": "L2 Toys (north 2) front",
+      "type": "box",
+      "position": [
+        -5.125,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 277,
+      "name": "L2 Toys (north 2) display",
+      "type": "box",
+      "position": [
+        -21.375,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 278,
+      "name": "L2 Toys (north 2) display",
+      "type": "box",
+      "position": [
+        -7.125,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 279,
+      "name": "L2 north shop partition",
+      "type": "box",
+      "position": [
+        0.0,
+        10.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 280,
+      "name": "L2 Homeware (north 3) front",
+      "type": "box",
+      "position": [
+        5.125,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 281,
+      "name": "L2 Homeware (north 3) front",
+      "type": "box",
+      "position": [
+        23.375,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 283,
+      "name": "L2 Homeware (north 3) display",
+      "type": "box",
+      "position": [
+        7.125,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 284,
+      "name": "L2 Homeware (north 3) display",
+      "type": "box",
+      "position": [
+        21.375,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 285,
+      "name": "L2 north passage wall",
+      "type": "box",
+      "position": [
+        31.5,
+        10.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 286,
+      "name": "L2 Music (north 4) front",
+      "type": "box",
+      "position": [
+        35.125,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 287,
+      "name": "L2 Music (north 4) front",
+      "type": "box",
+      "position": [
+        50.375,
+        10.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 289,
+      "name": "L2 Music (north 4) display",
+      "type": "box",
+      "position": [
+        37.125,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 290,
+      "name": "L2 Music (north 4) display",
+      "type": "box",
+      "position": [
+        48.375,
+        10.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 291,
+      "name": "L2 Outdoor (south 5) front",
+      "type": "box",
+      "position": [
+        -49.25,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 292,
+      "name": "L2 Outdoor (south 5) front",
+      "type": "box",
+      "position": [
+        -31.75,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 294,
+      "name": "L2 Outdoor (south 5) display",
+      "type": "box",
+      "position": [
+        -47.25,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 295,
+      "name": "L2 Outdoor (south 5) display",
+      "type": "box",
+      "position": [
+        -33.75,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 296,
+      "name": "L2 south shop partition",
+      "type": "box",
+      "position": [
+        -27.0,
+        10.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 297,
+      "name": "L2 Games (south 6) front",
+      "type": "box",
+      "position": [
+        -22.25,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 298,
+      "name": "L2 Games (south 6) front",
+      "type": "box",
+      "position": [
+        -4.75,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 300,
+      "name": "L2 Games (south 6) display",
+      "type": "box",
+      "position": [
+        -20.25,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 301,
+      "name": "L2 Games (south 6) display",
+      "type": "box",
+      "position": [
+        -6.75,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 302,
+      "name": "L2 south shop partition",
+      "type": "box",
+      "position": [
+        0.0,
+        10.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 303,
+      "name": "L2 Lighting (south 7) front",
+      "type": "box",
+      "position": [
+        4.75,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 304,
+      "name": "L2 Lighting (south 7) front",
+      "type": "box",
+      "position": [
+        22.25,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 306,
+      "name": "L2 Lighting (south 7) display",
+      "type": "box",
+      "position": [
+        6.75,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 307,
+      "name": "L2 Lighting (south 7) display",
+      "type": "box",
+      "position": [
+        20.25,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 308,
+      "name": "L2 south shop partition",
+      "type": "box",
+      "position": [
+        27.0,
+        10.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 309,
+      "name": "L2 Gifts (south 8) front",
+      "type": "box",
+      "position": [
+        31.75,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 310,
+      "name": "L2 Gifts (south 8) front",
+      "type": "box",
+      "position": [
+        49.25,
+        10.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 312,
+      "name": "L2 Gifts (south 8) display",
+      "type": "box",
+      "position": [
+        33.75,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 313,
+      "name": "L2 Gifts (south 8) display",
+      "type": "box",
+      "position": [
+        47.25,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 314,
+      "name": "L2 Department store (upper) front",
+      "type": "box",
+      "position": [
+        -54.0,
+        10.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 315,
+      "name": "L2 Department store (upper) front",
+      "type": "box",
+      "position": [
+        -54.0,
+        10.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 317,
+      "name": "L2 Department store (upper) shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 318,
+      "name": "L2 Department store (upper) shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        10.0,
+        -14.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 319,
+      "name": "L2 Department store (upper) shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        10.0,
+        -6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 320,
+      "name": "L2 Department store (upper) shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        10.0,
+        2.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 321,
+      "name": "L2 Department store (upper) shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        10.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 322,
+      "name": "L2 Department store (upper) shelving",
+      "type": "box",
+      "position": [
+        -60.0,
+        10.0,
+        18.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 323,
+      "name": "L2 Sports front",
+      "type": "box",
+      "position": [
+        54.0,
+        10.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 324,
+      "name": "L2 Sports front",
+      "type": "box",
+      "position": [
+        54.0,
+        10.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        20.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 326,
+      "name": "L2 Sports shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        10.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 327,
+      "name": "L2 Sports shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        10.0,
+        -14.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 328,
+      "name": "L2 Sports shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        10.0,
+        -6.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 329,
+      "name": "L2 Sports shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        10.0,
+        2.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 330,
+      "name": "L2 Sports shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        10.0,
+        10.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 331,
+      "name": "L2 Sports shelving",
+      "type": "box",
+      "position": [
+        60.0,
+        10.0,
+        18.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        6.0,
+        1.8,
+        1.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 332,
+      "name": "L2 outer wall south",
+      "type": "box",
+      "position": [
+        0.0,
+        10.0,
+        -30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.6,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 333,
+      "name": "L2 outer wall north",
+      "type": "box",
+      "position": [
+        -48.9,
+        10.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 334,
+      "name": "L2 outer wall north",
+      "type": "box",
+      "position": [
+        0.0,
+        10.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        57.0,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 335,
+      "name": "L2 outer wall north",
+      "type": "box",
+      "position": [
+        48.9,
+        10.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 336,
+      "name": "L2 outer wall west",
+      "type": "box",
+      "position": [
+        -66.15,
+        10.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 337,
+      "name": "L2 outer wall east",
+      "type": "box",
+      "position": [
+        66.15,
+        10.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 338,
+      "name": "L3 north passage wall",
+      "type": "box",
+      "position": [
+        -31.5,
+        15.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 339,
+      "name": "L3 Restaurant (north 1) front",
+      "type": "box",
+      "position": [
+        -50.375,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 340,
+      "name": "L3 Restaurant (north 1) front",
+      "type": "box",
+      "position": [
+        -35.125,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 342,
+      "name": "L3 Restaurant (north 1) display",
+      "type": "box",
+      "position": [
+        -48.375,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 343,
+      "name": "L3 Restaurant (north 1) display",
+      "type": "box",
+      "position": [
+        -37.125,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 344,
+      "name": "L3 north passage wall",
+      "type": "box",
+      "position": [
+        -28.5,
+        15.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 345,
+      "name": "L3 north passage wall",
+      "type": "box",
+      "position": [
+        28.5,
+        15.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 346,
+      "name": "L3 Restaurant (north 2) front",
+      "type": "box",
+      "position": [
+        -23.375,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 347,
+      "name": "L3 Restaurant (north 2) front",
+      "type": "box",
+      "position": [
+        -5.125,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 349,
+      "name": "L3 Restaurant (north 2) display",
+      "type": "box",
+      "position": [
+        -21.375,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 350,
+      "name": "L3 Restaurant (north 2) display",
+      "type": "box",
+      "position": [
+        -7.125,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 351,
+      "name": "L3 north shop partition",
+      "type": "box",
+      "position": [
+        0.0,
+        15.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 352,
+      "name": "L3 Cafe (north 3) front",
+      "type": "box",
+      "position": [
+        5.125,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 353,
+      "name": "L3 Cafe (north 3) front",
+      "type": "box",
+      "position": [
+        23.375,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        10.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 355,
+      "name": "L3 Cafe (north 3) display",
+      "type": "box",
+      "position": [
+        7.125,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 356,
+      "name": "L3 Cafe (north 3) display",
+      "type": "box",
+      "position": [
+        21.375,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 357,
+      "name": "L3 north passage wall",
+      "type": "box",
+      "position": [
+        31.5,
+        15.0,
+        23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 358,
+      "name": "L3 Bar (north 4) front",
+      "type": "box",
+      "position": [
+        35.125,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 359,
+      "name": "L3 Bar (north 4) front",
+      "type": "box",
+      "position": [
+        50.375,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        7.25,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 361,
+      "name": "L3 Bar (north 4) display",
+      "type": "box",
+      "position": [
+        37.125,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 362,
+      "name": "L3 Bar (north 4) display",
+      "type": "box",
+      "position": [
+        48.375,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 363,
+      "name": "L3 Restaurant (south 5) front",
+      "type": "box",
+      "position": [
+        -49.25,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 364,
+      "name": "L3 Restaurant (south 5) front",
+      "type": "box",
+      "position": [
+        -31.75,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 366,
+      "name": "L3 Restaurant (south 5) display",
+      "type": "box",
+      "position": [
+        -47.25,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 367,
+      "name": "L3 Restaurant (south 5) display",
+      "type": "box",
+      "position": [
+        -33.75,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 368,
+      "name": "L3 south shop partition",
+      "type": "box",
+      "position": [
+        -27.0,
+        15.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 369,
+      "name": "L3 Dessert (south 6) front",
+      "type": "box",
+      "position": [
+        -22.25,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 370,
+      "name": "L3 Dessert (south 6) front",
+      "type": "box",
+      "position": [
+        -4.75,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 372,
+      "name": "L3 Dessert (south 6) display",
+      "type": "box",
+      "position": [
+        -20.25,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 373,
+      "name": "L3 Dessert (south 6) display",
+      "type": "box",
+      "position": [
+        -6.75,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 374,
+      "name": "L3 south shop partition",
+      "type": "box",
+      "position": [
+        0.0,
+        15.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 375,
+      "name": "L3 Arcade (south 7) front",
+      "type": "box",
+      "position": [
+        4.75,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 376,
+      "name": "L3 Arcade (south 7) front",
+      "type": "box",
+      "position": [
+        22.25,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 378,
+      "name": "L3 Arcade (south 7) display",
+      "type": "box",
+      "position": [
+        6.75,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 379,
+      "name": "L3 Arcade (south 7) display",
+      "type": "box",
+      "position": [
+        20.25,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 380,
+      "name": "L3 south shop partition",
+      "type": "box",
+      "position": [
+        27.0,
+        15.0,
+        -23.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        14.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 381,
+      "name": "L3 Bowling (south 8) front",
+      "type": "box",
+      "position": [
+        31.75,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 382,
+      "name": "L3 Bowling (south 8) front",
+      "type": "box",
+      "position": [
+        49.25,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        9.5,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 384,
+      "name": "L3 Bowling (south 8) display",
+      "type": "box",
+      "position": [
+        33.75,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 385,
+      "name": "L3 Bowling (south 8) display",
+      "type": "box",
+      "position": [
+        47.25,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.0,
+        1.0,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#8e959d"
+    },
+    {
+      "id": 386,
+      "name": "L3 Food court front",
+      "type": "box",
+      "position": [
+        -54.0,
+        15.0,
+        -22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        16.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 387,
+      "name": "L3 Food court front",
+      "type": "box",
+      "position": [
+        -54.0,
+        15.0,
+        22.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        16.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 389,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        -24.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 390,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 391,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 392,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        -12.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 393,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        -8.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 394,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        -4.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 395,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 396,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        4.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 397,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        8.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 398,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        12.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 399,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 400,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 401,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -62.0,
+        15.0,
+        24.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 402,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        -24.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 403,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        -20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 404,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        -16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 405,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        -12.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 406,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        -8.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 407,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        -4.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 408,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 409,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        4.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 410,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        8.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 411,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        12.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 412,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        16.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 413,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        20.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 414,
+      "name": "Food court table",
+      "type": "box",
+      "position": [
+        -58.5,
+        15.0,
+        24.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        1.2,
+        0.75,
+        1.2
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#b08d5a"
+    },
+    {
+      "id": 415,
+      "name": "L3 Cinema front",
+      "type": "box",
+      "position": [
+        54.0,
+        15.0,
+        -17.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        26.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 416,
+      "name": "L3 Cinema front",
+      "type": "box",
+      "position": [
+        54.0,
+        15.0,
+        17.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        26.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 418,
+      "name": "Cinema screens wall",
+      "type": "box",
+      "position": [
+        62.0,
+        15.0,
+        -16.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        27.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 419,
+      "name": "Cinema screens wall",
+      "type": "box",
+      "position": [
+        62.0,
+        15.0,
+        16.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        27.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 420,
+      "name": "L3 outer wall south",
+      "type": "box",
+      "position": [
+        0.0,
+        15.0,
+        -30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        132.6,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 421,
+      "name": "L3 outer wall north",
+      "type": "box",
+      "position": [
+        -48.9,
+        15.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 422,
+      "name": "L3 outer wall north",
+      "type": "box",
+      "position": [
+        0.0,
+        15.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        57.0,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 423,
+      "name": "L3 outer wall north",
+      "type": "box",
+      "position": [
+        48.9,
+        15.0,
+        30.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        34.8,
+        3.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 424,
+      "name": "L3 outer wall west",
+      "type": "box",
+      "position": [
+        -66.15,
+        15.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 425,
+      "name": "L3 outer wall east",
+      "type": "box",
+      "position": [
+        66.15,
+        15.0,
+        0.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        3.4,
+        60.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 426,
+      "name": "Fire stairs west landing G",
+      "type": "box",
+      "position": [
+        -30.0,
+        -0.2,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 427,
+      "name": "Fire stairs west G flight 1",
+      "type": "stairs",
+      "position": [
+        -31.325,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 428,
+      "name": "Fire stairs west half landing G",
+      "type": "box",
+      "position": [
+        -30.0,
+        2.3,
+        38.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 429,
+      "name": "Fire stairs west G flight 2",
+      "type": "stairs",
+      "position": [
+        -28.675,
+        2.5,
+        34.5
+      ],
+      "rotationY": 180.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 430,
+      "name": "Fire stairs west landing L1",
+      "type": "box",
+      "position": [
+        -30.0,
+        4.8,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 431,
+      "name": "Fire stairs west L1 flight 1",
+      "type": "stairs",
+      "position": [
+        -31.325,
+        5.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 432,
+      "name": "Fire stairs west half landing L1",
+      "type": "box",
+      "position": [
+        -30.0,
+        7.3,
+        38.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 433,
+      "name": "Fire stairs west L1 flight 2",
+      "type": "stairs",
+      "position": [
+        -28.675,
+        7.5,
+        34.5
+      ],
+      "rotationY": 180.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 434,
+      "name": "Fire stairs west landing L2",
+      "type": "box",
+      "position": [
+        -30.0,
+        9.8,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 435,
+      "name": "Fire stairs west L2 flight 1",
+      "type": "stairs",
+      "position": [
+        -31.325,
+        10.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 436,
+      "name": "Fire stairs west half landing L2",
+      "type": "box",
+      "position": [
+        -30.0,
+        12.3,
+        38.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 437,
+      "name": "Fire stairs west L2 flight 2",
+      "type": "stairs",
+      "position": [
+        -28.675,
+        12.5,
+        34.5
+      ],
+      "rotationY": 180.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 438,
+      "name": "Fire stairs west landing L3",
+      "type": "box",
+      "position": [
+        -30.0,
+        14.8,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 439,
+      "name": "Fire stairs west core wall",
+      "type": "box",
+      "position": [
+        -30.0,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        16.0,
+        5.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 440,
+      "name": "Fire stairs west wall",
+      "type": "box",
+      "position": [
+        -32.65,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        18.4,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 441,
+      "name": "Fire stairs west wall",
+      "type": "box",
+      "position": [
+        -27.35,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        18.4,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 442,
+      "name": "Fire stairs west wall",
+      "type": "box",
+      "position": [
+        -30.0,
+        0.0,
+        39.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.6,
+        18.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 443,
+      "name": "Fire stairs east landing G",
+      "type": "box",
+      "position": [
+        30.0,
+        -0.2,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 444,
+      "name": "Fire stairs east G flight 1",
+      "type": "stairs",
+      "position": [
+        28.675,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 445,
+      "name": "Fire stairs east half landing G",
+      "type": "box",
+      "position": [
+        30.0,
+        2.3,
+        38.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 446,
+      "name": "Fire stairs east G flight 2",
+      "type": "stairs",
+      "position": [
+        31.325,
+        2.5,
+        34.5
+      ],
+      "rotationY": 180.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 447,
+      "name": "Fire stairs east landing L1",
+      "type": "box",
+      "position": [
+        30.0,
+        4.8,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 448,
+      "name": "Fire stairs east L1 flight 1",
+      "type": "stairs",
+      "position": [
+        28.675,
+        5.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 449,
+      "name": "Fire stairs east half landing L1",
+      "type": "box",
+      "position": [
+        30.0,
+        7.3,
+        38.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 450,
+      "name": "Fire stairs east L1 flight 2",
+      "type": "stairs",
+      "position": [
+        31.325,
+        7.5,
+        34.5
+      ],
+      "rotationY": 180.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 451,
+      "name": "Fire stairs east landing L2",
+      "type": "box",
+      "position": [
+        30.0,
+        9.8,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 452,
+      "name": "Fire stairs east L2 flight 1",
+      "type": "stairs",
+      "position": [
+        28.675,
+        10.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 453,
+      "name": "Fire stairs east half landing L2",
+      "type": "box",
+      "position": [
+        30.0,
+        12.3,
+        38.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 454,
+      "name": "Fire stairs east L2 flight 2",
+      "type": "stairs",
+      "position": [
+        31.325,
+        12.5,
+        34.5
+      ],
+      "rotationY": 180.0,
+      "size": [
+        2.35,
+        2.5,
+        5.0
+      ],
+      "steps": 14,
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 455,
+      "name": "Fire stairs east landing L3",
+      "type": "box",
+      "position": [
+        30.0,
+        14.8,
+        31.0
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.0,
+        0.2,
+        2.0
+      ],
+      "tags": [
+        "walkable"
+      ],
+      "color": "#968a7d"
+    },
+    {
+      "id": 456,
+      "name": "Fire stairs east core wall",
+      "type": "box",
+      "position": [
+        30.0,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        16.0,
+        5.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 457,
+      "name": "Fire stairs east wall",
+      "type": "box",
+      "position": [
+        27.35,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        18.4,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 458,
+      "name": "Fire stairs east wall",
+      "type": "box",
+      "position": [
+        32.65,
+        0.0,
+        34.5
+      ],
+      "rotationY": 0.0,
+      "size": [
+        0.3,
+        18.4,
+        9.0
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    },
+    {
+      "id": 459,
+      "name": "Fire stairs east wall",
+      "type": "box",
+      "position": [
+        30.0,
+        0.0,
+        39.15
+      ],
+      "rotationY": 0.0,
+      "size": [
+        5.6,
+        18.4,
+        0.3
+      ],
+      "tags": [
+        "obstacle"
+      ],
+      "color": "#a8aeb5"
+    }
+  ],
+  "goals": [
+    {
+      "id": 121,
+      "name": "G Pharmacy (north 1)",
+      "area": {
+        "center": [
+          -42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 128,
+      "name": "G Bank (north 2)",
+      "area": {
+        "center": [
+          -16.25,
+          25.0
+        ],
+        "halfExtents": [
+          10.25,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 135,
+      "name": "G Florist (north 3)",
+      "area": {
+        "center": [
+          16.25,
+          25.0
+        ],
+        "halfExtents": [
+          10.25,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 141,
+      "name": "G Phones (north 4)",
+      "area": {
+        "center": [
+          42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 147,
+      "name": "G Bakery (south 5)",
+      "area": {
+        "center": [
+          -41.5,
+          -25.0
+        ],
+        "halfExtents": [
+          10.5,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 153,
+      "name": "G Optician (south 6)",
+      "area": {
+        "center": [
+          -16.5,
+          -25.0
+        ],
+        "halfExtents": [
+          10.5,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 159,
+      "name": "G Newsagent (south 7)",
+      "area": {
+        "center": [
+          16.5,
+          -25.0
+        ],
+        "halfExtents": [
+          10.5,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 165,
+      "name": "G Shoes (south 8)",
+      "area": {
+        "center": [
+          41.5,
+          -25.0
+        ],
+        "halfExtents": [
+          10.5,
+          3.5
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 170,
+      "name": "G Supermarket",
+      "area": {
+        "center": [
+          -60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 179,
+      "name": "G Home store",
+      "area": {
+        "center": [
+          60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 197,
+      "name": "L1 Fashion (north 1)",
+      "area": {
+        "center": [
+          -42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 204,
+      "name": "L1 Fashion (north 2)",
+      "area": {
+        "center": [
+          -14.25,
+          25.0
+        ],
+        "halfExtents": [
+          12.25,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 210,
+      "name": "L1 Shoes (north 3)",
+      "area": {
+        "center": [
+          14.25,
+          25.0
+        ],
+        "halfExtents": [
+          12.25,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 216,
+      "name": "L1 Jewellery (north 4)",
+      "area": {
+        "center": [
+          42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 221,
+      "name": "L1 Fashion (south 5)",
+      "area": {
+        "center": [
+          -40.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 227,
+      "name": "L1 Cosmetics (south 6)",
+      "area": {
+        "center": [
+          -13.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 233,
+      "name": "L1 Kidswear (south 7)",
+      "area": {
+        "center": [
+          13.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 239,
+      "name": "L1 Bags (south 8)",
+      "area": {
+        "center": [
+          40.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 244,
+      "name": "L1 Department store",
+      "area": {
+        "center": [
+          -60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 253,
+      "name": "L1 Electronics",
+      "area": {
+        "center": [
+          60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 5.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 269,
+      "name": "L2 Books (north 1)",
+      "area": {
+        "center": [
+          -42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 276,
+      "name": "L2 Toys (north 2)",
+      "area": {
+        "center": [
+          -14.25,
+          25.0
+        ],
+        "halfExtents": [
+          12.25,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 282,
+      "name": "L2 Homeware (north 3)",
+      "area": {
+        "center": [
+          14.25,
+          25.0
+        ],
+        "halfExtents": [
+          12.25,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 288,
+      "name": "L2 Music (north 4)",
+      "area": {
+        "center": [
+          42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 293,
+      "name": "L2 Outdoor (south 5)",
+      "area": {
+        "center": [
+          -40.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 299,
+      "name": "L2 Games (south 6)",
+      "area": {
+        "center": [
+          -13.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 305,
+      "name": "L2 Lighting (south 7)",
+      "area": {
+        "center": [
+          13.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 311,
+      "name": "L2 Gifts (south 8)",
+      "area": {
+        "center": [
+          40.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 316,
+      "name": "L2 Department store (upper)",
+      "area": {
+        "center": [
+          -60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 325,
+      "name": "L2 Sports",
+      "area": {
+        "center": [
+          60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 10.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 341,
+      "name": "L3 Restaurant (north 1)",
+      "area": {
+        "center": [
+          -42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 348,
+      "name": "L3 Restaurant (north 2)",
+      "area": {
+        "center": [
+          -14.25,
+          25.0
+        ],
+        "halfExtents": [
+          12.25,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 354,
+      "name": "L3 Cafe (north 3)",
+      "area": {
+        "center": [
+          14.25,
+          25.0
+        ],
+        "halfExtents": [
+          12.25,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 360,
+      "name": "L3 Bar (north 4)",
+      "area": {
+        "center": [
+          42.75,
+          25.0
+        ],
+        "halfExtents": [
+          9.25,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 365,
+      "name": "L3 Restaurant (south 5)",
+      "area": {
+        "center": [
+          -40.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 371,
+      "name": "L3 Dessert (south 6)",
+      "area": {
+        "center": [
+          -13.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 377,
+      "name": "L3 Arcade (south 7)",
+      "area": {
+        "center": [
+          13.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 383,
+      "name": "L3 Bowling (south 8)",
+      "area": {
+        "center": [
+          40.5,
+          -25.0
+        ],
+        "halfExtents": [
+          11.5,
+          3.5
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 388,
+      "name": "L3 Food court",
+      "area": {
+        "center": [
+          -60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 417,
+      "name": "L3 Cinema",
+      "area": {
+        "center": [
+          60.0,
+          0.0
+        ],
+        "halfExtents": [
+          3.5,
+          18.0
+        ],
+        "elevation": 15.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 460,
+      "name": "South entrance",
+      "area": {
+        "center": [
+          0.0,
+          -34.0
+        ],
+        "halfExtents": [
+          6.0,
+          2.0
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    },
+    {
+      "id": 461,
+      "name": "North entrance",
+      "area": {
+        "center": [
+          0.0,
+          34.0
+        ],
+        "halfExtents": [
+          6.0,
+          2.0
+        ],
+        "elevation": 0.0
+      },
+      "capacity": 0,
+      "serviceTime": 0.0,
+      "queueDirection": [
+        0.0,
+        -1.0
+      ],
+      "queueSpacing": 0.8
+    }
+  ],
+  "spawners": [
+    {
+      "id": 462,
+      "name": "Arrivals (south)",
+      "area": {
+        "center": [
+          0.0,
+          -41.0
+        ],
+        "halfExtents": [
+          16.0,
+          2.0
+        ],
+        "elevation": 0.0
+      },
+      "rate": 1.4,
+      "total": 0,
+      "startTime": 0.0,
+      "stopTime": null,
+      "goal": 460,
+      "groupSize": [
+        1,
+        1
+      ],
+      "agent": {
+        "agentType": 0,
+        "color": "#4aa3df",
+        "colorJitter": 0.1,
+        "maxAcceleration": 3.0,
+        "maxSpeedFactor": 1.35,
+        "preferredSpeed": [
+          1.0,
+          1.4
+        ],
+        "radius": [
+          0.22,
+          0.27
+        ]
+      },
+      "agentMix": [
+        {
+          "type": "mall_shopper",
+          "weight": 0.72
+        },
+        {
+          "type": "mall_diner",
+          "weight": 0.18
+        },
+        {
+          "type": "mall_moviegoer",
+          "weight": 0.1
+        }
+      ]
+    },
+    {
+      "id": 463,
+      "name": "Arrivals (north)",
+      "area": {
+        "center": [
+          0.0,
+          41.0
+        ],
+        "halfExtents": [
+          16.0,
+          2.0
+        ],
+        "elevation": 0.0
+      },
+      "rate": 0.9,
+      "total": 0,
+      "startTime": 0.0,
+      "stopTime": null,
+      "goal": 461,
+      "groupSize": [
+        1,
+        1
+      ],
+      "agent": {
+        "agentType": 0,
+        "color": "#4aa3df",
+        "colorJitter": 0.1,
+        "maxAcceleration": 3.0,
+        "maxSpeedFactor": 1.35,
+        "preferredSpeed": [
+          1.0,
+          1.4
+        ],
+        "radius": [
+          0.22,
+          0.27
+        ]
+      },
+      "agentMix": [
+        {
+          "type": "mall_shopper",
+          "weight": 0.72
+        },
+        {
+          "type": "mall_diner",
+          "weight": 0.18
+        },
+        {
+          "type": "mall_moviegoer",
+          "weight": 0.1
+        }
+      ]
+    }
+  ],
+  "links": []
+}
