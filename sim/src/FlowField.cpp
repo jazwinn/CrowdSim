@@ -29,7 +29,7 @@ constexpr float kLevelMove = 0.2f;
 }  // namespace
 
 FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<const std::int8_t> climb,
-                         std::span<const std::uint8_t> closed) {
+                         std::span<const std::uint8_t> closed, std::span<const glm::vec2> along) {
     const auto isClosed = [&](std::uint32_t d) { return !closed.empty() && closed[d] != 0; };
     CS_PROFILE_ZONE();
     FlowField f;
@@ -84,6 +84,15 @@ FlowField buildFlowField(const NavMesh& nav, const Area& goalArea, std::span<con
                 const std::int8_t way = climb[p] != 0 ? climb[p] : climb[u];
                 const float rise = cu.y - nav.polyCenter(p).y;
                 if ((way > 0 && rise < -kLevelMove) || (way < 0 && rise > kLevelMove)) {
+                    continue;
+                }
+            }
+            if (!along.empty()) {
+                // On a moving walkway: not against its direction of travel.
+                const glm::vec2 way = along[p] != glm::vec2(0.0f) ? along[p] : along[u];
+                const glm::vec3 cp = nav.polyCenter(p);
+                const glm::vec2 move(cu.x - cp.x, cu.z - cp.z);
+                if (glm::dot(way, way) > 0.0f && glm::dot(move, way) < -0.3f * glm::length(move)) {
                     continue;
                 }
             }

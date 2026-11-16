@@ -534,9 +534,10 @@ bool Simulation::updateNavigation() {
             const Area& area = registry_.get<Goal>(e).area;
             flowFields_.push_back(buildFlowField(navMesh_, area, polyClimb_,
                                                  emergency ? std::span<const std::uint8_t>(polyEmergency_)
-                                                           : std::span<const std::uint8_t>()));
+                                                           : std::span<const std::uint8_t>(),
+                                                 polyAlong_));
             if (emergency) {
-                emergencyFlowFields_.push_back(buildFlowField(navMesh_, area, polyClimb_));
+                emergencyFlowFields_.push_back(buildFlowField(navMesh_, area, polyClimb_, {}, polyAlong_));
             }
         }
         rebuildTreeLookups();  // goal names may have changed

@@ -43,7 +43,9 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   (two sets of flow fields are kept when a scene has any). Other tags (`area:<name>`, `door`, ...)
   are preserved for scripts and metrics.
 - **Escalators**: a `stairs` or `ramp` object tagged `escalator` moves its riders from the low
-  edge to the high edge (`escalator:down` reverses it); `escalator:speed=<m/s>` is the step speed
+  edge to the high edge (`escalator:down` reverses it). A `box` tagged `escalator` is a moving
+  walkway (travelator): flat, it carries riders on its top along its local +Z (`escalator:down`:
+  -Z), with the same lanes, boarding and riding behaviour, and routing never goes against it; `escalator:speed=<m/s>` is the step speed
   along the slope (default 0.5). Escalators are one-way for goal routing (flow fields): nobody is
   sent up a down escalator, so an up/down pair carries one direction each, and only people whose
   route goes onto an escalator line up for it. (Point-to-point paths, `MoveToPoint` and `Wander`,

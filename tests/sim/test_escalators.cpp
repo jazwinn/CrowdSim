@@ -314,3 +314,69 @@ TEST_CASE("Riders stepping off an up escalator do not board the down escalator b
     CHECK_FALSE(rodeDown);
     CHECK(sim.stats().arrived == 8);
 }
+
+TEST_CASE("A box tagged escalator is a moving walkway: carries riders and is one-way") {
+    // A 20 m walkway (travelator) along +z beside a plain floor strip, landings at both ends.
+    auto run = [](bool towardsFar, float& seconds, bool& rodeAgainst) {
+        core::LogService logs{core::LogConfig{.console = false}};
+        core::JobSystem jobs{4};
+        sim::Simulation sim{{logs.logger(), jobs}, sim::SimConfig{}};
+        auto box = [&](glm::vec3 pos, glm::vec3 size, std::vector<std::string> tags) {
+            geometry::PrimitiveDesc d;
+            d.position = pos;
+            d.size = size;
+            sim.addStaticObject(sim::StaticObject{"box", d, {}, {}, std::move(tags)});
+        };
+        box({0.0f, -0.2f, -16.0f}, {8.0f, 0.2f, 12.0f}, {"walkable"});          // near landing
+        box({0.0f, -0.2f, 16.0f}, {8.0f, 0.2f, 12.0f}, {"walkable"});           // far landing
+        box({2.4f, -0.2f, 0.0f}, {3.2f, 0.2f, 20.0f}, {"walkable"});            // walkway beside it
+        box({-1.4f, -0.1f, 0.0f}, {2.4f, 0.1f, 20.0f},                         // the travelator
+            {"walkable", "escalator", "escalator:speed=0.75"});
+        box({0.6f, 0.0f, 0.0f}, {0.2f, 1.0f, 20.0f}, {"obstacle"});            // balustrade between
+
+        sim::BtNodeDesc stand{"SetEscalatorStyle", "style", {}, {}};
+        stand.params["side"].kind = sim::BtParamKind::Text;
+        stand.params["side"].text = "either";
+        stand.params["walk"].number = 0.0f;
+        sim::BtNodeDesc root{"Sequence", "root", {}, {stand, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}},
+                                                      sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+        sim.setBehaviorTree(sim::compileBehaviorTree(root, "stander"));
+        sim::AgentType t;
+        t.name = "stander";
+        t.behaviour = "stander";
+        t.params.radiusMin = t.params.radiusMax = 0.24f;
+        t.params.preferredSpeedMin = t.params.preferredSpeedMax = 1.3f;
+        sim.defineAgentType(t);
+        const float from = towardsFar ? -13.0f : 13.0f;
+        sim::Goal goal;
+        goal.name = "end";
+        goal.area = {{0.0f, -from}, {3.0f, 1.0f}, 0.0f};
+        const sim::SceneId goalId = sim.addGoal(goal);
+        sim::Spawner s;
+        s.name = "start";
+        s.area = {{-1.4f, from}, {0.3f, 0.3f}, 0.0f};
+        s.rate = 5.0f;
+        s.total = 1;
+        s.goal = goalId;
+        s.agentMix = {{"stander", 1.0f}};
+        sim.addSpawner(s);
+        seconds = 0.0f;
+        rodeAgainst = false;
+        for (int step = 0; step < 30 * 120 && sim.stats().arrived == 0; ++step) {
+            sim.step();
+            const auto& a = sim.agents();
+            if (a.size() == 1 && a.position[0].x < 0.0f && std::abs(a.position[0].y) < 9.0f) {
+                seconds += static_cast<float>(sim.stepSeconds());  // on the travelator
+                rodeAgainst = rodeAgainst || !towardsFar;
+            }
+        }
+        CHECK(sim.stats().arrived == 1);
+    };
+    float seconds = 0.0f;
+    bool against = false;
+    run(true, seconds, against);
+    // Standing still, carried 18 m (the middle stretch) at 0.75 m/s: about 24 s.
+    CHECK(seconds == doctest::Approx(18.0f / 0.75f).epsilon(0.15));
+    run(false, seconds, against);
+    CHECK_FALSE(against);  // the other way round they walk beside it, not against the belt
+}

@@ -16,6 +16,9 @@
 // Object tags (besides "escalator"):
 //   escalator:speed=<m/s>   step speed along the slope (default 0.5)
 //   escalator:down          travel from the top edge to the bottom edge
+//
+// A `box` tagged "escalator" is a moving walkway (travelator): flat, carrying riders
+// along its local +Z (local -Z with escalator:down) on its top face.
 
 #include <algorithm>
 #include <charconv>
@@ -37,6 +40,7 @@ constexpr float kApproachLength = 10.0f;  ///< m before the boarding edge where 
 constexpr float kApproachWiden = 3.0f;    ///< extra half-width of the approach funnel, m
 constexpr float kLevelTolerance = 1.0f;   ///< m of height mismatch still counted as on the belt
 constexpr float kBoardWindow = 1.2f;      ///< m before the edge where boarding rules apply
+constexpr float kFlatRise = 0.5f;         ///< m of rise below which a belt counts as flat (a moving walkway)
 
 // EscalatorRider::side values.
 constexpr std::int8_t kLeft = -1;
@@ -107,7 +111,8 @@ void Simulation::rebuildEscalators() {
             continue;
         }
         const geometry::PrimitiveDesc& p = o.primitive;
-        if (p.kind != geometry::PrimitiveKind::Stairs && p.kind != geometry::PrimitiveKind::Ramp) {
+        const bool flat = p.kind == geometry::PrimitiveKind::Box;
+        if (p.kind != geometry::PrimitiveKind::Stairs && p.kind != geometry::PrimitiveKind::Ramp && !flat) {
             continue;
         }
         // Local +Z (up-slope) in world space; see geometry::MeshBuilder::toWorld.
@@ -124,9 +129,11 @@ void Simulation::rebuildEscalators() {
         e.right = glm::vec2(e.forward.y, -e.forward.x);  // +Z facing: +X is on the right
         e.length = p.size.z;
         e.halfWidth = 0.5f * p.size.x;
-        e.entryHeight = down ? p.position.y + p.size.y : p.position.y;
-        e.exitHeight = down ? p.position.y : p.position.y + p.size.y;
-        const float slope = std::sqrt(p.size.z * p.size.z + p.size.y * p.size.y);
+        const float low = p.position.y;
+        const float high = p.position.y + p.size.y;
+        e.entryHeight = flat ? high : (down ? high : low);  // a walkway carries on its top face
+        e.exitHeight = flat ? high : (down ? low : high);
+        const float slope = flat ? p.size.z : std::sqrt(p.size.z * p.size.z + p.size.y * p.size.y);
         e.beltSpeed = tagNumber(o.tags, "speed", 0.5f) * p.size.z / std::max(slope, 0.01f);
         // Keep both lanes inside the walkable strip: Recast erodes the navmesh by the
         // agent radius rounded up to whole cells plus about one more cell where the
@@ -139,8 +146,11 @@ void Simulation::rebuildEscalators() {
     }
 
     // Escalators are one-way: flow fields never route people against the steps, so
-    // up and down escalators side by side each carry their own direction.
+    // up and down escalators side by side each carry their own direction. Sloped ones
+    // by height (no going down an up escalator); flat ones (moving walkways) by the
+    // direction of travel.
     polyClimb_.assign(escalators_.empty() ? 0 : navMesh_.polyCount(), 0);
+    polyAlong_.assign(polyClimb_.size(), glm::vec2(0.0f));
     for (std::uint32_t d = 0; d < polyClimb_.size(); ++d) {
         if (navMesh_.isOffMeshConnection(d)) {
             continue;
@@ -148,9 +158,14 @@ void Simulation::rebuildEscalators() {
         const glm::vec3 c = navMesh_.polyCenter(d);
         for (const Escalator& e : escalators_) {
             const Local q = toLocal(e, glm::vec2(c.x, c.z));
-            if (q.s >= 0.0f && q.s <= e.length && std::abs(q.l) <= e.halfWidth + 0.3f &&
-                std::abs(c.y - floorHeight(e, q.s)) < kLevelTolerance) {
-                polyClimb_[d] = e.exitHeight > e.entryHeight ? 1 : -1;
+            const bool isFlat = std::abs(e.exitHeight - e.entryHeight) < kFlatRise;
+            if (q.s >= 0.0f && q.s <= e.length && std::abs(q.l) <= e.halfWidth + (isFlat ? 0.0f : 0.3f) &&
+                std::abs(c.y - floorHeight(e, q.s)) < (isFlat ? 0.3f : kLevelTolerance)) {
+                if (isFlat) {
+                    polyAlong_[d] = e.forward;
+                } else {
+                    polyClimb_[d] = e.exitHeight > e.entryHeight ? 1 : -1;
+                }
                 break;
             }
         }

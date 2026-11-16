@@ -11,6 +11,7 @@
 #include <span>
 #include <vector>
 
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include "crowdsim/sim/NavMesh.hpp"
@@ -36,8 +37,11 @@ struct FlowField {
 /// `climb` (optional, one entry per dense polygon) makes polygons one-way in height:
 /// +1 = moves into or out of it may only go up (an up escalator), -1 = only down,
 /// 0 = either way. `closed` (optional, per dense polygon) leaves polygons out entirely.
+/// `along` (optional, per dense polygon) makes flat polygons one-way in direction (a
+/// moving walkway): moves into or out of one may not go against it; zero = either way.
 [[nodiscard]] FlowField buildFlowField(const NavMesh& nav, const Area& goalArea,
                                        std::span<const std::int8_t> climb = {},
-                                       std::span<const std::uint8_t> closed = {});
+                                       std::span<const std::uint8_t> closed = {},
+                                       std::span<const glm::vec2> along = {});
 
 }  // namespace crowdsim::sim

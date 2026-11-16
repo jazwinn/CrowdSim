@@ -457,6 +457,7 @@ private:
     std::vector<TaggedVolume> taggedVolumes_;
     std::vector<Escalator> escalators_;
     std::vector<std::int8_t> polyClimb_;  ///< per dense polygon: +1 on an up escalator, -1 down
+    std::vector<glm::vec2> polyAlong_;    ///< per dense polygon: direction of a moving walkway, else 0
 };
 
 }  // namespace crowdsim::sim
