@@ -283,7 +283,9 @@ bool NavMesh::build(const geometry::TriangleMesh& mesh, std::span<const OffMeshL
         glm::vec3 n(e0.y * e1.z - e0.z * e1.y, e0.z * e1.x - e0.x * e1.z, e0.x * e1.y - e0.y * e1.x);
         const float len = std::sqrt(n.x * n.x + n.y * n.y + n.z * n.z);
         const float ny = len > 0.0f ? n.y / len : 0.0f;
-        const std::uint8_t flags = t < mesh.triangleFlags.size() ? mesh.triangleFlags[t] : geometry::kSurfaceWalkable;
+        const std::uint8_t flags = t < mesh.triangleFlags.size()
+                                       ? mesh.triangleFlags[t]
+                                       : static_cast<std::uint8_t>(geometry::kSurfaceWalkable);
         const bool walkable = (flags & geometry::kSurfaceWalkable) != 0 && (flags & geometry::kSurfaceObstacle) == 0;
         in.areas[t] = walkable && ny > walkableCos ? RC_WALKABLE_AREA : RC_NULL_AREA;
         in.triMinX[t] = std::min({a.x, b.x, c.x});
