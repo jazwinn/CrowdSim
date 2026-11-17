@@ -3,7 +3,7 @@
 /// @file SceneReflection.hpp
 /// Reflection descriptors for the scene description types (see reflect/Reflect.hpp): the
 /// one place that says how each is saved in *.scene.json (docs/formats.md), how it is
-/// validated and how the editor shows it. Keys and units match the file format, which is
+/// validated and how the editor shows it. Agent type files (*.agent.json) are described here too. Keys and units match the file format, which is
 /// why some differ from the member names (rotationY is saved in degrees, flags as tags).
 
 #include <stdexcept>
@@ -90,6 +90,21 @@ CROWDSIM_REFLECT(crowdsim::sim::BodyParams,
     check<T>([](const T& b) {
         if (b.core >= 1.0f) {
             throw crowdsim::reflect::FieldError("core", "must be below 1");
+        }
+    }))
+
+// An agent type file (*.agent.json) holds the body parameters inline, beside the type's own
+// fields; `agentType` (a spawner's default type) means nothing there.
+CROWDSIM_REFLECT(crowdsim::sim::AgentType,
+    field("name", &T::name).tip("Referred to by spawners' agent mixes"),
+    field("behaviour", &T::behaviour).widget("behaviour").tip("Behaviour tree the agents run"),
+    field("params", &T::params).flatten("agentType"),
+    field("personalSpace", &T::personalSpace).atLeast(0).unit("m").tip("Space kept around the body in avoidance"),
+    field("height", &T::height).above(0.5).unit("m").tip("Body height (drawing, eye height)"),
+    field("tags", &T::tags).tip("Free tags for scripts and metrics"),
+    check<T>([](const T& t) {
+        if (t.name.empty()) {
+            throw crowdsim::reflect::FieldError("name", "an agent type needs a name");
         }
     }))
 

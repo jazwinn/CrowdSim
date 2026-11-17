@@ -218,6 +218,8 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "maxSpeedFactor, maxAcceleration, personalSpace, height, color, colorJitter, tags}.",
             schema({{"type", object("agent type fields")}}, {"type"}), "DefineAgentType");
     command("agent_type_list", "All agent types with their parameters.", schema(), "ListAgentTypes");
+    command("agent_type_save", "Write an agent type to its content file (agents/*.agent.json).",
+            schema({{"name", str("agent type name")}}, {"name"}), "SaveAgentType");
     command("agents_spawn", "Spawn agents in an area now (one-shot spawner). Returns the spawner id.",
             schema({{"count", integer("agents")},
                     {"area", object("{center:[x,z], halfExtents:[x,z], elevation}")},
@@ -345,6 +347,10 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "How well each attention target (objects tagged `attention`: ads, signs, exits...) is seen: opportunity to see, viewability, noticing, dwell, "
             "glances, viewing angle and angular size, from each person's simulated gaze. Run the simulation first.",
             schema(), "GetAttentionMetrics");
+    command("attention_set",
+            "Change attention model settings (only the keys given; attention_get lists them under params). "
+            "Clears the attention record.",
+            schema({{"params", object("settings to change")}}, {"params"}), "SetAttentionParams");
     server.addTool({"metrics_get",
                     "Metrics summary: counts, per-goal arrivals, agents by type/state, speed and density "
                     "statistics, gate counts and flow rates, time-to-goal distribution, stuck agents.",

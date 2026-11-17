@@ -13,10 +13,12 @@
 #include <vector>
 
 #include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/SceneReflection.hpp"
 #include "crowdsim/assets/SceneSerializer.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
+#include "crowdsim/metrics/AttentionModel.hpp"
 #include "crowdsim/reflect/Reflect.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
@@ -153,4 +155,36 @@ TEST_CASE("Every content scene saves, reloads and saves again to the same docume
         ++scenes;
     }
     CHECK(scenes > 5);
+}
+
+TEST_CASE("Every content agent type saves, reloads and saves again to the same document") {
+    const std::filesystem::path root = CROWDSIM_CONTENT_DIR;
+    int types = 0;
+    for (const auto& entry : std::filesystem::directory_iterator(root / "agents")) {
+        CAPTURE(entry.path().filename().string());
+        std::ifstream in(entry.path());
+        const sim::AgentType type = assets::agentTypeFromJson(Json::parse(in));
+        const Json saved = assets::toJson(type);
+        CHECK(saved["format"] == "crowdsim.agent");
+        CHECK_FALSE(saved.contains("agentType"));  // a spawner setting, left out of agent files
+        CHECK(saved.contains("radius"));           // body parameters sit beside the type's fields
+        CHECK(assets::toJson(assets::agentTypeFromJson(saved)) == saved);
+        ++types;
+    }
+    CHECK(types > 5);
+    CHECK_THROWS_WITH((void)assets::agentTypeFromJson(Json{{"name", "x"}, {"height", 0.2}}),
+                      "height: must be above 0.5");
+}
+
+TEST_CASE("Attention settings are described and checked") {
+    metrics::AttentionParams p;
+    const Json j = reflect::toJson(p);
+    CHECK(j["fieldHalfAngle"] == 60.0);
+    CHECK(j.size() == 19);
+    reflect::fromJson(Json{{"glanceRate", 1.2}}, p);
+    CHECK(p.glanceRate == doctest::Approx(1.2));
+    CHECK(p.fieldHalfAngle == 60.0f);  // untouched
+    CHECK_THROWS_WITH(reflect::fromJson(Json{{"glanceMin", 3}, {"glanceMax", 1}}, p), "glanceMax: must be at least glanceMin");
+    CHECK_THROWS_WITH(reflect::fromJson(Json{{"fieldHalfAngle", 120}}, p),
+                      "fieldHalfAngle: must be at least 10 and at most 90");
 }

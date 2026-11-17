@@ -49,11 +49,11 @@ stderr, so stdout carries only protocol messages in stdio mode.
 | Area | Tools |
 |---|---|
 | Scene | `scene_new`, `scene_load`, `scene_save`, `scene_describe`, `object_place`, `object_update`, `object_delete`, `group_create`, `entity_set_parent`, `entity_set_hidden`, `gltf_import`, `navmesh_rebuild`, `link_create` |
-| Crowd | `goal_create`, `goal_update`, `spawner_create`, `spawner_update`, `agent_type_define`, `agent_type_list`, `agents_spawn`, `agents_query` |
+| Crowd | `goal_create`, `goal_update`, `spawner_create`, `spawner_update`, `agent_type_define`, `agent_type_list`, `agent_type_save`, `agents_spawn`, `agents_query` |
 | Behaviour | `bt_list`, `bt_get`, `bt_set`, `bt_validate`, `bt_node_types` |
 | Scripting | `script_list`, `script_get`, `script_write`, `script_reload`, `script_eval` |
 | Simulation | `sim_play`, `sim_pause`, `sim_step`, `sim_run_for`, `sim_reset`, `sim_set_params` |
-| Analysis | `metrics_get`, `attention_get`, `heatmap_get`, `gate_add`, `recording_start`, `recording_stop`, `recording_export`, `metrics_export` |
+| Analysis | `metrics_get`, `attention_get`, `attention_set`, `heatmap_get`, `gate_add`, `recording_start`, `recording_stop`, `recording_export`, `metrics_export` |
 | Logs | `log_tail`, `errors_get` |
 | Vision (editor only) | `screenshot` (PNG; optional camera `{target:[x,z], distance, yaw, pitch}`) |
 | Video (editor only) | `video_start` (`fps`, `seconds`, `name`), `video_stop`: the 3D view without UI as an MJPEG `.avi` in `content/recordings` (`recording_*` are the trajectory tools) |

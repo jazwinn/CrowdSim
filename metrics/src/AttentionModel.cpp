@@ -495,17 +495,7 @@ Json AttentionModel::summary() const {
     }
     return Json{{"targets", targets},
                 {"agentsSeen", gaze_.size()},
-                {"params",
-                 {{"fovealHalfAngle", params.fovealHalfAngle},
-                  {"fieldHalfAngle", params.fieldHalfAngle},
-                  {"peripheralHalfAngle", params.peripheralHalfAngle},
-                  {"gazePitch", params.gazePitch},
-                  {"maxHeadYaw", params.maxHeadYaw},
-                  {"viewableShare", params.viewableShare},
-                  {"viewableSeconds", params.viewableSeconds},
-                  {"noticeSeconds", params.noticeSeconds},
-                  {"readableAngle", params.readableAngle},
-                  {"minAngularSize", params.minAngularSize}}}};
+                {"params", reflect::toJson(params)}};
 }
 
 void AttentionModel::exportCsv(const std::filesystem::path& perTarget, const std::filesystem::path& perViewer) const {
@@ -580,6 +570,22 @@ void registerAttentionCommands(commands::CommandRegistry& r, AttentionModel& mod
                return out;
            },
            false});
+    r.add({"SetAttentionParams",
+           "Change the attention model's settings (merge: only the keys given). Clears the attention record, "
+           "since counts under different settings do not add up.",
+           Json{{"type", "object"},
+                {"properties", {{"params", {{"type", "object"}, {"description", "settings to change (GetAttentionMetrics lists them)"}}}}},
+                {"required", Json::array({"params"})}},
+           [&model](const Json& p, CommandContext&) {
+               AttentionParams next = model.params;
+               reflect::fromJson(p.at("params"), next);  // validates; throws before anything changes
+               CommandOutput out;
+               out.undo = commands::makeCommand("SetAttentionParams", Json{{"params", reflect::toJson(model.params)}});
+               out.label = "Attention settings";
+               model.params = next;
+               model.reset();
+               return out;
+           }});
     r.add({"ResetAttentionMetrics", "Clear the attention record and start counting again from now.", noParams,
            [&model](const Json&, CommandContext&) {
                model.reset();

@@ -12,6 +12,7 @@ crowdsim_add_library(metrics
     CrowdSim::physics
     CrowdSim::assets
     CrowdSim::commands
+    CrowdSim::reflect
     glm::glm
     nlohmann_json::nlohmann_json
 )

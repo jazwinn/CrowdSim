@@ -40,6 +40,8 @@ CROWDSIM_REFLECT(crowdsim::sim::Goal,
 - The file format did not change: every content scene saves byte-for-byte as before (checked
   against the previous serializer), and a test round-trips every scene.
 - A new field is one line in the descriptor; it is saved, read, validated and shown.
+- Agent type files are described too (the body parameters inline with `flatten`), and edited
+  in the Inspector from the Scene panel's Lists view; the attention model's settings are
+  described beside the model and edited in the Attention panel (`SetAttentionParams`).
 - Behaviour tree node parameters keep their own table (`kNodeTypes`), which already drives
-  validation and the node editor; agent type files and the attention parameters are not yet
-  described and can move over the same way.
+  validation and the node editor.

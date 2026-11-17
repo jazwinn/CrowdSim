@@ -36,6 +36,7 @@
 #include <glm/vec3.hpp>
 #include <nlohmann/json.hpp>
 
+#include "crowdsim/reflect/Reflect.hpp"
 #include "crowdsim/sim/Environment.hpp"
 #include "crowdsim/sim/ScriptHooks.hpp"
 
@@ -166,3 +167,43 @@ private:
 void registerAttentionCommands(commands::CommandRegistry& registry, AttentionModel& targets);
 
 }  // namespace crowdsim::metrics
+
+CROWDSIM_REFLECT(crowdsim::metrics::AttentionParams,
+    field("evaluationHz", &T::evaluationHz).between(1, 30).unit("/s").label("Gaze updates").tip(
+        "How often each person's gaze is evaluated"),
+    field("eyeHeight", &T::eyeHeight).between(0.5, 1).label("Eye height").tip("Eye height as a share of body height"),
+    field("gazePitch", &T::gazePitch).between(-60, 30).unit("deg").tip(
+        "Head pitch while walking (negative: looking down at the footing)"),
+    field("phonePitch", &T::phonePitch).between(-90, 0).unit("deg").tip("Head pitch while looking at a phone"),
+    field("fovealHalfAngle", &T::fovealHalfAngle).between(1, 30).unit("deg").label("Central cone").tip(
+        "Half-angle of central (foveal) vision, used for reading and dwell"),
+    field("fieldHalfAngle", &T::fieldHalfAngle).between(10, 90).unit("deg").label("Field of view").tip(
+        "Half-angle of the field of view used for viewability"),
+    field("peripheralHalfAngle", &T::peripheralHalfAngle).between(10, 110).unit("deg").label("Periphery").tip(
+        "Half-angle of peripheral vision: what can draw a glance"),
+    field("maxHeadYaw", &T::maxHeadYaw).between(0, 90).unit("deg").label("Head turn").tip(
+        "How far the head turns from the walking direction to look at something"),
+    field("glanceRate", &T::glanceRate).atLeast(0).unit("/s").tip(
+        "Glances per second at a fully salient, large target alone in view (scaled by interest)"),
+    field("glanceMin", &T::glanceMin).above(0).unit("s").label("Glance min").tip("Shortest glance"),
+    field("glanceMax", &T::glanceMax).above(0).unit("s").label("Glance max").tip("Longest glance"),
+    field("phoneEpisode", &T::phoneEpisode).above(0).unit("s").label("Phone stretch").tip(
+        "Mean time spent looking at a phone at a stretch"),
+    field("viewableShare", &T::viewableShare).between(0, 1).tip(
+        "Share of a target that must be visible to count as viewable (industry standard: 0.5)"),
+    field("viewableSeconds", &T::viewableSeconds).atLeast(0).unit("s").tip(
+        "Continuous time visible to count as viewable (industry standard: 1 s)"),
+    field("noticeSeconds", &T::noticeSeconds).atLeast(0).unit("s").tip(
+        "Fixation time, at a readable angle and size, that counts as noticed"),
+    field("readableAngle", &T::readableAngle).between(0, 90).unit("deg").tip(
+        "Viewing angles steeper than this distort a target too much to read"),
+    field("minAngularSize", &T::minAngularSize).atLeast(0).unit("%").label("Readable size").tip(
+        "Share of the field of view below which a target is too small to read"),
+    field("defaultRange", &T::defaultRange).above(0).unit("m").tip("Zone of a target without attention:range"),
+    field("defaultSalience", &T::defaultSalience).between(0, 1).tip(
+        "How eye-catching a target without attention:salience is"),
+    check<T>([](const T& p) {
+        if (p.glanceMax < p.glanceMin) {
+            throw crowdsim::reflect::FieldError("glanceMax", "must be at least glanceMin");
+        }
+    }))

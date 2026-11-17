@@ -464,6 +464,41 @@ void registerBuiltinCommands(CommandRegistry& r) {
            },
            false});
 
+    r.add({"SaveAgentType",
+           "Write an agent type to its content file (the agents/*.agent.json that defines it, else "
+           "agents/<name>.agent.json). The file watcher reloads it.",
+           obj({{"name", str("agent type name")}}, {"name"}),
+           [](const Json& p, CommandContext& ctx) {
+               const std::string name = p.at("name").get<std::string>();
+               const sim::AgentType* type = ctx.sim.findAgentType(name);
+               if (type == nullptr) {
+                   throw std::invalid_argument("unknown agent type '" + name + "'");
+               }
+               CommandOutput out;
+               if (!ctx.replaying) {
+                   // Keep the file the type came from, whatever it is called.
+                   std::filesystem::path file = ctx.assets.resolve("agents/" + name + ".agent.json");
+                   std::error_code ec;
+                   for (const auto& e : std::filesystem::directory_iterator(ctx.assets.resolve("agents"), ec)) {
+                       if (!e.path().string().ends_with(".agent.json")) {
+                           continue;
+                       }
+                       std::ifstream in(e.path(), std::ios::binary);
+                       const Json doc = Json::parse(in, nullptr, false);
+                       if (!doc.is_discarded() && doc.is_object() && doc.value("name", std::string()) == name) {
+                           file = e.path();
+                           break;
+                       }
+                   }
+                   std::filesystem::create_directories(file.parent_path());
+                   std::ofstream(file, std::ios::binary) << assets::toJson(*type).dump(2) << '\n';
+                   out.result = Json{{"path", ctx.assets.relativize(file)}};
+                   ctx.log.info("Saved agent type '{}' to {}", name, file.string());
+               }
+               return out;
+           },
+           false});
+
     r.add({"ListAgentTypes", "Agent types with their behaviour and parameters.", obj({}),
            [](const Json&, CommandContext& ctx) {
                CommandOutput out;

@@ -260,6 +260,7 @@ every command with its JSON Schema.
 | `GetBehaviorTree` | no | A tree as a document: the file (with editor layout) when it matches the tree in use, else the live tree. |
 | `SaveBehaviorTree` | no | Validate and write `content/behaviours/<name>.bt.json`. |
 | `DefineAgentType` | yes | Add or replace an agent type from `*.agent.json` content. |
+| `SaveAgentType` | no | Write an agent type (`name`) to the `content/agents/*.agent.json` that defines it (else `<name>.agent.json`). |
 | `ListAgentTypes` / `ListBehaviorTrees` | no | Agent types with parameters; trees with node and agent counts. |
 | `QueryAgents` | no | Count agents by type / state / behaviour / area and list an evenly spaced sample. |
 | `SpawnAgents` | yes | Spawn N agents in an area now (a one-shot spawner). |
@@ -277,6 +278,7 @@ every command with its JSON Schema.
 | `GetAttentionMetrics` | no | How well each attention target is seen (see Attention targets above): `{targets: [{id, name, salience, ots, viewable, viewabilityRate, noticed, noticeRate, glances, dwellSeconds, meanDwellPerOts, meanDwellPerViewer, medianDwellPerViewer, visibleSeconds, meanAngularSize, meanViewingAngle, steepShare, smallShare}], agentsSeen, params}` (rates and shares in %). |
 | `ExportAttentionMetrics` | no | Write the attention report (`path`, default `recordings/attention.csv`) and one row per agent and target seen (`viewersPath`, default `recordings/attention_viewers.csv`). |
 | `ResetAttentionMetrics` | yes | Clear the attention record and start counting again. |
+| `SetAttentionParams` | yes | Change attention model settings (`params`: only the keys given; `GetAttentionMetrics` lists them, the Attention panel's Settings edits them). Clears the attention record. |
 | `RebuildNavmesh` | yes | Rebuild navmesh + flow fields now; returns polygon/tile/wall counts. |
 | `SetNavigationSettings` | yes | Change navmesh build settings. |
 | `SetSimParams` | yes | Locomotion parameters and/or seed. |

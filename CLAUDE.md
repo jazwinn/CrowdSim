@@ -35,8 +35,9 @@ tick in `Simulation::tickNode` (`sim/src/Decisions.cpp`) by setting per-agent st
 table in `docs/formats.md`, and test it in `tests/`. The node editor, MCP and Lua pick it up
 from the table. Prefer Lua custom nodes (`docs/scripting.md`) for one-off experiments.
 
-When adding a field to a scene type (object, link, goal, spawner, agent parameters,
-navigation, bodies), add it to the type's descriptor in `assets/include/crowdsim/assets/SceneReflection.hpp`
+When adding a field to a scene type (object, link, goal, spawner, agent type, agent
+parameters, navigation, bodies), add it to the type's descriptor in `assets/include/crowdsim/assets/SceneReflection.hpp`
+(observer settings such as `AttentionParams` are described beside their observer)
 (key, limits, unit, tooltip): saving, loading, validation and the Inspector follow from it
 (`reflect/Reflect.hpp`, ADR 0014). Do not hand-write JSON or Inspector code for one field.
 

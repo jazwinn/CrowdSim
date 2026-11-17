@@ -17,7 +17,8 @@
 ///   `range(key, &T::lo, &T::hi)` saves two members as `[lo, hi]` (or one number for both).
 /// - Field options: `label`, `tip`, `unit`, `atLeast`/`above`/`atMost`/`between`, `scale` (saved and shown
 ///   value = stored x scale; `degrees()` for radians), `color()` ("#rrggbb"),
-///   `infinityAsNull()`, `lowercase()` (enum names), `widget(name)` (an editor-supplied
+///   `infinityAsNull()`, `lowercase()` (enum names), `flatten(omit)` (a nested type saved
+///   inline), `widget(name)` (an editor-supplied
 ///   widget), `required()`, `hidden()` (saved, not shown) and `when(predicate)` (saved and shown only
 ///   when it holds; fields are read in order, so the predicate may use earlier fields).
 /// - `check(fn)` runs after a type is read, for rules across fields; it throws
@@ -105,6 +106,8 @@ struct Meta {
     bool lowercase = false;  ///< enum names saved in lower case
     bool hidden = false;     ///< saved, not shown in the editor
     bool required = false;   ///< reading fails when the key is absent
+    bool flatten = false;    ///< a described type saved inline: its keys sit beside the owner's
+    const char* omit = nullptr;  ///< with flatten: a key of the inner type left out
 
     [[nodiscard]] bool bounded() const noexcept { return std::isfinite(min) || std::isfinite(max); }
 };
@@ -407,6 +410,13 @@ struct Property {
         p.meta.lowercase = true;
         return p;
     }
+    /// Save a described member inline, its keys beside the owner's, optionally without `omitKey`.
+    [[nodiscard]] Property flatten(const char* omitKey = nullptr) const {
+        Property p = *this;
+        p.meta.flatten = true;
+        p.meta.omit = omitKey;
+        return p;
+    }
     [[nodiscard]] Property required() const {
         Property p = *this;
         p.meta.required = true;
@@ -487,6 +497,16 @@ Json toJson(const T& value) {
     forEachField<T>([&](const auto& f) {
         if (f.active(value)) {
             using V = typename std::remove_cvref_t<decltype(f)>::Value;
+            if constexpr (Reflected<V>) {
+                if (f.meta.flatten) {
+                    Json inner = toJson(f.get(value));
+                    if (f.meta.omit != nullptr) {
+                        inner.erase(f.meta.omit);
+                    }
+                    j.update(inner);
+                    return;
+                }
+            }
             j[f.key] = Codec<V>::encode(f.get(value), f.meta);
         }
     });
@@ -512,6 +532,19 @@ void fromJson(const Json& j, T& value) {
         if (!f.active(value)) {
             return;
         }
+        using V = typename std::remove_cvref_t<decltype(f)>::Value;
+        if constexpr (Reflected<V>) {
+            if (f.meta.flatten) {
+                Json inner = j;
+                if (f.meta.omit != nullptr) {
+                    inner.erase(f.meta.omit);
+                }
+                V v = f.get(value);
+                fromJson(inner, v);
+                f.set(value, std::move(v));
+                return;
+            }
+        }
         const auto it = j.find(f.key);
         if (it == j.end()) {
             if (f.meta.required) {
@@ -519,7 +552,6 @@ void fromJson(const Json& j, T& value) {
             }
             return;
         }
-        using V = typename std::remove_cvref_t<decltype(f)>::Value;
         V v = f.get(value);
         try {
             readValue(*it, v, f.meta);

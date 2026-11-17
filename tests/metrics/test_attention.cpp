@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 
+#include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/commands/Command.hpp"
+#include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/geometry/Primitives.hpp"
@@ -129,4 +132,33 @@ TEST_CASE("SetAttention validates its parameters") {
     sim::BtNodeDesc tooMuch{"SetAttention", "a", {}, {}};
     tooMuch.params["phone"].number = 1.5f;
     CHECK_THROWS((void)sim::compileBehaviorTree(tooMuch, "bad"));
+}
+
+TEST_CASE("SetAttentionParams changes only the settings given, checks them and can be undone") {
+    core::LogService logs{core::LogConfig{.console = false}};
+    core::JobSystem jobs{2};
+    sim::Simulation sim{{logs.logger(), jobs}, sim::SimConfig{}};
+    assets::AssetLibrary library{logs.logger(), CROWDSIM_CONTENT_DIR};
+    commands::SimControl control;
+    std::string sceneName = "test";
+    commands::CommandContext ctx{sim, library, control, logs.logger(), sceneName};
+    commands::CommandRegistry registry;
+    commands::CommandDispatcher dispatcher{registry};
+    physics::JoltRuntime runtime;
+    auto world = physics::createJoltPhysicsWorld(runtime, logs.logger());
+    metrics::AttentionModel model(sim, jobs, *world);
+    metrics::registerAttentionCommands(registry, model);
+
+    auto set = [&](nlohmann::json params) {
+        return dispatcher.execute(commands::makeCommand("SetAttentionParams", {{"params", std::move(params)}}), ctx);
+    };
+    REQUIRE(set({{"fieldHalfAngle", 45}}).ok);
+    CHECK(model.params.fieldHalfAngle == 45.0f);
+    CHECK(model.params.fovealHalfAngle == 7.5f);  // untouched
+    const commands::CommandOutcome bad = set({{"fovealHalfAngle", 0}});
+    CHECK_FALSE(bad.ok);
+    CHECK(bad.error.find("fovealHalfAngle") != std::string::npos);
+    CHECK(model.params.fovealHalfAngle == 7.5f);  // nothing changed
+    REQUIRE(dispatcher.undo(ctx).ok);
+    CHECK(model.params.fieldHalfAngle == 60.0f);
 }

@@ -1,5 +1,7 @@
 #include "crowdsim/assets/BehaviorJson.hpp"
 
+#include "crowdsim/assets/SceneReflection.hpp"
+
 #include <format>
 #include <stdexcept>
 
@@ -154,30 +156,14 @@ sim::AgentType agentTypeFromJson(const Json& doc) {
         throw std::invalid_argument("not a crowdsim.agent document");
     }
     sim::AgentType t;
-    t.name = doc.value("name", std::string());
-    if (t.name.empty()) {
-        throw std::invalid_argument("agent type needs a \"name\"");
-    }
-    t.behaviour = doc.value("behaviour", std::string("commuter"));
-    t.params = agentParamsFromJson(doc);
-    t.personalSpace = doc.value("personalSpace", t.personalSpace);
-    t.height = doc.value("height", t.height);
-    if (doc.contains("tags")) {
-        t.tags = doc["tags"].get<std::vector<std::string>>();
-    }
-    if (t.personalSpace < 0.0f || t.height <= 0.5f) {
-        throw std::invalid_argument("personalSpace must be >= 0 and height > 0.5");
-    }
+    reflect::fromJson(doc, t);  // fields: assets/SceneReflection.hpp
     return t;
 }
 
 Json toJson(const sim::AgentType& type) {
-    Json j{{"format", "crowdsim.agent"}, {"version", 1}, {"name", type.name}, {"behaviour", type.behaviour}};
-    j.update(toJson(type.params));
-    j.erase("agentType");
-    j["personalSpace"] = roundFloat(type.personalSpace);
-    j["height"] = roundFloat(type.height);
-    j["tags"] = type.tags;
+    Json j = reflect::toJson(type);
+    j["format"] = "crowdsim.agent";
+    j["version"] = 1;
     return j;
 }
 
