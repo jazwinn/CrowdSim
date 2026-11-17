@@ -18,6 +18,7 @@
 #include "crowdsim/assets/SceneSections.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/core/JobSystem.hpp"
+#include "crowdsim/core/Parse.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
@@ -52,7 +53,7 @@ float tagNumber(const std::vector<std::string>& tags, std::string_view key, floa
         if (t.starts_with(key) && t.size() > key.size() && t[key.size()] == '=') {
             float v = fallback;
             const char* b = t.data() + key.size() + 1;
-            if (std::from_chars(b, t.data() + t.size(), v).ec == std::errc{}) {
+            if (core::parseFloat(b, t.data() + t.size(), v).ok) {
                 return v;
             }
         }

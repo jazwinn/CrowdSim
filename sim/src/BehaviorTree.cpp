@@ -5,6 +5,8 @@
 #include <format>
 #include <stdexcept>
 
+#include "crowdsim/core/Parse.hpp"
+
 namespace crowdsim::sim {
 
 namespace {
@@ -315,8 +317,8 @@ std::vector<float> parseWeights(const std::string& text) {
             break;
         }
         float v = 0.0f;
-        const auto [next, ec] = std::from_chars(p, end, v);
-        if (ec != std::errc{}) {
+        const auto [next, ok] = core::parseFloat(p, end, v);
+        if (!ok) {
             throw std::invalid_argument("weights must be numbers, got \"" + text + "\"");
         }
         w.push_back(v);

@@ -29,6 +29,7 @@
 
 #include <glm/geometric.hpp>
 
+#include "crowdsim/core/Parse.hpp"
 #include "crowdsim/core/Profile.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
@@ -56,7 +57,7 @@ float tagNumber(const std::vector<std::string>& tags, std::string_view key, floa
         if (v.starts_with(prefix)) {
             float out = fallback;
             const std::string_view num = v.substr(prefix.size());
-            if (std::from_chars(num.data(), num.data() + num.size(), out).ec == std::errc{} && out >= 0.0f) {
+            if (core::parseFloat(num.data(), num.data() + num.size(), out).ok && out >= 0.0f) {
                 return out;
             }
         }

@@ -10,6 +10,7 @@
 #include <string>
 
 #include "crowdsim/commands/Command.hpp"
+#include "crowdsim/core/Parse.hpp"
 #include "crowdsim/metrics/Metrics.hpp"
 
 namespace crowdsim::ui {
@@ -110,8 +111,8 @@ void MetricsPanel::readSetting(const char* line) {
         const char* p = s.data() + 7;
         const char* end = s.data() + bar;
         for (float& v : c) {
-            const auto r = std::from_chars(p, end, v);
-            if (r.ec != std::errc{}) {
+            const auto r = core::parseFloat(p, end, v);
+            if (!r.ok) {
                 return;
             }
             p = r.ptr < end ? r.ptr + 1 : end;  // skip the comma

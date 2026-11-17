@@ -24,6 +24,7 @@
 #include "crowdsim/assets/TagCatalog.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
+#include "crowdsim/core/Parse.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 #include "crowdsim/ui/Theme.hpp"
 
@@ -662,7 +663,7 @@ bool SceneEditor::editTags(const char* label, Json& value, const assets::TagCata
             ImGui::SetItemTooltip("Kept as it is. Describe it in content/tags/*.tags.json to explain it here.");
         } else if (m.spec->kind == assets::TagKind::Number) {
             float v = m.spec->defaultValue;
-            std::from_chars(m.value.data(), m.value.data() + m.value.size(), v);
+            (void)core::parseFloat(m.value.data(), m.value.data() + m.value.size(), v);
             const std::string format = "%.2f" + (m.spec->unit.empty() ? std::string() : " " + m.spec->unit);
             ImGui::SetNextItemWidth(width);
             if (ImGui::SliderFloat("##v", &v, m.spec->min, m.spec->max, format.c_str())) {
