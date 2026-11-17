@@ -29,9 +29,14 @@ jobs:
         run: python tools/test_check_global_state.py
       - name: No singletons / mutable globals / mutable statics
         run: python tools/check_global_state.py
+      # Pinned: clang-format output differs between major versions, so CI and local
+      # formatting must use the same one (pip install clang-format==22.1.4).
+      - name: Install clang-format
+        run: pip install clang-format==22.1.4
       - name: clang-format
         run: |
-          find core geometry snapshot sim physics assets commands animation script mcp metrics platform render ui app tests bench -type f \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
+          clang-format --version
+          find core reflect geometry snapshot sim physics assets commands animation script mcp metrics platform render ui app tests bench -type f \( -name '*.hpp' -o -name '*.cpp' \) -print0 \
             | xargs -0 clang-format --dry-run --Werror
 
   build:

@@ -88,5 +88,8 @@ a command: GUI, Lua, MCP and replay share one path) · `animation` · `render` (
 - Conventional Commits, imperative subject, body explains why; no attribution trailers.
   One logical change per commit; push to `origin/main` when a piece of work is done.
 - Comments explain non-obvious reasons, not what the code says.
+- Format with clang-format 22.1.4 (the version CI pins; `pip install clang-format==22.1.4`)
+  before committing; CI's lint job gates every build. Keep `CROWDSIM_REFLECT(...)` blocks
+  inside `// clang-format off` / `on` so each field stays on its own line.
 - Verify before calling something done: build, tests, a headless run or a screenshot, and say
   what was not verified.
