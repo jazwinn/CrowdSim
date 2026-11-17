@@ -1,103 +1,31 @@
 #include "crowdsim/assets/JsonTypes.hpp"
 
 #include <algorithm>
-#include <charconv>
-#include <cmath>
-#include <cstdio>
 #include <format>
-#include <limits>
 #include <stdexcept>
 
 #include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/SceneReflection.hpp"
+
+// Field by field, the scene types are described once in SceneReflection.hpp; this file adds
+// what is not about one value: names a document may leave out, mesh loading, goal references
+// by name, and the entity envelope (kind, id, group, visibility).
 
 namespace crowdsim::assets {
 
 namespace {
 
-constexpr float kDegToRad = 0.017453292519943295f;
-constexpr float kRadToDeg = 57.29577951308232f;
-
-Json vec(glm::vec3 v) {
-    return Json::array({roundFloat(v.x), roundFloat(v.y), roundFloat(v.z)});
-}
-Json vec(glm::vec2 v) {
-    return Json::array({roundFloat(v.x), roundFloat(v.y)});
-}
-
-glm::vec3 vec3From(const Json& j) {
-    if (!j.is_array() || j.size() != 3) {
-        throw std::invalid_argument("expected [x, y, z], got " + j.dump());
-    }
-    return {j[0].get<float>(), j[1].get<float>(), j[2].get<float>()};
-}
-
-glm::vec2 vec2From(const Json& j) {
-    if (!j.is_array() || j.size() != 2) {
-        throw std::invalid_argument("expected [x, z], got " + j.dump());
-    }
-    return {j[0].get<float>(), j[1].get<float>()};
-}
-
-std::string colorString(std::uint32_t abgr) {
-    return std::format("#{:02x}{:02x}{:02x}", abgr & 0xffu, (abgr >> 8) & 0xffu, (abgr >> 16) & 0xffu);
-}
-
-std::uint32_t colorFrom(const Json& j) {
-    const std::string s = j.get<std::string>();
-    std::uint32_t rgb = 0;
-    const char* first = s.data() + 1;
-    const char* last = s.data() + s.size();
-    const auto [ptr, ec] = s.size() == 7 && s[0] == '#' ? std::from_chars(first, last, rgb, 16)
-                                                        : std::from_chars_result{first, std::errc::invalid_argument};
-    if (ec != std::errc{} || ptr != last) {
-        throw std::invalid_argument("expected colour \"#rrggbb\", got \"" + s + "\"");
-    }
-    const std::uint32_t r = (rgb >> 16) & 0xffu;
-    const std::uint32_t g = (rgb >> 8) & 0xffu;
-    const std::uint32_t b = rgb & 0xffu;
-    return 0xff000000u | (b << 16) | (g << 8) | r;
-}
-
-Json rgb(glm::vec3 c) {
-    auto ch = [](float v) { return static_cast<unsigned>(std::lround(std::clamp(v, 0.0f, 1.0f) * 255.0f)); };
-    return std::format("#{:02x}{:02x}{:02x}", ch(c.r), ch(c.g), ch(c.b));
-}
-
-glm::vec3 rgbFrom(const Json& j) {
-    const std::uint32_t abgr = colorFrom(j);
-    return {static_cast<float>(abgr & 0xffu) / 255.0f, static_cast<float>((abgr >> 8) & 0xffu) / 255.0f,
-            static_cast<float>((abgr >> 16) & 0xffu) / 255.0f};
-}
-
-Json flagsToTags(std::uint8_t flags) {
-    Json tags = Json::array();
-    if ((flags & geometry::kSurfaceWalkable) != 0) {
-        tags.push_back("walkable");
-    }
-    if ((flags & geometry::kSurfaceObstacle) != 0) {
-        tags.push_back("obstacle");
-    }
-    return tags;
-}
-
-std::uint8_t tagsToFlags(const Json& tags) {
-    std::uint8_t flags = 0;
-    for (const auto& t : tags) {
-        const std::string tag = t.get<std::string>();
-        if (tag == "walkable") {
-            flags |= geometry::kSurfaceWalkable;
-        } else if (tag == "obstacle") {
-            flags |= geometry::kSurfaceObstacle;
-        }
-        // Other tags (area:<name>, stairs, door...) are kept for scripts/metrics in later milestones.
-    }
-    return flags;
-}
-
 template <typename T>
 T value(const Json& j, const char* key, T fallback) {
     const auto it = j.find(key);
     return it == j.end() || it->is_null() ? fallback : it->get<T>();
+}
+
+/// Read a described type over `base`.
+template <typename T>
+T read(const Json& j, T base = {}) {
+    reflect::fromJson(j, base);
+    return base;
 }
 
 /// Spawners may name their goal ("goal": "Exit") instead of giving its id.
@@ -118,12 +46,7 @@ void resolveGoalReference(const sim::Simulation& sim, Json& spawner) {
 }  // namespace
 
 double roundFloat(float v) {
-    if (!std::isfinite(v)) {
-        return static_cast<double>(v);
-    }
-    char buf[32];
-    std::snprintf(buf, sizeof(buf), "%.6g", static_cast<double>(v));
-    return std::strtod(buf, nullptr);
+    return reflect::roundFloat(v);
 }
 
 const char* entityKindName(EntityKind kind) {
@@ -159,291 +82,84 @@ EntityKind entityKindOf(const sim::Simulation& sim, sim::SceneId id) {
 }
 
 Json toJson(const sim::StaticObject& o) {
-    const geometry::PrimitiveDesc& p = o.primitive;
-    Json j;
-    j["name"] = o.name;
-    j["type"] = std::string(geometry::primitiveKindName(p.kind));
-    j["position"] = vec(p.position);
-    j["rotationY"] = roundFloat(p.rotationY * kRadToDeg);
-    if (p.kind == geometry::PrimitiveKind::Mesh) {
-        j["asset"] = o.meshAsset;
-        j["scale"] = roundFloat(p.size.x);
-    } else {
-        j["size"] = vec(p.size);
-        if (p.kind == geometry::PrimitiveKind::Stairs) {
-            j["steps"] = p.steps;
-        }
-        j["color"] = colorString(p.color);
-    }
-    Json tags = flagsToTags(p.flags);
-    for (const std::string& t : o.tags) {
-        tags.push_back(t);
-    }
-    j["tags"] = tags;
-    return j;
+    return reflect::toJson(o);
 }
 
 sim::StaticObject staticObjectFromJson(const Json& j, AssetLibrary* assets) {
     sim::StaticObject o;
-    o.name = value<std::string>(j, "name", "Object");
-    const std::string type = value<std::string>(j, "type", "box");
-    const auto kind = geometry::parsePrimitiveKind(type);
-    if (!kind) {
-        throw std::invalid_argument("unknown object type '" + type + "' (box, ramp, stairs, plane, mesh)");
-    }
-    geometry::PrimitiveDesc& p = o.primitive;
-    p.kind = *kind;
-    p.position = j.contains("position") ? vec3From(j["position"]) : glm::vec3(0.0f);
-    p.rotationY = value<float>(j, "rotationY", 0.0f) * kDegToRad;
-    if (p.kind == geometry::PrimitiveKind::Mesh) {
-        o.meshAsset = value<std::string>(j, "asset", "");
-        if (o.meshAsset.empty()) {
-            throw std::invalid_argument("mesh object needs an \"asset\" path");
-        }
-        const float scale = value<float>(j, "scale", 1.0f);
-        p.size = glm::vec3(scale);
+    o.name = "Object";
+    reflect::fromJson(j, o);
+    if (o.primitive.kind == geometry::PrimitiveKind::Mesh) {
         if (assets == nullptr) {
             throw std::invalid_argument("mesh objects need an asset library");
         }
         o.mesh = assets->loadMesh(o.meshAsset).mesh;
-    } else {
-        p.size = j.contains("size") ? vec3From(j["size"]) : glm::vec3(1.0f);
-        if (p.size.x <= 0.0f || p.size.z <= 0.0f || p.size.y < 0.0f) {
-            throw std::invalid_argument("object size must be positive");
-        }
-        p.steps = value<std::uint32_t>(j, "steps", 10);
-        if (j.contains("color")) {
-            p.color = colorFrom(j["color"]);
-        }
-    }
-    p.flags = j.contains("tags") ? tagsToFlags(j["tags"]) : geometry::kSurfaceWalkable;
-    if (j.contains("tags")) {
-        for (const auto& t : j["tags"]) {
-            const std::string tag = t.get<std::string>();
-            if (tag != "walkable" && tag != "obstacle") {
-                o.tags.push_back(tag);
-            }
-        }
     }
     return o;
 }
 
 Json toJson(const sim::OffMeshLink& l) {
-    return Json{{"start", vec(l.start)},
-                {"end", vec(l.end)},
-                {"radius", roundFloat(l.radius)},
-                {"bidirectional", l.bidirectional},
-                {"extraCost", roundFloat(l.extraCost)}};
+    return reflect::toJson(l);
 }
 
 sim::OffMeshLink offMeshLinkFromJson(const Json& j) {
-    sim::OffMeshLink l;
-    l.start = vec3From(j.at("start"));
-    l.end = vec3From(j.at("end"));
-    l.radius = value<float>(j, "radius", 0.6f);
-    l.bidirectional = value<bool>(j, "bidirectional", true);
-    l.extraCost = value<float>(j, "extraCost", 25.0f);
-    return l;
+    return read<sim::OffMeshLink>(j);
 }
 
 Json toJson(const sim::Area& a) {
-    return Json{{"center", vec(a.center)}, {"halfExtents", vec(a.halfExtents)}, {"elevation", roundFloat(a.elevation)}};
+    return reflect::toJson(a);
 }
 
 sim::Area areaFromJson(const Json& j) {
-    sim::Area a;
-    a.center = vec2From(j.at("center"));
-    a.halfExtents = vec2From(j.at("halfExtents"));
-    a.elevation = value<float>(j, "elevation", 0.0f);
-    if (a.halfExtents.x <= 0.0f || a.halfExtents.y <= 0.0f) {
-        throw std::invalid_argument("area halfExtents must be positive");
-    }
-    return a;
+    return read<sim::Area>(j);
 }
 
 Json toJson(const sim::Goal& g) {
-    return Json{{"name", g.name},
-                {"area", toJson(g.area)},
-                {"capacity", g.capacity},
-                {"serviceTime", roundFloat(g.serviceTime)},
-                {"queueDirection", vec(g.queueDirection)},
-                {"queueSpacing", roundFloat(g.queueSpacing)}};
+    return reflect::toJson(g);
 }
 
 sim::Goal goalFromJson(const Json& j) {
     sim::Goal g;
-    g.name = value<std::string>(j, "name", "Goal");
-    g.area = areaFromJson(j.at("area"));
-    g.capacity = value<std::uint32_t>(j, "capacity", 0);
-    g.serviceTime = value<float>(j, "serviceTime", 0.0f);
-    if (j.contains("queueDirection")) {
-        g.queueDirection = vec2From(j["queueDirection"]);
-    }
-    g.queueSpacing = value<float>(j, "queueSpacing", 0.8f);
-    if (g.serviceTime < 0.0f || g.queueSpacing <= 0.1f) {
-        throw std::invalid_argument("goal serviceTime must be >= 0 and queueSpacing > 0.1");
-    }
-    return g;
+    g.name = "Goal";
+    return read(j, g);
 }
 
 Json toJson(const sim::AgentParams& p) {
-    return Json{{"radius", Json::array({roundFloat(p.radiusMin), roundFloat(p.radiusMax)})},
-                {"preferredSpeed", Json::array({roundFloat(p.preferredSpeedMin), roundFloat(p.preferredSpeedMax)})},
-                {"maxSpeedFactor", roundFloat(p.maxSpeedFactor)},
-                {"mass", Json::array({roundFloat(p.massMin), roundFloat(p.massMax)})},
-                {"maxAcceleration", roundFloat(p.maxAcceleration)},
-                {"color", rgb(p.color)},
-                {"colorJitter", roundFloat(p.colorJitter)},
-                {"agentType", p.agentType}};
+    return reflect::toJson(p);
 }
 
 sim::AgentParams agentParamsFromJson(const Json& j) {
-    sim::AgentParams p;
-    if (j.contains("radius")) {
-        const glm::vec2 r = vec2From(j["radius"]);
-        p.radiusMin = r.x;
-        p.radiusMax = r.y;
-    }
-    if (j.contains("preferredSpeed")) {
-        const glm::vec2 s = vec2From(j["preferredSpeed"]);
-        p.preferredSpeedMin = s.x;
-        p.preferredSpeedMax = s.y;
-    }
-    p.maxSpeedFactor = value<float>(j, "maxSpeedFactor", p.maxSpeedFactor);
-    if (j.contains("mass")) {
-        const glm::vec2 m = vec2From(j["mass"]);
-        p.massMin = m.x;
-        p.massMax = m.y;
-        if (p.massMin <= 0.0f || p.massMax < p.massMin) {
-            throw std::invalid_argument("agent mass range must be positive and ordered [min, max] (kg)");
-        }
-    }
-    p.maxAcceleration = value<float>(j, "maxAcceleration", p.maxAcceleration);
-    if (j.contains("color")) {
-        p.color = rgbFrom(j["color"]);
-    }
-    p.colorJitter = value<float>(j, "colorJitter", p.colorJitter);
-    p.agentType = value<std::uint16_t>(j, "agentType", p.agentType);
-    if (p.radiusMin <= 0.0f || p.radiusMax < p.radiusMin || p.preferredSpeedMin <= 0.0f ||
-        p.preferredSpeedMax < p.preferredSpeedMin) {
-        throw std::invalid_argument("agent radius/preferredSpeed ranges must be positive and ordered [min, max]");
-    }
-    return p;
+    return read<sim::AgentParams>(j);
 }
 
 Json toJson(const sim::Spawner& s) {
-    Json j{{"name", s.name},
-           {"area", toJson(s.area)},
-           {"rate", roundFloat(s.rate)},
-           {"total", s.total},
-           {"startTime", roundFloat(s.startTime)},
-           {"goal", s.goal},
-           {"agent", toJson(s.agent)},
-           {"groupSize", Json::array({s.groupSizeMin, s.groupSizeMax})}};
-    Json mix = Json::array();
-    for (const sim::AgentMixEntry& m : s.agentMix) {
-        mix.push_back(Json{{"type", m.type}, {"weight", roundFloat(m.weight)}});
-    }
-    j["agentMix"] = mix;
-    j["stopTime"] = std::isfinite(s.stopTime) ? Json(roundFloat(s.stopTime)) : Json(nullptr);
-    return j;
+    return reflect::toJson(s);
 }
 
 sim::Spawner spawnerFromJson(const Json& j) {
     sim::Spawner s;
-    s.name = value<std::string>(j, "name", "Spawner");
-    s.area = areaFromJson(j.at("area"));
-    s.rate = value<float>(j, "rate", 10.0f);
-    s.total = value<std::uint32_t>(j, "total", 0);
-    s.startTime = value<float>(j, "startTime", 0.0f);
-    s.stopTime = value<float>(j, "stopTime", std::numeric_limits<float>::infinity());
-    s.goal = value<sim::SceneId>(j, "goal", sim::kNoSceneId);
-    if (j.contains("agent")) {
-        s.agent = agentParamsFromJson(j["agent"]);
-    }
-    if (j.contains("agentMix")) {
-        for (const auto& m : j["agentMix"]) {
-            s.agentMix.push_back({m.at("type").get<std::string>(), value<float>(m, "weight", 1.0f)});
-        }
-    }
-    if (j.contains("groupSize")) {
-        const Json& g = j["groupSize"];
-        if (g.is_number()) {
-            s.groupSizeMin = s.groupSizeMax = g.get<std::uint32_t>();
-        } else {
-            s.groupSizeMin = g.at(0).get<std::uint32_t>();
-            s.groupSizeMax = g.at(1).get<std::uint32_t>();
-        }
-        if (s.groupSizeMin < 1 || s.groupSizeMax < s.groupSizeMin || s.groupSizeMax > 12) {
-            throw std::invalid_argument("groupSize must be [min, max] with 1 <= min <= max <= 12");
-        }
-    }
-    if (s.rate < 0.0f) {
-        throw std::invalid_argument("spawner rate must be >= 0");
-    }
-    return s;
+    s.name = "Spawner";
+    return read(j, s);
 }
 
 Json toJson(const sim::NavBuildSettings& n) {
-    return Json{{"cellSize", roundFloat(n.cellSize)},
-                {"cellHeight", roundFloat(n.cellHeight)},
-                {"agentHeight", roundFloat(n.agentHeight)},
-                {"agentRadius", roundFloat(n.agentRadius)},
-                {"agentMaxClimb", roundFloat(n.agentMaxClimb)},
-                {"agentMaxSlope", roundFloat(n.agentMaxSlopeDegrees)},
-                {"tileSize", n.tileSizeCells}};
+    return reflect::toJson(n);
 }
 
 sim::NavBuildSettings navSettingsFromJson(const Json& j) {
-    sim::NavBuildSettings n;
-    n.cellSize = value<float>(j, "cellSize", n.cellSize);
-    n.cellHeight = value<float>(j, "cellHeight", n.cellHeight);
-    n.agentHeight = value<float>(j, "agentHeight", n.agentHeight);
-    n.agentRadius = value<float>(j, "agentRadius", n.agentRadius);
-    n.agentMaxClimb = value<float>(j, "agentMaxClimb", n.agentMaxClimb);
-    n.agentMaxSlopeDegrees = value<float>(j, "agentMaxSlope", n.agentMaxSlopeDegrees);
-    n.tileSizeCells = value<int>(j, "tileSize", n.tileSizeCells);
-    if (n.cellSize <= 0.01f || n.cellHeight <= 0.01f || n.tileSizeCells < 16) {
-        throw std::invalid_argument("navigation cellSize/cellHeight too small or tileSize < 16");
-    }
-    return n;
+    return read<sim::NavBuildSettings>(j);
 }
 
 Json toJson(const sim::BodyParams& b) {
-    return Json{{"enabled", b.enabled},
-                {"stiffness", roundFloat(b.stiffness)},
-                {"damping", roundFloat(b.damping)},
-                {"core", roundFloat(b.core)},
-                {"slopeLean", roundFloat(b.slopeLean)},
-                {"fallForce", roundFloat(b.fallForce)},
-                {"fallRate", roundFloat(b.fallRate)},
-                {"tripForce", roundFloat(b.tripForce)},
-                {"tripRate", roundFloat(b.tripRate)},
-                {"getUpSeconds", roundFloat(b.getUpSeconds)},
-                {"getUpPressure", roundFloat(b.getUpPressure)}};
+    return reflect::toJson(b);
 }
 
 sim::BodyParams bodyParamsFromJson(const Json& j, sim::BodyParams b) {
     if (!j.is_object()) {
         throw std::invalid_argument("bodies must be an object");
     }
-    b.enabled = j.value("enabled", true);
-    b.stiffness = value<float>(j, "stiffness", b.stiffness);
-    b.damping = value<float>(j, "damping", b.damping);
-    b.core = value<float>(j, "core", b.core);
-    b.slopeLean = value<float>(j, "slopeLean", b.slopeLean);
-    b.fallForce = value<float>(j, "fallForce", b.fallForce);
-    b.fallRate = value<float>(j, "fallRate", b.fallRate);
-    b.tripForce = value<float>(j, "tripForce", b.tripForce);
-    b.tripRate = value<float>(j, "tripRate", b.tripRate);
-    b.getUpSeconds = value<float>(j, "getUpSeconds", b.getUpSeconds);
-    b.getUpPressure = value<float>(j, "getUpPressure", b.getUpPressure);
-    if (b.stiffness <= 0.0f || b.damping < 0.0f || b.core < 0.0f || b.core >= 1.0f || b.slopeLean < 0.0f ||
-        b.fallForce < 0.0f || b.fallRate < 0.0f || b.tripForce < 0.0f || b.tripRate < 0.0f ||
-        b.getUpSeconds < 0.0f || b.getUpPressure < 0.0f) {
-        throw std::invalid_argument("bodies: stiffness must be > 0, core in [0, 1), the rest >= 0");
-    }
-    return b;
+    b.enabled = true;  // a "bodies" section turns them on unless it says otherwise
+    return read(j, b);
 }
 
 Json entityToJson(const sim::Simulation& sim, sim::SceneId id) {
@@ -462,7 +178,7 @@ Json entityToJson(const sim::Simulation& sim, sim::SceneId id) {
             j = toJson(*sim.findSpawner(id));
             break;
         case EntityKind::Group:
-            j = Json{{"name", sim.findGroup(id)->name}};
+            j = reflect::toJson(*sim.findGroup(id));
             break;
         case EntityKind::None:
             return nullptr;
@@ -515,7 +231,7 @@ sim::SceneId addEntityFromJson(sim::Simulation& sim, const Json& j, AssetLibrary
         resolveGoalReference(sim, resolved);
         created = sim.addSpawner(spawnerFromJson(resolved), id);
     } else if (kind == "group") {
-        created = sim.addGroup(sim::Group{value<std::string>(j, "name", "Group")}, id);
+        created = sim.addGroup(read(j, sim::Group{"Group"}), id);
     } else {
         throw std::invalid_argument("unknown entity kind '" + kind + "' (object, link, goal, spawner, group)");
     }
@@ -569,7 +285,7 @@ void patchEntity(sim::Simulation& sim, sim::SceneId id, const Json& patch, Asset
             sim.updateSpawner(id, spawnerFromJson(current));
             break;
         case EntityKind::Group:
-            sim.updateGroup(id, sim::Group{value<std::string>(current, "name", "Group")});
+            sim.updateGroup(id, read(current, sim::Group{"Group"}));
             break;
         case EntityKind::None:
             break;

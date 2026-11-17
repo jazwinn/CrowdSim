@@ -35,6 +35,11 @@ tick in `Simulation::tickNode` (`sim/src/Decisions.cpp`) by setting per-agent st
 table in `docs/formats.md`, and test it in `tests/`. The node editor, MCP and Lua pick it up
 from the table. Prefer Lua custom nodes (`docs/scripting.md`) for one-off experiments.
 
+When adding a field to a scene type (object, link, goal, spawner, agent parameters,
+navigation, bodies), add it to the type's descriptor in `assets/include/crowdsim/assets/SceneReflection.hpp`
+(key, limits, unit, tooltip): saving, loading, validation and the Inspector follow from it
+(`reflect/Reflect.hpp`, ADR 0014). Do not hand-write JSON or Inspector code for one field.
+
 Remember that trees tick at a low, staggered rate: state a node sets may arrive a few steps
 after an agent spawns, so locomotion must cope with it changing.
 
@@ -61,7 +66,7 @@ ctest --test-dir build/windows-msvc -C Release
 
 ## Architecture (see `docs/decisions/` for the ADRs)
 
-`core` (jobs, logging, RNG) · `geometry` · `sim` (agents SoA, navmesh, flow fields, ORCA,
+`core` (jobs, logging, RNG) · `reflect` (type descriptors: JSON, validation, editor fields) · `geometry` · `sim` (agents SoA, navmesh, flow fields, ORCA,
 behaviour trees, escalators) · `physics` · `assets` (JSON formats) · `commands` (every edit is
 a command: GUI, Lua, MCP and replay share one path) · `animation` · `render` (bgfx) · `ui`
 (ImGui panels; reads data, returns commands) · `script` (sandboxed Lua) · `mcp` · `metrics` ·

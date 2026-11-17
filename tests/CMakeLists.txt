@@ -17,6 +17,7 @@ add_executable(crowdsim_tests
   animation/test_animation.cpp
   script/test_scripting.cpp
   assets/test_bt_graph.cpp
+  reflect/test_reflect.cpp
   mcp/test_mcp.cpp
   metrics/test_metrics.cpp
   metrics/test_attention.cpp

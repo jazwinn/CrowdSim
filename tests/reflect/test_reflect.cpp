@@ -1,0 +1,156 @@
+// Reflection (reflect/Reflect.hpp): a described type saves and reads every kind of field,
+// keeps defaults for absent keys, and reports bad values with the path to them. The scene
+// types' descriptors (assets/SceneReflection.hpp) keep the file format: every content scene
+// saves, reloads and saves again to the same document.
+
+#include <doctest/doctest.h>
+
+#include <cmath>
+#include <filesystem>
+#include <fstream>
+#include <limits>
+#include <string>
+#include <vector>
+
+#include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/SceneReflection.hpp"
+#include "crowdsim/assets/SceneSerializer.hpp"
+#include "crowdsim/core/JobSystem.hpp"
+#include "crowdsim/core/Logging.hpp"
+#include "crowdsim/reflect/Reflect.hpp"
+#include "crowdsim/sim/Simulation.hpp"
+
+namespace sample {
+
+enum class Shape : std::uint8_t { Round, Square };
+
+struct Inner {
+    float width = 1.0f;
+    std::string label = "inner";
+};
+
+struct Thing {
+    std::string name = "thing";
+    Shape shape = Shape::Round;
+    float angle = 0.0f;  // radians
+    glm::vec2 offset{0.0f};
+    glm::vec3 tint{1.0f, 0.5f, 0.0f};
+    float lo = 1.0f;
+    float hi = 2.0f;
+    float until = std::numeric_limits<float>::infinity();
+    std::uint32_t corners = 0;  // only for squares
+    Inner inner;
+    std::vector<Inner> extras;
+    std::vector<std::string> tags;
+};
+
+}  // namespace sample
+
+CROWDSIM_REFLECT(sample::Inner,
+    field("width", &T::width).above(0),
+    field("label", &T::label))
+
+CROWDSIM_REFLECT(sample::Thing,
+    field("name", &T::name),
+    field("shape", &T::shape).lowercase(),
+    field("angle", &T::angle).degrees(),
+    field("offset", &T::offset),
+    field("tint", &T::tint).color(),
+    range("size", &T::lo, &T::hi).above(0),
+    field("until", &T::until).infinityAsNull(),
+    field("corners", &T::corners).when([](const T& t) { return t.shape == sample::Shape::Square; }),
+    field("inner", &T::inner).required(),
+    field("extras", &T::extras),
+    field("tags", &T::tags),
+    check<T>([](const T& t) {
+        if (t.name.empty()) {
+            throw crowdsim::reflect::FieldError("name", "must not be empty");
+        }
+    }))
+
+using namespace crowdsim;
+using reflect::Json;
+
+TEST_CASE("A described type saves every kind of field") {
+    sample::Thing t;
+    t.angle = 3.14159265f / 2.0f;
+    t.extras.push_back({2.0f, "x"});
+    t.tags = {"a", "b"};
+    const Json j = reflect::toJson(t);
+    CHECK(j["name"] == "thing");
+    CHECK(j["shape"] == "round");
+    CHECK(j["angle"] == 90.0);
+    CHECK(j["offset"] == Json::array({0.0, 0.0}));
+    CHECK(j["tint"] == "#ff8000");
+    CHECK(j["size"] == Json::array({1.0, 2.0}));
+    CHECK(j["until"].is_null());
+    CHECK_FALSE(j.contains("corners"));  // only for squares
+    CHECK(j["inner"] == Json{{"width", 1.0}, {"label", "inner"}});
+    CHECK(j["extras"][0]["label"] == "x");
+    CHECK(j["tags"] == Json::array({"a", "b"}));
+}
+
+TEST_CASE("Reading merges over the value and round-trips") {
+    sample::Thing t;
+    reflect::fromJson(Json{{"inner", Json::object()}, {"shape", "SQUARE"}, {"corners", 4}, {"size", 3}, {"until", 9}},
+                      t);
+    CHECK(t.name == "thing");  // absent: unchanged
+    CHECK(t.shape == sample::Shape::Square);
+    CHECK(t.corners == 4);
+    CHECK(t.lo == 3.0f);
+    CHECK(t.hi == 3.0f);
+    CHECK(t.until == 9.0f);
+    const sample::Thing back = reflect::fromJson<sample::Thing>(reflect::toJson(t));
+    CHECK(reflect::toJson(back) == reflect::toJson(t));
+}
+
+TEST_CASE("Bad values are reported with the path to them") {
+    auto error = [](const Json& j) {
+        sample::Thing t;
+        try {
+            reflect::fromJson(j, t);
+        } catch (const reflect::FieldError& e) {
+            return std::string(e.what());
+        }
+        return std::string("no error");
+    };
+    CHECK(error(Json::object()) == "inner: is required");
+    const Json inner{{"inner", Json::object()}};
+    CHECK(error(Json{{"inner", {{"width", 0}}}}) == "inner.width: must be above 0");
+    CHECK(error(Json{{"inner", Json::object()}, {"extras", {{{"width", -1}}}}}) == "extras.0.width: must be above 0");
+    CHECK(error(Json{{"inner", Json::object()}, {"size", {3, 1}}}) == "size: must be [min, max] with min <= max");
+    CHECK(error(Json{{"inner", Json::object()}, {"shape", "hex"}}) ==
+          "shape: expected one of round, square, got \"hex\"");
+    CHECK(error(Json{{"inner", Json::object()}, {"offset", {1, 2, 3}}}) == "offset: expected [x, z], got [1,2,3]");
+    CHECK(error(Json{{"inner", Json::object()}, {"tint", "red"}}) == "tint: expected colour \"#rrggbb\", got \"red\"");
+    CHECK(error(Json{{"inner", Json::object()}, {"name", ""}}) == "name: must not be empty");
+    CHECK(error(inner) == "no error");
+}
+
+TEST_CASE("Fields are visited in order with their options") {
+    std::vector<std::string> keys;
+    reflect::forEachField<sample::Thing>([&](const auto& f) { keys.emplace_back(f.key); });
+    CHECK(keys == std::vector<std::string>{"name", "shape", "angle", "offset", "tint", "size", "until", "corners",
+                                           "inner", "extras", "tags"});
+}
+
+TEST_CASE("Every content scene saves, reloads and saves again to the same document") {
+    core::LogService logs{core::LogConfig{.console = false}};
+    core::JobSystem jobs{2};
+    assets::AssetLibrary library{logs.logger(), CROWDSIM_CONTENT_DIR};
+    int scenes = 0;
+    for (const auto& entry : std::filesystem::directory_iterator(library.contentRoot() / "scenes")) {
+        if (!entry.path().string().ends_with(".scene.json")) {
+            continue;
+        }
+        CAPTURE(entry.path().filename().string());
+        sim::Simulation first{{logs.logger(), jobs}, sim::SimConfig{}};
+        const std::string name = assets::loadSceneFile(entry.path(), first, library);
+        const Json saved = assets::saveScene(first, name);
+        sim::Simulation second{{logs.logger(), jobs}, sim::SimConfig{}};
+        (void)assets::loadScene(saved, second, library);
+        CHECK(assets::saveScene(second, name) == saved);
+        ++scenes;
+    }
+    CHECK(scenes > 5);
+}

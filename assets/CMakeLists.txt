@@ -12,6 +12,7 @@ crowdsim_add_library(assets
     CrowdSim::core
     CrowdSim::geometry
     CrowdSim::sim
+    CrowdSim::reflect
     nlohmann_json::nlohmann_json
 )
 target_include_directories(crowdsim_assets PRIVATE "${CGLTF_INCLUDE_DIR}")

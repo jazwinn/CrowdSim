@@ -10,6 +10,7 @@
     "entt",
     "enkits",
     "nlohmann-json",
+    "magic-enum",
     "doctest",
     "benchmark",
     "recastnavigation",
