@@ -379,7 +379,7 @@ Screenshot: plaza at ~2,500 agents with the behaviour-tree debugger
 - **Editor**: hierarchy with Add menu (floor, wall, pillar, obstacle, ramp, stairs, goal, spawner,
   ladder link, glTF import), JSON-driven inspector for every entity kind, ImGuizmo translate (W) /
   rotate (E) with snapping, click-to-select via per-object Jolt bodies and area picking, amber
-  selection outline, Delete / Ctrl+D duplicate / Ctrl+Z / Ctrl+Y, History panel, File menu (new,
+  selection outline, Delete / Ctrl+D duplicate / Ctrl+Z / Ctrl+Y, undo/redo arrows in the menu bar, File menu (new,
   open, save, save as, save command log).
 - **Headless**: `--scene`, `--commands` batch (one JSON result line per command), `--replay`,
   `--save-log`, `--export-scene`, `--list-commands`.

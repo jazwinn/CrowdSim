@@ -816,30 +816,6 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
     }
 }
 
-void SceneEditor::drawHistory(const SceneEditorInput& in, std::vector<Json>& commands) {
-    ImGui::BeginDisabled(!in.dispatcher.canUndo());
-    if (ImGui::Button("Undo")) {
-        commands.push_back(makeCommand("Undo"));
-    }
-    ImGui::EndDisabled();
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!in.dispatcher.canRedo());
-    if (ImGui::Button("Redo")) {
-        commands.push_back(makeCommand("Redo"));
-    }
-    ImGui::EndDisabled();
-    ImGui::SameLine();
-    ImGui::TextDisabled("%zu logged", in.dispatcher.log().size());
-    ImGui::Separator();
-    for (const commands::HistoryItem& item : in.dispatcher.history()) {
-        if (item.undone) {
-            ImGui::TextDisabled("  %s", item.label.c_str());
-        } else {
-            ImGui::BulletText("%s", item.label.c_str());
-        }
-    }
-}
-
 void SceneEditor::handleShortcuts(const SceneEditorInput& in, std::vector<Json>& commands) {
     const ImGuiIO& io = ImGui::GetIO();
     if (io.WantTextInput) {

@@ -23,11 +23,45 @@ constexpr const char* kStatsWindow = "Stats";
 constexpr const char* kLogWindow = "Log";
 constexpr const char* kHierarchyWindow = "Scene";
 constexpr const char* kInspectorWindow = "Inspector";
-constexpr const char* kHistoryWindow = "History";
 constexpr const char* kScriptWindow = "Script";
 constexpr const char* kBehaviourWindow = "Behaviour";
 constexpr const char* kMetricsWindow = "Metrics";
 constexpr const char* kAdsWindow = "Ads";
+
+/// An undo (curving left) or redo (curving right) arrow button for the menu bar.
+/// Returns true when clicked.
+bool historyArrow(const char* id, bool redo, bool enabled, const std::string& tooltip) {
+    const float size = ImGui::GetFrameHeight();
+    const ImVec2 pos = ImGui::GetCursorScreenPos();
+    ImGui::BeginDisabled(!enabled);
+    const bool clicked = ImGui::InvisibleButton(id, ImVec2(size, size));
+    const bool hovered = ImGui::IsItemHovered();
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("%s", tooltip.c_str());
+    ImDrawList* dl = ImGui::GetWindowDrawList();
+    if (hovered && enabled) {
+        dl->AddRectFilled(pos, ImVec2(pos.x + size, pos.y + size), ImGui::GetColorU32(ImGuiCol_HeaderHovered),
+                          ImGui::GetStyle().FrameRounding);
+    }
+    const ImU32 colour = ImGui::GetColorU32(enabled ? ImGuiCol_Text : ImGuiCol_TextDisabled);
+    // An arc over the top whose end turns down into an arrowhead, mirrored for redo.
+    const float s = redo ? -1.0f : 1.0f;
+    const float r = size * 0.24f;
+    const ImVec2 c(pos.x + size * 0.5f, pos.y + size * 0.56f);
+    const float thick = std::max(1.0f, size * 0.08f);
+    const float pi = 3.14159265f;
+    if (redo) {
+        dl->PathArcTo(c, r, -pi * 1.15f, 0.0f, 12);
+    } else {
+        dl->PathArcTo(c, r, pi * 0.15f, -pi, 12);
+    }
+    dl->PathStroke(colour, ImDrawFlags_None, thick);
+    const ImVec2 base(c.x - s * r, c.y);
+    const float head = r * 0.6f;
+    dl->AddTriangleFilled(ImVec2(base.x - head, base.y - head * 0.1f), ImVec2(base.x + head, base.y - head * 0.1f),
+                          ImVec2(base.x, base.y + head * 1.1f), colour);
+    return clicked;
+}
 
 }  // namespace
 
@@ -53,7 +87,6 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kAdsWindow, rightTop);
     ImGui::DockBuilderDockWindow(kInspectorWindow, rightBottom);
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
-    ImGui::DockBuilderDockWindow(kHistoryWindow, bottom);
     ImGui::DockBuilderDockWindow(kScriptWindow, bottom);
     ImGui::DockBuilderDockWindow(kBehaviourWindow, bottom);
     // The central node stays empty: it is the 3D viewport.
@@ -169,6 +202,29 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
             }
             ImGui::MenuItem("ImGui demo", nullptr, &showDemo_);
             ImGui::EndMenu();
+        }
+        // Undo / redo arrows at the right end; the tooltips say what each step is.
+        if (data.editor != nullptr) {
+            const commands::CommandDispatcher& d = data.editor->dispatcher;
+            const auto items = d.history();
+            std::size_t done = 0;
+            while (done < items.size() && !items[done].undone) {
+                ++done;
+            }
+            const float size = ImGui::GetFrameHeight();
+            const float x = ImGui::GetWindowContentRegionMax().x - size * 2.0f - ImGui::GetStyle().ItemSpacing.x;
+            if (x > ImGui::GetCursorPosX()) {
+                ImGui::SetCursorPosX(x);
+                const std::string undoTip = done > 0 ? "Undo " + items[done - 1].label + " (Ctrl+Z)" : "Nothing to undo";
+                if (historyArrow("##undo", false, d.canUndo(), undoTip)) {
+                    req.commands.push_back(commands::makeCommand("Undo"));
+                }
+                ImGui::SameLine(0.0f, 2.0f);
+                const std::string redoTip = done < items.size() ? "Redo " + items[done].label + " (Ctrl+Y)" : "Nothing to redo";
+                if (historyArrow("##redo", true, d.canRedo(), redoTip)) {
+                    req.commands.push_back(commands::makeCommand("Redo"));
+                }
+            }
         }
         ImGui::EndMainMenuBar();
     }
@@ -362,12 +418,6 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     ImGui::Begin(kInspectorWindow);
     if (data.editor != nullptr) {
         sceneEditor_.drawInspector(*data.editor, req.commands);
-    }
-    ImGui::End();
-
-    ImGui::Begin(kHistoryWindow);
-    if (data.editor != nullptr) {
-        sceneEditor_.drawHistory(*data.editor, req.commands);
     }
     ImGui::End();
 
