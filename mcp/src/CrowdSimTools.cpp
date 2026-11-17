@@ -177,12 +177,13 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "level). Display only: the simulation is unaffected.",
             schema({{"id", integer("entity id")}, {"hidden", Json{{"type", "boolean"}}}}, {"id", "hidden"}),
             "SetHidden");
-    command("object_update", "Merge-patch any entity (object, goal, spawner, link, group) by id; `parent` moves "
+    command("object_update",
+            "Merge-patch any entity (object, goal, spawner, link, group) by id; `parent` moves "
             "it into a group (null = none).",
             schema({{"id", integer("entity id")}, {"patch", object("fields to change")}}, {"id", "patch"}),
             "UpdateEntity", patchArgs);
-    command("object_delete", "Delete any entity by id (a deleted group's contents move up to its parent).", schema({{"id", integer("entity id")}}, {"id"}),
-            "DeleteEntity");
+    command("object_delete", "Delete any entity by id (a deleted group's contents move up to its parent).",
+            schema({{"id", integer("entity id")}}, {"id"}), "DeleteEntity");
     command("gltf_import",
             "Import a glTF/GLB (content-relative path) as a mesh object; node names/extras mark walkable/obstacle.",
             schema({{"path", str("content-relative path")},
@@ -348,7 +349,8 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
 
     // --- Analysis ---------------------------------------------------------------------------
     command("attention_get",
-            "How well each attention target (objects tagged `attention`: ads, signs, exits...) is seen: opportunity to see, viewability, noticing, dwell, "
+            "How well each attention target (objects tagged `attention`: ads, signs, exits...) is seen: opportunity to "
+            "see, viewability, noticing, dwell, "
             "glances, viewing angle and angular size, from each person's simulated gaze. Run the simulation first.",
             schema(), "GetAttentionMetrics");
     command("attention_set",
@@ -360,17 +362,18 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
                     "statistics, gate counts and flow rates, time-to-goal distribution, stuck agents.",
                     schema(), [&svc](const Json&) { return ToolResult::json(metricsSummary(svc.sim, svc.execute)); },
                     nullptr});
-    server.addTool({"heatmap_get",
-                    "Density (agents/m², time-averaged since the last reset) or speed (m/s) heatmap over the scene, "
-                    "downsampled to at most maxCells cells (default 900): values[z][x] with origin and cellSize.",
-                    schema({{"kind", str("density | speed | pressure")}, {"maxCells", integer("cell budget, 16..40000")}}),
-                    [&svc](const Json& args) {
-                        Json p{{"kind", args.value("kind", std::string("density"))},
-                               {"maxCells", args.value<std::size_t>("maxCells", 900)}};
-                        const commands::CommandOutcome o = svc.execute(makeCommand("GetHeatmap", p));
-                        return o.ok ? ToolResult::json(o.result) : ToolResult::error(o.error);
-                    },
-                    nullptr});
+    server.addTool(
+        {"heatmap_get",
+         "Density (agents/m², time-averaged since the last reset) or speed (m/s) heatmap over the scene, "
+         "downsampled to at most maxCells cells (default 900): values[z][x] with origin and cellSize.",
+         schema({{"kind", str("density | speed | pressure")}, {"maxCells", integer("cell budget, 16..40000")}}),
+         [&svc](const Json& args) {
+             Json p{{"kind", args.value("kind", std::string("density"))},
+                    {"maxCells", args.value<std::size_t>("maxCells", 900)}};
+             const commands::CommandOutcome o = svc.execute(makeCommand("GetHeatmap", p));
+             return o.ok ? ToolResult::json(o.result) : ToolResult::error(o.error);
+         },
+         nullptr});
     command("gate_add",
             "Add a counting gate (line segment on the floor, a/b as [x, z]); its crossings and flow rate appear in "
             "metrics_get.",
@@ -481,8 +484,9 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
                  return uri.rfind(p, 0) == 0 ? std::optional<std::string>(uri.substr(p.size())) : std::nullopt;
              };
              if (uri == "crowdsim://scene") {
-                 return std::pair{std::string("application/json"),
-                                  assets::saveScene(svc.sim, svc.sceneName ? svc.sceneName() : "scene", svc.sceneSections).dump(2)};
+                 return std::pair{
+                     std::string("application/json"),
+                     assets::saveScene(svc.sim, svc.sceneName ? svc.sceneName() : "scene", svc.sceneSections).dump(2)};
              }
              if (const auto name = after("crowdsim://bt/")) {
                  const auto o = svc.execute(makeCommand("GetBehaviorTree", {{"name", *name}}));

@@ -173,8 +173,9 @@ bool widget(double& v, const reflect::Meta& meta) {
 }
 
 bool widgetInteger(std::int64_t& v, const reflect::Meta& meta) {
-    const std::int64_t lo = std::isfinite(meta.min) ? static_cast<std::int64_t>(std::ceil(meta.min + (meta.minExclusive ? 0.5 : 0.0)))
-                                                    : std::numeric_limits<std::int32_t>::min();
+    const std::int64_t lo = std::isfinite(meta.min)
+                                ? static_cast<std::int64_t>(std::ceil(meta.min + (meta.minExclusive ? 0.5 : 0.0)))
+                                : std::numeric_limits<std::int32_t>::min();
     const std::int64_t hi =
         std::isfinite(meta.max) ? static_cast<std::int64_t>(meta.max) : std::numeric_limits<std::int32_t>::max();
     const std::string f = format(meta, true);

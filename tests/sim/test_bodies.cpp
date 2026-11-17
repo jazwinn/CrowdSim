@@ -27,7 +27,7 @@ struct Crowd {
     float frontDensity = 0.0f;   ///< people per m2 within 2 m of the dead end
     std::uint64_t falls = 0;
     std::uint32_t fallen = 0;
-    bool fallenStill = true;     ///< everyone lying down had zero velocity
+    bool fallenStill = true;  ///< everyone lying down had zero velocity
     std::uint64_t hash = 0;
 };
 

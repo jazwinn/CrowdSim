@@ -22,9 +22,9 @@ namespace crowdsim::sim {
 
 namespace {
 
-constexpr float kFile = 0.45f;          ///< lateral offset within which someone is "in your path"
-constexpr float kWaitingSide = 0.35f;   ///< side-step speed kept while waiting (fraction)
-constexpr float kMovingSpeed = 0.1f;    ///< m/s above which another agent's heading is known
+constexpr float kFile = 0.45f;         ///< lateral offset within which someone is "in your path"
+constexpr float kWaitingSide = 0.35f;  ///< side-step speed kept while waiting (fraction)
+constexpr float kMovingSpeed = 0.1f;   ///< m/s above which another agent's heading is known
 
 }  // namespace
 
@@ -61,7 +61,8 @@ glm::vec2 Simulation::applyQueueManners(std::uint32_t i, glm::vec2 pref) const {
         }
         const bool inPath = std::abs(glm::dot(d, right)) < kFile;
         if (line != nullptr) {
-            if (inPath || (agents_.escalatorLane[j] == lane && agents_.escalatorIndex[j] == agents_.escalatorIndex[i])) {
+            if (inPath ||
+                (agents_.escalatorLane[j] == lane && agents_.escalatorIndex[j] == agents_.escalatorIndex[i])) {
                 ahead = std::min(ahead, along);
             }
             return;

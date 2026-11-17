@@ -49,10 +49,13 @@ struct Thing {
 
 }  // namespace sample
 
+// clang-format off
 CROWDSIM_REFLECT(sample::Inner,
     field("width", &T::width).above(0),
     field("label", &T::label))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(sample::Thing,
     field("name", &T::name),
     field("shape", &T::shape).lowercase(),
@@ -70,6 +73,7 @@ CROWDSIM_REFLECT(sample::Thing,
             throw crowdsim::reflect::FieldError("name", "must not be empty");
         }
     }))
+// clang-format on
 
 using namespace crowdsim;
 using reflect::Json;
@@ -185,7 +189,8 @@ TEST_CASE("Attention settings are described and checked") {
     reflect::fromJson(Json{{"glanceRate", 1.2}}, p);
     CHECK(p.glanceRate == doctest::Approx(1.2));
     CHECK(p.fieldHalfAngle == 60.0f);  // untouched
-    CHECK_THROWS_WITH(reflect::fromJson(Json{{"glanceMin", 3}, {"glanceMax", 1}}, p), "glanceMax: must be at least glanceMin");
+    CHECK_THROWS_WITH(reflect::fromJson(Json{{"glanceMin", 3}, {"glanceMax", 1}}, p),
+                      "glanceMax: must be at least glanceMin");
     CHECK_THROWS_WITH(reflect::fromJson(Json{{"fieldHalfAngle", 120}}, p),
                       "fieldHalfAngle: must be at least 10 and at most 90");
 }

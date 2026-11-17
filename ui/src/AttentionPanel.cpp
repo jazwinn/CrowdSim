@@ -33,8 +33,7 @@ constexpr Column kColumns[] = {
     {"View", "viewabilityRate",
      "Viewability: share of OTS who had at least half the target unobstructed inside their field of view for a "
      "continuous second (the industry standard)."},
-    {"Noticed", "noticeRate",
-     "Share of OTS who fixated on it long enough to read it, at a readable angle and size."},
+    {"Noticed", "noticeRate", "Share of OTS who fixated on it long enough to read it, at a readable angle and size."},
     {"Dwell", "meanDwellPerViewer",
      "Mean time the target was in a viewer's central vision, over people who looked at it at all (s). Longer dwell "
      "goes with better recall."},
@@ -48,7 +47,7 @@ double number(const Json& target, const char* key) {
 }  // namespace
 
 std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, double simTime, std::uint32_t selected,
-                             const ThemeFonts& fonts, std::vector<Json>& commands) {
+                                   const ThemeFonts& fonts, std::vector<Json>& commands) {
     // The report sums every viewer's record: refresh it twice per simulated second, and
     // whenever the simulation was reset.
     if (reportTime_ < 0.0 || simTime < reportTime_ || simTime - reportTime_ >= 0.5) {
@@ -61,8 +60,9 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
         ImGui::Spacing();
         ImGui::TextWrapped("No targets in this scene.");
         ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
-        ImGui::TextWrapped("Tag a thin box `attention` (optionally `attention:salience=0..1` for how eye-catching "
-                           "it is and `attention:range=<m>` for its zone) and every person's gaze is measured against it.");
+        ImGui::TextWrapped(
+            "Tag a thin box `attention` (optionally `attention:salience=0..1` for how eye-catching "
+            "it is and `attention:range=<m>` for its zone) and every person's gaze is measured against it.");
         ImGui::PopStyleColor();
         ImGui::Spacing();
         drawSettings(targets, fonts, commands);
@@ -119,8 +119,9 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
     if (ImGui::BeginTable("targets", kCols, flags, ImVec2(0.0f, height))) {
         ImGui::TableSetupScrollFreeze(0, 1);
         for (int c = 0; c < kCols; ++c) {
-            ImGuiTableColumnFlags f = c == 0 ? ImGuiTableColumnFlags_WidthStretch
-                                             : ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending;
+            ImGuiTableColumnFlags f =
+                c == 0 ? ImGuiTableColumnFlags_WidthStretch
+                       : ImGuiTableColumnFlags_WidthFixed | ImGuiTableColumnFlags_PreferSortDescending;
             if (c == 3) {
                 f |= ImGuiTableColumnFlags_DefaultSort;
             }
@@ -188,9 +189,8 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
                 const float frac = maxNoticed > 0.0 ? static_cast<float>(v / maxNoticed) : 0.0f;
                 ImVec4 accent = palette::accent();
                 accent.w = 0.45f;
-                ImGui::GetWindowDrawList()->AddRectFilled(ImVec2(p.x, p.y + h * 0.86f),
-                                                          ImVec2(p.x + figure * frac, p.y + h),
-                                                          ImGui::GetColorU32(accent));
+                ImGui::GetWindowDrawList()->AddRectFilled(
+                    ImVec2(p.x, p.y + h * 0.86f), ImVec2(p.x + figure * frac, p.y + h), ImGui::GetColorU32(accent));
                 ImGui::Text("%.1f%%", v);
             }
             ImGui::TableNextColumn();
@@ -217,7 +217,8 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
         if (beginReadout("targetDetails")) {
             readout("Opportunity to see", "%llu people",
                     static_cast<unsigned long long>(target["ots"].get<std::uint64_t>()));
-            readout("Viewable", "%llu (%.1f%%)", static_cast<unsigned long long>(target["viewable"].get<std::uint64_t>()),
+            readout("Viewable", "%llu (%.1f%%)",
+                    static_cast<unsigned long long>(target["viewable"].get<std::uint64_t>()),
                     number(target, "viewabilityRate"));
             readout("Noticed", "%llu (%.1f%%)", static_cast<unsigned long long>(target["noticed"].get<std::uint64_t>()),
                     number(target, "noticeRate"));
@@ -242,7 +243,8 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
     if (ImGui::Button("Export CSV")) {
         commands.push_back(makeCommand("ExportAttentionMetrics"));
     }
-    ImGui::SetItemTooltip("recordings/attention.csv (per target) and recordings/attention_viewers.csv (per person and target)");
+    ImGui::SetItemTooltip(
+        "recordings/attention.csv (per target) and recordings/attention_viewers.csv (per person and target)");
     ImGui::SameLine();
     if (ImGui::Button("Reset")) {
         commands.push_back(makeCommand("ResetAttentionMetrics"));

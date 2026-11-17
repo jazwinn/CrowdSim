@@ -60,24 +60,24 @@ namespace crowdsim::metrics {
 
 /// Physiology and attention constants (degrees, metres, seconds).
 struct AttentionParams {
-    float evaluationHz = 5.0f;       ///< gaze updates per second
-    float eyeHeight = 0.94f;         ///< eye height, x body height
-    float gazePitch = -12.0f;        ///< head pitch while walking (watching the footing)
-    float phonePitch = -45.0f;       ///< head pitch while looking at a phone
-    float fovealHalfAngle = 7.5f;    ///< central vision cone (15 deg wide): reading
-    float fieldHalfAngle = 60.0f;    ///< field of view for viewability (120 deg wide)
+    float evaluationHz = 5.0f;          ///< gaze updates per second
+    float eyeHeight = 0.94f;            ///< eye height, x body height
+    float gazePitch = -12.0f;           ///< head pitch while walking (watching the footing)
+    float phonePitch = -45.0f;          ///< head pitch while looking at a phone
+    float fovealHalfAngle = 7.5f;       ///< central vision cone (15 deg wide): reading
+    float fieldHalfAngle = 60.0f;       ///< field of view for viewability (120 deg wide)
     float peripheralHalfAngle = 90.0f;  ///< what can draw a glance (180 deg wide)
-    float maxHeadYaw = 60.0f;        ///< how far the head turns from the walking direction
-    float glanceRate = 0.6f;         ///< glances per second at a fully salient, large target, alone in view
-    float glanceMin = 0.6f;          ///< glance duration range
+    float maxHeadYaw = 60.0f;           ///< how far the head turns from the walking direction
+    float glanceRate = 0.6f;            ///< glances per second at a fully salient, large target, alone in view
+    float glanceMin = 0.6f;             ///< glance duration range
     float glanceMax = 2.2f;
-    float phoneEpisode = 15.0f;      ///< mean time looking at the phone at a stretch
-    float viewableShare = 0.5f;      ///< share of the target that must be visible...
-    float viewableSeconds = 1.0f;    ///< ...for this long, continuously (industry standard)
-    float noticeSeconds = 0.4f;      ///< a fixation this long, readable, counts as noticed
-    float readableAngle = 60.0f;     ///< steeper viewing angles distort the target too much
-    float minAngularSize = 1.0f;     ///< % of the field of view below which it cannot be read
-    float defaultRange = 20.0f;      ///< zone of a target without `attention:range`
+    float phoneEpisode = 15.0f;    ///< mean time looking at the phone at a stretch
+    float viewableShare = 0.5f;    ///< share of the target that must be visible...
+    float viewableSeconds = 1.0f;  ///< ...for this long, continuously (industry standard)
+    float noticeSeconds = 0.4f;    ///< a fixation this long, readable, counts as noticed
+    float readableAngle = 60.0f;   ///< steeper viewing angles distort the target too much
+    float minAngularSize = 1.0f;   ///< % of the field of view below which it cannot be read
+    float defaultRange = 20.0f;    ///< zone of a target without `attention:range`
     float defaultSalience = 0.5f;
 };
 
@@ -97,12 +97,12 @@ struct AttentionTarget {
 
 /// What one agent did with one target.
 struct Exposure {
-    bool inZone = false;     ///< opportunity to see
-    bool viewable = false;   ///< met the viewability standard at least once
-    bool noticed = false;    ///< fixated long enough at a readable angle and size
-    float viewRun = 0.0f;    ///< current continuous viewable time
-    float fixation = 0.0f;   ///< current continuous foveal time
-    float dwell = 0.0f;      ///< total time in the foveal cone, s
+    bool inZone = false;       ///< opportunity to see
+    bool viewable = false;     ///< met the viewability standard at least once
+    bool noticed = false;      ///< fixated long enough at a readable angle and size
+    float viewRun = 0.0f;      ///< current continuous viewable time
+    float fixation = 0.0f;     ///< current continuous foveal time
+    float dwell = 0.0f;        ///< total time in the foveal cone, s
     float visibleTime = 0.0f;  ///< total time at least half visible in the field of view, s
     float steepTime = 0.0f;    ///< ...of which at a steeper angle than readable
     float smallTime = 0.0f;    ///< ...of which smaller than readable
@@ -116,8 +116,8 @@ struct Exposure {
 struct GazeView {
     glm::vec3 eye{0.0f};
     glm::vec3 head{0.0f, 0.0f, 1.0f};
-    bool phone = false;       ///< looking down at a phone
-    bool glancing = false;    ///< head turned towards a target
+    bool phone = false;           ///< looking down at a phone
+    bool glancing = false;        ///< head turned towards a target
     std::int32_t lookingAt = -1;  ///< target (index into targets()) in central vision at the last update, or -1
 };
 
@@ -175,6 +175,7 @@ void registerAttentionSceneSection(assets::SceneSections& sections, AttentionMod
 
 }  // namespace crowdsim::metrics
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::metrics::AttentionParams,
     field("evaluationHz", &T::evaluationHz).between(1, 30).unit("/s").label("Gaze updates").tip(
         "How often each person's gaze is evaluated"),
@@ -214,3 +215,4 @@ CROWDSIM_REFLECT(crowdsim::metrics::AttentionParams,
             throw crowdsim::reflect::FieldError("glanceMax", "must be at least glanceMin");
         }
     }))
+// clang-format on

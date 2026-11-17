@@ -62,7 +62,7 @@ TEST_CASE("VideoWriter writes a readable MJPEG AVI with every frame indexed") {
     CHECK(le32(b, 4) == b.size() - 8);
     const std::size_t avih = find(b, "avih");
     REQUIRE(avih != std::string::npos);
-    CHECK(le32(b, avih + 8) == 40000);  // microseconds per frame at 25 fps
+    CHECK(le32(b, avih + 8) == 40000);   // microseconds per frame at 25 fps
     CHECK(le32(b, avih + 8 + 16) == 5);  // total frames
     CHECK(le32(b, avih + 8 + 32) == kW);
     CHECK(le32(b, avih + 8 + 36) == kH);

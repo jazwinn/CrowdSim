@@ -173,8 +173,8 @@ bool field(const F& f, C& owner, const CustomWidget& custom) {
             done = inspect(v, custom, meta.omit);  // inline, as it is saved
         } else {
             ImGui::Spacing();
-            const bool open = ImGui::TreeNodeEx("##group", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth,
-                                                "%s", label.c_str());
+            const bool open = ImGui::TreeNodeEx(
+                "##group", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s", label.c_str());
             tooltip(meta);
             if (open) {
                 done = widget(v, meta, custom);
@@ -183,8 +183,8 @@ bool field(const F& f, C& owner, const CustomWidget& custom) {
         }
     } else if constexpr (isReflectedList<V>) {
         ImGui::Spacing();
-        const bool open = ImGui::TreeNodeEx("##group", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth,
-                                            "%s", label.c_str());
+        const bool open = ImGui::TreeNodeEx(
+            "##group", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s", label.c_str());
         tooltip(meta);
         if (open) {
             done = widget(v, meta, custom);

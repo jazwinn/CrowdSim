@@ -215,12 +215,14 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
             const float x = ImGui::GetWindowContentRegionMax().x - size * 2.0f - ImGui::GetStyle().ItemSpacing.x;
             if (x > ImGui::GetCursorPosX()) {
                 ImGui::SetCursorPosX(x);
-                const std::string undoTip = done > 0 ? "Undo " + items[done - 1].label + " (Ctrl+Z)" : "Nothing to undo";
+                const std::string undoTip =
+                    done > 0 ? "Undo " + items[done - 1].label + " (Ctrl+Z)" : "Nothing to undo";
                 if (historyArrow("##undo", false, d.canUndo(), undoTip)) {
                     req.commands.push_back(commands::makeCommand("Undo"));
                 }
                 ImGui::SameLine(0.0f, 2.0f);
-                const std::string redoTip = done < items.size() ? "Redo " + items[done].label + " (Ctrl+Y)" : "Nothing to redo";
+                const std::string redoTip =
+                    done < items.size() ? "Redo " + items[done].label + " (Ctrl+Y)" : "Nothing to redo";
                 if (historyArrow("##redo", true, d.canRedo(), redoTip)) {
                     req.commands.push_back(commands::makeCommand("Redo"));
                 }
@@ -337,7 +339,7 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         };
         constexpr Hint kHints[] = {{"Drag", "Orbit"}, {"Right drag", "Pan"}, {"Wheel", "Zoom"}, {"F", "Frame all"}};
         const float capPad = em * 0.35f;
-        const float inner = em * 0.4f;  // between a cap and its action
+        const float inner = em * 0.4f;    // between a cap and its action
         const float between = em * 1.1f;  // between pairs
         float width = pad * 2.0f;
         for (const Hint& h : kHints) {
@@ -393,9 +395,10 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::Checkbox("Flow field", &overlays_.flowField);
         propertyLabel("View cones");
         ImGui::Combo("##viewcones", &overlays_.viewCones, "Off\0Selected agent\0All agents\0");
-        ImGui::SetItemTooltip("Where people look: the 120 deg field of view and the narrow central cone used for "
-                              "reading.\nCentral cone: white ahead, amber turning to a target (an ad, a sign...), green on one, "
-                              "grey on a phone.");
+        ImGui::SetItemTooltip(
+            "Where people look: the 120 deg field of view and the narrow central cone used for "
+            "reading.\nCentral cone: white ahead, amber turning to a target (an ad, a sign...), green on one, "
+            "grey on a phone.");
         propertyLabel("Heatmap");
         ImGui::Combo("##heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0Peak pressure\0");
         ImGui::SetItemTooltip("Peak pressure: the highest crowd pressure on any body in each cell (scene bodies)");
@@ -458,8 +461,9 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     {
         // Record the 3D view (no UI) to video; red while recording, showing the time.
         const auto total = static_cast<int>(data.recordingSeconds);
-        const std::string label = data.recording ? std::format("Stop recording   {}:{:02}###record", total / 60, total % 60)
-                                                 : std::string("Record video###record");
+        const std::string label = data.recording
+                                      ? std::format("Stop recording   {}:{:02}###record", total / 60, total % 60)
+                                      : std::string("Record video###record");
         if (data.recording) {
             const ImVec4 red = palette::error();
             ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(red.x, red.y, red.z, 0.75f));
@@ -635,7 +639,8 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     }
     ImGui::Begin(kAttentionWindow);
     if (data.attention != nullptr) {
-        if (const std::uint32_t clicked = attentionPanel_.draw(*data.attention, data.simTimeSeconds, sceneEditor_.selected(), fonts_, req.commands)) {
+        if (const std::uint32_t clicked = attentionPanel_.draw(*data.attention, data.simTimeSeconds,
+                                                               sceneEditor_.selected(), fonts_, req.commands)) {
             sceneEditor_.select(clicked);
         }
     }
@@ -758,7 +763,8 @@ void EditorShell::drawScriptList(const EditorFrameData& data, EditorRequests& re
     const std::string newName(newScriptName_);
     ImGui::BeginDisabled(newName.empty());
     if (ImGui::Button("Create", ImVec2(-1.0f, 0))) {
-        req.commands.push_back(commands::makeCommand("SaveScript", {{"name", newName}, {"source", kNewScriptTemplate}}));
+        req.commands.push_back(
+            commands::makeCommand("SaveScript", {{"name", newName}, {"source", kNewScriptTemplate}}));
         openScript(ScriptView{newName, kNewScriptTemplate, true, {}});
         newScriptName_[0] = '\0';
     }
@@ -841,13 +847,11 @@ void EditorShell::drawScriptEditor(const EditorFrameData& data, EditorRequests& 
         scriptLoaded_ = scriptBuffer_;
     }
 
-    const bool save = ImGui::Button("Save") ||
-                      (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false) &&
-                       ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows));
+    const bool save = ImGui::Button("Save") || (ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_S, false) &&
+                                                ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows));
     ImGui::SetItemTooltip("Write content/scripts/%s.lua and run it (Ctrl+S)", openScript_.c_str());
     if (save) {
-        req.commands.push_back(
-            commands::makeCommand("SaveScript", {{"name", openScript_}, {"source", scriptBuffer_}}));
+        req.commands.push_back(commands::makeCommand("SaveScript", {{"name", openScript_}, {"source", scriptBuffer_}}));
         scriptLoaded_ = scriptBuffer_;
         scriptDirty_ = false;
     }
@@ -881,8 +885,8 @@ void EditorShell::drawScriptEditor(const EditorFrameData& data, EditorRequests& 
 
     ImGui::PushFont(fonts_.mono, 0.0f);
     if (ImGui::InputTextMultiline("##source", scriptBuffer_.data(), scriptBuffer_.capacity() + 1, ImVec2(-1.0f, -1.0f),
-                                  ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize,
-                                  resizeString, &scriptBuffer_)) {
+                                  ImGuiInputTextFlags_AllowTabInput | ImGuiInputTextFlags_CallbackResize, resizeString,
+                                  &scriptBuffer_)) {
         scriptDirty_ = scriptBuffer_ != scriptLoaded_;
     }
     ImGui::PopFont();

@@ -14,11 +14,11 @@
 #include "AppConfig.hpp"
 #include "ContentWatcher.hpp"
 #include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/SceneSections.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/mcp/CrowdSimTools.hpp"
-#include "crowdsim/assets/SceneSections.hpp"
 #include "crowdsim/metrics/AttentionModel.hpp"
 #include "crowdsim/metrics/Metrics.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
@@ -93,9 +93,9 @@ private:
     commands::CommandContext commandContext_;
     commands::CommandRegistry registry_;
     commands::CommandDispatcher dispatcher_;
-    script::ScriptHost scriptHost_;      ///< Lua domain; detaches from the simulation before it is destroyed
-    metrics::MetricsCollector metrics_;  ///< observes every step
-    metrics::AttentionModel attention_;   ///< observes every step: who sees the attention targets
+    script::ScriptHost scriptHost_;        ///< Lua domain; detaches from the simulation before it is destroyed
+    metrics::MetricsCollector metrics_;    ///< observes every step
+    metrics::AttentionModel attention_;    ///< observes every step: who sees the attention targets
     assets::SceneSections sceneSections_;  ///< scene parts owned outside the simulation (attention settings)
     ContentWatcher contentWatcher_;
 

@@ -28,7 +28,7 @@ class Simulation;
 namespace crowdsim::assets {
 class AssetLibrary;
 class SceneSections;
-}
+}  // namespace crowdsim::assets
 
 namespace crowdsim::commands {
 

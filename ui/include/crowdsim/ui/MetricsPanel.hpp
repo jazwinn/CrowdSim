@@ -47,9 +47,8 @@ public:  // imgui.ini persistence (called from the settings handler)
     [[nodiscard]] std::string writeSettings() const;
 
 private:
-
     std::map<std::string, std::array<float, 4>> seriesColors_;  ///< "plot/label" -> RGBA set by the user
-    std::set<std::string> hiddenSeries_;                         ///< "plot/label" hidden by the user
+    std::set<std::string> hiddenSeries_;                        ///< "plot/label" hidden by the user
     char exportPath_[128] = "recordings/trajectories.csv";
     char gateName_[32] = "gate1";
     float gateA_[2] = {0.0f, -3.0f};

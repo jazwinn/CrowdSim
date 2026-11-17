@@ -23,7 +23,8 @@ void TagCatalog::define(const std::string& source, const nlohmann::json& doc) {
         try {
             reflect::fromJson((*it)[i], spec);
         } catch (const reflect::FieldError& e) {
-            throw std::invalid_argument(std::format("tags.{}{}{}: {}", i, e.path().empty() ? "" : ".", e.path(), e.reason()));
+            throw std::invalid_argument(
+                std::format("tags.{}{}{}: {}", i, e.path().empty() ? "" : ".", e.path(), e.reason()));
         }
         specs.push_back(std::move(spec));
     }

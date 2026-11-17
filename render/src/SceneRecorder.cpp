@@ -38,10 +38,10 @@ struct SceneRecorder::Impl {
     bgfx::FrameBufferHandle frameBuffer = BGFX_INVALID_HANDLE;
     std::array<Slot, kSlots> slots;
     double startTime = 0.0;
-    std::uint64_t framesDue = 0;   ///< video frames that real time says should exist by now
-    std::uint64_t framesTaken = 0; ///< video frames captured so far (including repeats)
-    std::uint32_t lastFrame = 0;   ///< latest bgfx frame number
-    bool releasePending = false;   ///< stopped; free GPU resources once copies have landed
+    std::uint64_t framesDue = 0;    ///< video frames that real time says should exist by now
+    std::uint64_t framesTaken = 0;  ///< video frames captured so far (including repeats)
+    std::uint32_t lastFrame = 0;    ///< latest bgfx frame number
+    bool releasePending = false;    ///< stopped; free GPU resources once copies have landed
 
     [[nodiscard]] bool copiesInFlight() const {
         return std::any_of(slots.begin(), slots.end(), [](const Slot& s) { return s.readyFrame != 0; });
@@ -146,8 +146,9 @@ RecordingStatus SceneRecorder::stop() {
     // Copies still in flight are lost; at most a few frames at the end.
     m.writer->close();
     const core::VideoWriterStats s = m.writer->stats();
-    RecordingStatus out{false, m.opt.file, static_cast<double>(s.framesWritten) / m.opt.fps, s.framesWritten,
-                        s.framesDropped, m.opt.width, m.opt.height};
+    RecordingStatus out{false,           m.opt.file,      static_cast<double>(s.framesWritten) / m.opt.fps,
+                        s.framesWritten, s.framesDropped, m.opt.width,
+                        m.opt.height};
     m.log.info("Recording saved: {} ({} frames, {:.1f} s, {} dropped)", m.opt.file.string(), s.framesWritten,
                out.seconds, s.framesDropped);
     m.writer.reset();
@@ -245,7 +246,8 @@ void SceneRecorder::afterFrame(std::uint32_t frameNumber, double nowSeconds) {
     for (;;) {
         Slot* next = nullptr;
         for (Slot& s : m.slots) {
-            if (s.readyFrame != 0 && s.readyFrame <= frameNumber && (next == nullptr || s.readyFrame < next->readyFrame)) {
+            if (s.readyFrame != 0 && s.readyFrame <= frameNumber &&
+                (next == nullptr || s.readyFrame < next->readyFrame)) {
                 next = &s;
             }
         }

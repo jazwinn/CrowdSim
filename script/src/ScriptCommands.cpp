@@ -103,10 +103,10 @@ void registerScriptCommands(commands::CommandRegistry& r, ScriptHost& host) {
            [&host](const Json& p, CommandContext& ctx) {
                const std::string name = p.at("name").get<std::string>();
                const std::string source = p.at("source").get<std::string>();
-               const bool validName = !name.empty() && name.size() <= 64 &&
-                                      std::all_of(name.begin(), name.end(), [](unsigned char c) {
-                                          return std::isalnum(c) != 0 || c == '_' || c == '-';
-                                      });
+               const bool validName =
+                   !name.empty() && name.size() <= 64 && std::all_of(name.begin(), name.end(), [](unsigned char c) {
+                       return std::isalnum(c) != 0 || c == '_' || c == '-';
+                   });
                if (!validName) {
                    throw std::invalid_argument("script names use letters, digits, _ and - (got '" + name + "')");
                }

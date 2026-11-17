@@ -532,10 +532,10 @@ bool Simulation::updateNavigation() {
         const bool emergency = std::find(polyEmergency_.begin(), polyEmergency_.end(), 1) != polyEmergency_.end();
         for (entt::entity e : goals_) {
             const Area& area = registry_.get<Goal>(e).area;
-            flowFields_.push_back(buildFlowField(navMesh_, area, polyClimb_,
-                                                 emergency ? std::span<const std::uint8_t>(polyEmergency_)
-                                                           : std::span<const std::uint8_t>(),
-                                                 polyAlong_));
+            flowFields_.push_back(buildFlowField(
+                navMesh_, area, polyClimb_,
+                emergency ? std::span<const std::uint8_t>(polyEmergency_) : std::span<const std::uint8_t>(),
+                polyAlong_));
             if (emergency) {
                 emergencyFlowFields_.push_back(buildFlowField(navMesh_, area, polyClimb_, {}, polyAlong_));
             }
@@ -981,8 +981,8 @@ void Simulation::computeAvoidance(float dt) {
                 distSq[slot] = d2;
                 if (bodies && agents_.fallen[j] != 0) {
                     // Someone lying on the ground: a still obstacle to step around.
-                    neighbors[slot] = orca::Neighbor{agents_.position[j], glm::vec2(0.0f),
-                                                     agents_.radius[j] * 1.6f, j, 1.0f};
+                    neighbors[slot] =
+                        orca::Neighbor{agents_.position[j], glm::vec2(0.0f), agents_.radius[j] * 1.6f, j, 1.0f};
                 } else {
                     neighbors[slot] = orca::Neighbor{agents_.position[j], agents_.velocity[j],
                                                      (agents_.radius[j] + agents_.personalSpace[j]) * shrink, j,
@@ -1025,8 +1025,8 @@ void Simulation::computeAvoidance(float dt) {
                 });
             }
 
-            const orca::AgentState self{p,      agents_.velocity[i], agents_.preferredVelocity[i],
-                                        radius * shrink, agents_.maxSpeed[i], i};
+            const orca::AgentState self{
+                p, agents_.velocity[i], agents_.preferredVelocity[i], radius * shrink, agents_.maxSpeed[i], i};
             agents_.newVelocity[i] = orca::computeNewVelocity(
                 self, std::span(neighbors.data(), count),
                 std::span(wallCandidates.data(), std::min<std::uint32_t>(numWalls, orca::kMaxWalls)), params);

@@ -62,11 +62,11 @@ struct Sample {
     float peakDensity = 0.0f;  ///< agents / m² in the busiest 1 m cell
     float p90Density = 0.0f;   ///< 90th percentile over occupied cells
     std::uint32_t stuck = 0;
-    float peakPressure = 0.0f;   ///< N/m, highest on any body
-    float p90Pressure = 0.0f;    ///< N/m, 90th percentile over bodies under any pressure
-    std::uint32_t critical = 0;  ///< agents at or above kCriticalPressure now
-    std::uint32_t fallen = 0;    ///< agents on the ground now
-    std::uint64_t falls = 0;     ///< falls so far
+    float peakPressure = 0.0f;              ///< N/m, highest on any body
+    float p90Pressure = 0.0f;               ///< N/m, 90th percentile over bodies under any pressure
+    std::uint32_t critical = 0;             ///< agents at or above kCriticalPressure now
+    std::uint32_t fallen = 0;               ///< agents on the ground now
+    std::uint64_t falls = 0;                ///< falls so far
     std::vector<std::uint64_t> gateTotals;  ///< forward + backward per gate, cumulative
 };
 
@@ -76,12 +76,12 @@ struct Heatmap {
     float cell = 1.0f;
     glm::vec2 origin{0.0f};  ///< (x, z) of cell (0, 0)'s corner
     float elevation = 0.0f;
-    std::vector<float> agentSeconds;  ///< per cell
-    std::vector<float> speedSeconds;  ///< per cell: sum of speed * dt
-    std::vector<float> peakPressure;  ///< per cell: highest pressure seen, N/m
-    std::vector<float> heightSeconds; ///< per cell: sum of floor height * dt
-    double elapsed = 0.0;             ///< seconds accumulated
-    std::uint64_t version = 0;        ///< bumps whenever the data changes
+    std::vector<float> agentSeconds;   ///< per cell
+    std::vector<float> speedSeconds;   ///< per cell: sum of speed * dt
+    std::vector<float> peakPressure;   ///< per cell: highest pressure seen, N/m
+    std::vector<float> heightSeconds;  ///< per cell: sum of floor height * dt
+    double elapsed = 0.0;              ///< seconds accumulated
+    std::uint64_t version = 0;         ///< bumps whenever the data changes
 
     /// Time-averaged agents per m² in a cell.
     [[nodiscard]] float density(int x, int z) const;
@@ -151,10 +151,10 @@ private:
     std::uint64_t heatmapStaticVersion_ = ~0ull;
     std::uint64_t lastStep_ = 0;
 
-    std::unordered_map<std::uint32_t, double> spawnTime_;  ///< agent id -> spawn time
-    std::unordered_map<std::uint32_t, float> slowFor_;     ///< agent id -> seconds below the stuck speed
-    std::unordered_map<std::uint32_t, float> criticalFor_; ///< agent id -> seconds above kCriticalPressure
-    std::uint64_t criticallyExposed_ = 0;                  ///< agents that reached kCriticalSeconds
+    std::unordered_map<std::uint32_t, double> spawnTime_;   ///< agent id -> spawn time
+    std::unordered_map<std::uint32_t, float> slowFor_;      ///< agent id -> seconds below the stuck speed
+    std::unordered_map<std::uint32_t, float> criticalFor_;  ///< agent id -> seconds above kCriticalPressure
+    std::uint64_t criticallyExposed_ = 0;                   ///< agents that reached kCriticalSeconds
     std::vector<float> timeToGoal_;
 
     bool recording_ = false;

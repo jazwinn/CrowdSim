@@ -19,25 +19,24 @@ namespace {
 constexpr ImVec4 rgb(int r, int g, int b, float a = 1.0f) {
     return {static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f, static_cast<float>(b) / 255.0f, a};
 }
-constexpr ImVec4 kPanel = rgb(32, 35, 40);       // window background
-constexpr ImVec4 kChrome = rgb(25, 27, 31);      // title bars, menu bar, tab strip
-constexpr ImVec4 kWell = rgb(21, 23, 27);        // input wells (recessed)
-constexpr ImVec4 kRaised = rgb(44, 48, 55);      // buttons, headers
+constexpr ImVec4 kPanel = rgb(32, 35, 40);   // window background
+constexpr ImVec4 kChrome = rgb(25, 27, 31);  // title bars, menu bar, tab strip
+constexpr ImVec4 kWell = rgb(21, 23, 27);    // input wells (recessed)
+constexpr ImVec4 kRaised = rgb(44, 48, 55);  // buttons, headers
 constexpr ImVec4 kRaisedHover = rgb(54, 59, 67);
 constexpr ImVec4 kRaisedActive = rgb(64, 70, 79);
 constexpr ImVec4 kHairline = rgb(52, 56, 63);
 constexpr ImVec4 kText = rgb(226, 229, 233);
 constexpr ImVec4 kTextDim = rgb(138, 146, 156);
-constexpr ImVec4 kAccent = rgb(63, 178, 127);    // exit-sign green
+constexpr ImVec4 kAccent = rgb(63, 178, 127);  // exit-sign green
 constexpr ImVec4 kAccentSoft = rgb(63, 178, 127, 0.22f);
 constexpr ImVec4 kAccentHover = rgb(63, 178, 127, 0.34f);
 constexpr ImVec4 kWarning = rgb(224, 163, 58);
 constexpr ImVec4 kError = rgb(229, 100, 90);
 
 // Categorical colours: the accent first, then hues that stay apart on the dark panels.
-constexpr ImVec4 kSeries[] = {kAccent,           rgb(98, 151, 219),  kWarning,
-                              rgb(176, 132, 214), kError,             rgb(120, 200, 205),
-                              rgb(214, 196, 92),  rgb(222, 126, 176)};
+constexpr ImVec4 kSeries[] = {kAccent, rgb(98, 151, 219),  kWarning,          rgb(176, 132, 214),
+                              kError,  rgb(120, 200, 205), rgb(214, 196, 92), rgb(222, 126, 176)};
 
 constexpr float kBaseFontSize = 15.0f;
 
@@ -204,15 +203,16 @@ void applyPlotTheme() {
 
 ThemeFonts loadFonts() {
     ThemeFonts f;
-    f.body = tryLoad({"C:/Windows/Fonts/segoeui.ttf", "/System/Library/Fonts/SFNS.ttf",
-                      "/System/Library/Fonts/Supplemental/Arial.ttf", "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-                      "/usr/share/fonts/noto/NotoSans-Regular.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"},
-                     kBaseFontSize);
-    f.strong = tryLoad({"C:/Windows/Fonts/seguisb.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-                        "/usr/share/fonts/truetype/noto/NotoSans-SemiBold.ttf",
-                        "/usr/share/fonts/noto/NotoSans-SemiBold.ttf",
-                        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"},
-                       kBaseFontSize);
+    f.body =
+        tryLoad({"C:/Windows/Fonts/segoeui.ttf", "/System/Library/Fonts/SFNS.ttf",
+                 "/System/Library/Fonts/Supplemental/Arial.ttf", "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
+                 "/usr/share/fonts/noto/NotoSans-Regular.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"},
+                kBaseFontSize);
+    f.strong =
+        tryLoad({"C:/Windows/Fonts/seguisb.ttf", "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+                 "/usr/share/fonts/truetype/noto/NotoSans-SemiBold.ttf", "/usr/share/fonts/noto/NotoSans-SemiBold.ttf",
+                 "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"},
+                kBaseFontSize);
     f.mono = tryLoad({"C:/Windows/Fonts/CascadiaMono.ttf", "C:/Windows/Fonts/consola.ttf",
                       "/System/Library/Fonts/SFNSMono.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf",
                       "/usr/share/fonts/truetype/noto/NotoSansMono-Regular.ttf"},
@@ -280,7 +280,8 @@ bool beginReadout(const char* id) {
     if (!ImGui::BeginTable(id, 2, ImGuiTableFlags_SizingFixedFit)) {
         return false;
     }
-    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed, propertyColumn() - ImGui::GetStyle().CellPadding.x);
+    ImGui::TableSetupColumn("label", ImGuiTableColumnFlags_WidthFixed,
+                            propertyColumn() - ImGui::GetStyle().CellPadding.x);
     ImGui::TableSetupColumn("value", ImGuiTableColumnFlags_WidthStretch);
     return true;
 }
@@ -314,7 +315,8 @@ void sectionHeading(const char* text, const ThemeFonts& fonts) {
     ImGui::TextUnformatted(text);
     ImGui::PopFont();
     const ImVec2 p = ImGui::GetCursorScreenPos();
-    ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x, p.y - 2.0f), ImVec2(p.x + ImGui::GetContentRegionAvail().x, p.y - 2.0f),
+    ImGui::GetWindowDrawList()->AddLine(ImVec2(p.x, p.y - 2.0f),
+                                        ImVec2(p.x + ImGui::GetContentRegionAvail().x, p.y - 2.0f),
                                         ImGui::GetColorU32(ImGuiCol_Separator));
     ImGui::Dummy(ImVec2(0.0f, 2.0f));
 }

@@ -211,8 +211,8 @@ void CrowdRenderer::prepare(const CrowdFrameInput& in, core::JobSystem* jobs) {
                 // pile stands out from the crowd around it. Negative scale = lying (vs_agent).
                 const glm::vec3 tint = a.color * 0.45f + glm::vec3(0.55f, 0.08f, 0.08f);
                 const float lift = 0.28f * static_cast<float>(std::max<int>(0, a.pileLayer - 1));
-                capsule_[i] = CapsuleInstance{p.x, p.y + lift, p.z, heading, tint.r, tint.g, tint.b,
-                                              -a.radius / in.capsuleRadius};
+                capsule_[i] = CapsuleInstance{p.x,    p.y + lift, p.z,    heading,
+                                              tint.r, tint.g,     tint.b, -a.radius / in.capsuleRadius};
             } else {
                 capsule_[i] = CapsuleInstance{p.x,       p.y,       p.z,       heading,
                                               a.color.r, a.color.g, a.color.b, a.radius / in.capsuleRadius};

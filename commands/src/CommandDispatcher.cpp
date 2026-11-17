@@ -141,9 +141,10 @@ void CommandDispatcher::restartLog(CommandContext& ctx) {
             log_.push_back({ctx.sim.stepIndex(), std::move(cmd)});
         }
     }
-    log_.push_back({ctx.sim.stepIndex(),
-                    makeCommand("RestoreScene",
-                                Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)}, {"name", ctx.sceneName}})});
+    log_.push_back(
+        {ctx.sim.stepIndex(),
+         makeCommand("RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)},
+                                          {"name", ctx.sceneName}})});
 }
 
 Json CommandDispatcher::logToJson(const CommandContext& ctx) const {

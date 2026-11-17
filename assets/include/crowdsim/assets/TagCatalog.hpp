@@ -38,7 +38,7 @@ struct TagSpec {
     std::string description;
     TagKind kind = TagKind::Flag;
     std::string requiredTag;  ///< tag this one refines, added with it (empty: none)
-    float min = 0.0f;      ///< number tags
+    float min = 0.0f;         ///< number tags
     float max = 1.0f;
     float defaultValue = 0.0f;
     std::string unit;
@@ -74,6 +74,7 @@ private:
 
 }  // namespace crowdsim::assets
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::assets::TagSpec,
     field("name", &T::name).required(),
     field("group", &T::group),
@@ -92,3 +93,4 @@ CROWDSIM_REFLECT(crowdsim::assets::TagSpec,
             throw crowdsim::reflect::FieldError("max", "must be at least min");
         }
     }))
+// clang-format on

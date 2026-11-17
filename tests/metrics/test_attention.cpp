@@ -1,6 +1,6 @@
-// Visual attention (metrics/AttentionModel): an ad (an attention target) beside a corridor is seen, glanced at and noticed
-// by people walking past; a wall in between hides it; people on their phones do not read
-// it; results do not depend on the thread count.
+// Visual attention (metrics/AttentionModel): an ad (an attention target) beside a corridor is seen, glanced at and
+// noticed by people walking past; a wall in between hides it; people on their phones do not read it; results do not
+// depend on the thread count.
 
 #include <doctest/doctest.h>
 
@@ -25,10 +25,10 @@ using namespace crowdsim;
 namespace {
 
 struct Options {
-    bool wall = false;        ///< an opaque wall between the corridor and the ad
-    float phone = 0.0f;       ///< SetAttention phone
-    float interest = 3.0f;    ///< SetAttention interest
-    bool legacyTag = false;   ///< tag the ad with the older `ad` tags
+    bool wall = false;       ///< an opaque wall between the corridor and the ad
+    float phone = 0.0f;      ///< SetAttention phone
+    float interest = 3.0f;   ///< SetAttention interest
+    bool legacyTag = false;  ///< tag the ad with the older `ad` tags
     std::uint32_t threads = 4;
 };
 
@@ -54,8 +54,11 @@ nlohmann::json walkPast(const Options& o) {
     sim::BtNodeDesc attention{"SetAttention", "attention", {}, {}};
     attention.params["phone"].number = o.phone;
     attention.params["interest"].number = o.interest;
-    sim::BtNodeDesc root{"Sequence", "root", {}, {attention, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}},
-                                                  sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+    sim::BtNodeDesc root{
+        "Sequence",
+        "root",
+        {},
+        {attention, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}}, sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
     sim.setBehaviorTree(sim::compileBehaviorTree(root, "passer"));
     sim::AgentType t;
     t.name = "passer";

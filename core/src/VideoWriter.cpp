@@ -300,8 +300,9 @@ bool VideoWriter::addFrame(std::span<const std::uint8_t> rgba, bool topDown, std
             impl_->stats.framesDropped += repeat;
             return false;
         }
-        impl_->queue.push_back(Job{std::vector<std::uint8_t>(rgba.begin(), rgba.begin() + static_cast<std::ptrdiff_t>(expected)),
-                                   topDown, repeat});
+        impl_->queue.push_back(
+            Job{std::vector<std::uint8_t>(rgba.begin(), rgba.begin() + static_cast<std::ptrdiff_t>(expected)), topDown,
+                repeat});
     }
     impl_->wake.notify_one();
     return true;

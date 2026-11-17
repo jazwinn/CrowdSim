@@ -103,10 +103,10 @@ struct Meta {
     double speed = 0.0;  ///< editor drag speed in shown units (0 = a sensible default)
     bool color = false;  ///< "#rrggbb" (uint32 ABGR or vec3 RGB in 0..1)
     bool infinityAsNull = false;
-    bool lowercase = false;  ///< enum names saved in lower case
-    bool hidden = false;     ///< saved, not shown in the editor
-    bool required = false;   ///< reading fails when the key is absent
-    bool flatten = false;    ///< a described type saved inline: its keys sit beside the owner's
+    bool lowercase = false;      ///< enum names saved in lower case
+    bool hidden = false;         ///< saved, not shown in the editor
+    bool required = false;       ///< reading fails when the key is absent
+    bool flatten = false;        ///< a described type saved inline: its keys sit beside the owner's
     const char* omit = nullptr;  ///< with flatten: a key of the inner type left out
 
     [[nodiscard]] bool bounded() const noexcept { return std::isfinite(min) || std::isfinite(max); }
@@ -166,7 +166,9 @@ struct Codec<V, std::enable_if_t<std::is_integral_v<V> && !std::is_same_v<V, boo
         }
         v = static_cast<V>(d);
     }
-    static std::string check(V v, const Meta& m) { return m.color ? std::string() : checkBounds(static_cast<double>(v), m); }
+    static std::string check(V v, const Meta& m) {
+        return m.color ? std::string() : checkBounds(static_cast<double>(v), m);
+    }
 };
 
 template <typename V>
@@ -242,7 +244,9 @@ struct Codec<glm::vec<N, float, glm::defaultp>> {
     static Json encode(const V& v, const Meta& m) {
         if constexpr (N == 3) {
             if (m.color) {
-                auto ch = [](float c) { return static_cast<std::uint32_t>(std::lround(std::clamp(c, 0.0f, 1.0f) * 255.0f)); };
+                auto ch = [](float c) {
+                    return static_cast<std::uint32_t>(std::lround(std::clamp(c, 0.0f, 1.0f) * 255.0f));
+                };
                 return colorString(0xff000000u | (ch(v.b) << 16) | (ch(v.g) << 8) | ch(v.r));
             }
         }
@@ -443,7 +447,7 @@ inline constexpr bool isCheck<Check<C, Fn>> = true;
 
 /// A member field.
 template <typename C, typename V>
-[[nodiscard]] auto field(const char* key, V C::*member) {
+[[nodiscard]] auto field(const char* key, V C::* member) {
     auto get = [member](const C& c) -> const V& { return c.*member; };
     auto set = [member](C& c, V v) { c.*member = std::move(v); };
     return Property<C, V, decltype(get), decltype(set)>{key, get, set};
@@ -458,7 +462,7 @@ template <typename C, typename Get, typename Set>
 
 /// Two members saved together as [lo, hi].
 template <typename C, typename V>
-[[nodiscard]] auto range(const char* key, V C::*lo, V C::*hi) {
+[[nodiscard]] auto range(const char* key, V C::* lo, V C::* hi) {
     auto get = [lo, hi](const C& c) { return Range<V>{c.*lo, c.*hi}; };
     auto set = [lo, hi](C& c, Range<V> r) {
         c.*lo = r.lo;
@@ -587,13 +591,13 @@ template <Reflected T>
 
 /// Describe TYPE (at global namespace scope). Inside, `T` is TYPE: `field("key", &T::member)`,
 /// `property<T>(...)`, `range("key", &T::lo, &T::hi)`, `check<T>(fn)`.
-#define CROWDSIM_REFLECT(TYPE, ...)                                                    \
-    template <>                                                                        \
-    struct crowdsim::reflect::Describe<TYPE> {                                         \
-        using T = TYPE;                                                                \
-        static const auto& fields() {                                                  \
-            using namespace crowdsim::reflect;                                         \
-            static const auto described = std::make_tuple(__VA_ARGS__);                \
-            return described;                                                          \
-        }                                                                              \
+#define CROWDSIM_REFLECT(TYPE, ...)                                     \
+    template <>                                                         \
+    struct crowdsim::reflect::Describe<TYPE> {                          \
+        using T = TYPE;                                                 \
+        static const auto& fields() {                                   \
+            using namespace crowdsim::reflect;                          \
+            static const auto described = std::make_tuple(__VA_ARGS__); \
+            return described;                                           \
+        }                                                               \
     };

@@ -331,14 +331,10 @@ Json MetricsCollector::summary() const {
                 peakEver = std::max(peakEver, x.peakPressure);
                 mostOnGround = std::max(mostOnGround, x.fallen);
             }
-            j["pressure"] = {{"peak", round3(s.peakPressure)},
-                             {"p90", round3(s.p90Pressure)},
-                             {"peakEver", round3(peakEver)},
-                             {"critical", s.critical},
-                             {"criticalLevel", kCriticalPressure},
-                             {"criticallyExposed", criticallyExposed_},
-                             {"criticalSeconds", kCriticalSeconds},
-                             {"unit", "N/m"}};
+            j["pressure"] = {{"peak", round3(s.peakPressure)},      {"p90", round3(s.p90Pressure)},
+                             {"peakEver", round3(peakEver)},        {"critical", s.critical},
+                             {"criticalLevel", kCriticalPressure},  {"criticallyExposed", criticallyExposed_},
+                             {"criticalSeconds", kCriticalSeconds}, {"unit", "N/m"}};
             j["falls"] = {{"total", s.falls}, {"onGround", s.fallen}, {"mostOnGround", mostOnGround}};
         }
     }
@@ -444,8 +440,8 @@ Json MetricsCollector::heatmapJson(const std::string& kind, std::size_t maxCells
     }
     return Json{{"kind", kind},
                 {"unit", kind == "density" ? "agents/m² (time-averaged)"
-                         : kind == "speed"   ? "m/s (mean while present)"
-                                             : "N/m (peak on any body)"},
+                         : kind == "speed" ? "m/s (mean while present)"
+                                           : "N/m (peak on any body)"},
                 {"width", w},
                 {"height", hh},
                 {"cellSize", h.cell * static_cast<float>(factor)},

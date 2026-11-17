@@ -136,15 +136,18 @@ TEST_CASE("Emergency routes: only agents told to use them route through them") {
             d.size = {x1 - x0, 0.2f, z1 - z0};
             w.sim.addStaticObject(sim::StaticObject{"floor", d, {}, {}, std::move(tags)});
         };
-        floor(-10.0f, 10.0f, -5.0f, 5.0f, {});                // hall
-        floor(10.0f, 20.0f, -1.0f, 1.0f, {"emergency"});      // fire exit corridor
-        floor(-10.0f, 26.0f, 5.0f, 8.0f, {});                 // everyday corridor
-        floor(20.0f, 26.0f, -5.0f, 5.0f, {});                 // outside
+        floor(-10.0f, 10.0f, -5.0f, 5.0f, {});            // hall
+        floor(10.0f, 20.0f, -1.0f, 1.0f, {"emergency"});  // fire exit corridor
+        floor(-10.0f, 26.0f, 5.0f, 8.0f, {});             // everyday corridor
+        floor(20.0f, 26.0f, -5.0f, 5.0f, {});             // outside
 
         sim::BtNodeDesc use{"UseEmergencyRoutes", "use", {}, {}};
         use.params["use"].number = useEmergency ? 1.0f : 0.0f;
-        sim::BtNodeDesc root{"Sequence", "root", {}, {use, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}},
-                                                      sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+        sim::BtNodeDesc root{
+            "Sequence",
+            "root",
+            {},
+            {use, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}}, sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
         w.sim.setBehaviorTree(sim::compileBehaviorTree(root, "leaver"));
         sim::AgentType t;
         t.name = "leaver";
@@ -197,8 +200,11 @@ TEST_CASE("MoveToGoal with no goal named goes to the spawner's goal, after visit
     sim::BtNodeDesc visit{"MoveToGoal", "visit", {}, {}};
     visit.params["goal"].kind = sim::BtParamKind::Text;
     visit.params["goal"].text = "Shop";
-    sim::BtNodeDesc root{"Sequence", "root", {}, {visit, sim::BtNodeDesc{"MoveToGoal", "home", {}, {}},
-                                                  sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+    sim::BtNodeDesc root{
+        "Sequence",
+        "root",
+        {},
+        {visit, sim::BtNodeDesc{"MoveToGoal", "home", {}, {}}, sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
     w.sim.setBehaviorTree(sim::compileBehaviorTree(root, "visitor"));
     sim::AgentType t;
     t.name = "visitor";

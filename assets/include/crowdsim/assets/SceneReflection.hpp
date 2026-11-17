@@ -3,8 +3,8 @@
 /// @file SceneReflection.hpp
 /// Reflection descriptors for the scene description types (see reflect/Reflect.hpp): the
 /// one place that says how each is saved in *.scene.json (docs/formats.md), how it is
-/// validated and how the editor shows it. Agent type files (*.agent.json) are described here too. Keys and units match the file format, which is
-/// why some differ from the member names (rotationY is saved in degrees, flags as tags).
+/// validated and how the editor shows it. Agent type files (*.agent.json) are described here too. Keys and units match
+/// the file format, which is why some differ from the member names (rotationY is saved in degrees, flags as tags).
 
 #include <stdexcept>
 #include <string>
@@ -16,11 +16,14 @@
 #include "crowdsim/sim/NavMesh.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::Area,
     field("center", &T::center).required().unit("m").tip("Centre of the area on the floor (x, z)"),
     field("halfExtents", &T::halfExtents).required().above(0).unit("m").tip("Half its width (x) and depth (z)"),
     field("elevation", &T::elevation).unit("m").tip("Height of the floor the area lies on"))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::Goal,
     field("name", &T::name),
     field("area", &T::area).required(),
@@ -28,7 +31,9 @@ CROWDSIM_REFLECT(crowdsim::sim::Goal,
     field("serviceTime", &T::serviceTime).atLeast(0).unit("s").tip("How long each person is served"),
     field("queueDirection", &T::queueDirection).tip("Direction the waiting line extends from the area (x, z)"),
     field("queueSpacing", &T::queueSpacing).above(0.1).unit("m").tip("Space between people in the line"))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::OffMeshLink,
     field("start", &T::start).required().unit("m"),
     field("end", &T::end).required().unit("m"),
@@ -36,7 +41,9 @@ CROWDSIM_REFLECT(crowdsim::sim::OffMeshLink,
     field("bidirectional", &T::bidirectional).tip("Usable both ways (off: start to end only)"),
     field("extraCost", &T::extraCost).atLeast(0).unit("m").tip(
         "Extra path cost, so routes prefer the link only when it saves a real detour"))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::AgentParams,
     range("radius", &T::radiusMin, &T::radiusMax).above(0).unit("m").tip("Body radius, drawn per person"),
     range("preferredSpeed", &T::preferredSpeedMin, &T::preferredSpeedMax).above(0).unit("m/s").label("Speed").tip(
@@ -48,11 +55,15 @@ CROWDSIM_REFLECT(crowdsim::sim::AgentParams,
     field("color", &T::color).color(),
     field("colorJitter", &T::colorJitter).between(0, 1).tip("Random variation of the colour per person"),
     field("agentType", &T::agentType).widget("agentType").tip("Agent type (behaviour) when the spawner has no agent mix"))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::AgentMixEntry,
     field("type", &T::type).required().widget("agentTypeName"),
     field("weight", &T::weight).atLeast(0).tip("Share of the spawned people, relative to the other entries"))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::Spawner,
     field("name", &T::name),
     field("area", &T::area).required(),
@@ -65,7 +76,9 @@ CROWDSIM_REFLECT(crowdsim::sim::Spawner,
     field("agentMix", &T::agentMix).widget("agentMix").tip("Agent types to spawn, by weight"),
     range("groupSize", &T::groupSizeMin, &T::groupSizeMax).between(1, 12).tip(
         "People spawned together as a group that walks together"))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::NavBuildSettings,
     field("cellSize", &T::cellSize).above(0.01).unit("m").tip("Voxel size across: smaller is finer and slower to build"),
     field("cellHeight", &T::cellHeight).above(0.01).unit("m"),
@@ -74,7 +87,9 @@ CROWDSIM_REFLECT(crowdsim::sim::NavBuildSettings,
     field("agentMaxClimb", &T::agentMaxClimb).atLeast(0).unit("m").tip("Highest step people walk up"),
     field("agentMaxSlope", &T::agentMaxSlopeDegrees).between(0, 90).unit("deg"),
     field("tileSize", &T::tileSizeCells).atLeast(16).tip("Navmesh tile size in cells"))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::BodyParams,
     field("enabled", &T::enabled),
     field("stiffness", &T::stiffness).above(0).unit("N/m").tip("Force per metre two bodies are pressed into each other"),
@@ -92,9 +107,11 @@ CROWDSIM_REFLECT(crowdsim::sim::BodyParams,
             throw crowdsim::reflect::FieldError("core", "must be below 1");
         }
     }))
+// clang-format on
 
 // An agent type file (*.agent.json) holds the body parameters inline, beside the type's own
 // fields; `agentType` (a spawner's default type) means nothing there.
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::AgentType,
     field("name", &T::name).tip("Referred to by spawners' agent mixes"),
     field("behaviour", &T::behaviour).widget("behaviour").tip("Behaviour tree the agents run"),
@@ -107,9 +124,12 @@ CROWDSIM_REFLECT(crowdsim::sim::AgentType,
             throw crowdsim::reflect::FieldError("name", "an agent type needs a name");
         }
     }))
+// clang-format on
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::Group,
     field("name", &T::name))
+// clang-format on
 
 namespace crowdsim::assets::detail {
 
@@ -146,6 +166,7 @@ inline bool isMesh(const sim::StaticObject& o) {
 
 }  // namespace crowdsim::assets::detail
 
+// clang-format off
 CROWDSIM_REFLECT(crowdsim::sim::StaticObject,
     field("name", &T::name),
     property<T>(
@@ -196,3 +217,4 @@ CROWDSIM_REFLECT(crowdsim::sim::StaticObject,
             throw crowdsim::reflect::FieldError("size", "width and depth must be above 0");
         }
     }))
+// clang-format on

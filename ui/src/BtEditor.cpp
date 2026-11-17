@@ -204,11 +204,10 @@ void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, 
             "New tree. Right-click the canvas to add a node, then drag from the root's right pin to it.");
     } else if (!valid) {
         const std::string first = !issues.empty() ? issues.front().message : compileError;
-        ImGui::TextColored(palette::error(), "%zu problem%s: %s",
-                           std::max<std::size_t>(1, issues.size()), issues.size() > 1 ? "s" : "", first.c_str());
+        ImGui::TextColored(palette::error(), "%zu problem%s: %s", std::max<std::size_t>(1, issues.size()),
+                           issues.size() > 1 ? "s" : "", first.c_str());
     } else if (!status_.empty()) {
-        ImGui::TextColored(statusError_ ? palette::error() : palette::accent(), "%s",
-                           status_.c_str());
+        ImGui::TextColored(statusError_ ? palette::error() : palette::accent(), "%s", status_.c_str());
     } else {
         ImGui::TextDisabled(
             "Right-click: add node. Drag from a node's right pin to another's left pin to link. "

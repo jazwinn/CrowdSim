@@ -64,16 +64,16 @@ struct LocomotionParams {
 /// still and others pushed against them trip and fall on top (a pile).
 struct BodyParams {
     bool enabled = false;
-    float stiffness = 5000.0f;      ///< N per metre two bodies are pressed into each other
-    float damping = 400.0f;         ///< N per m/s of approach along the contact normal
-    float core = 0.65f;             ///< incompressible fraction of the radius
-    float slopeLean = 0.5f;         ///< share of the downhill weight (m g sin a) packed people pass on
-    float fallForce = 800.0f;       ///< N of net push above which standing people may topple
-    float fallRate = 0.3f;          ///< falls per second at twice fallForce (rises linearly above it)
-    float tripForce = 300.0f;       ///< N of push towards someone lying in the way that trips people over them
-    float tripRate = 0.6f;          ///< falls per second when tripping (x push / tripForce, up to 3x)
-    float getUpSeconds = 3.0f;      ///< minimum time on the ground
-    float getUpPressure = 300.0f;   ///< N/m: fallen people get up only below this and with no one on top
+    float stiffness = 5000.0f;     ///< N per metre two bodies are pressed into each other
+    float damping = 400.0f;        ///< N per m/s of approach along the contact normal
+    float core = 0.65f;            ///< incompressible fraction of the radius
+    float slopeLean = 0.5f;        ///< share of the downhill weight (m g sin a) packed people pass on
+    float fallForce = 800.0f;      ///< N of net push above which standing people may topple
+    float fallRate = 0.3f;         ///< falls per second at twice fallForce (rises linearly above it)
+    float tripForce = 300.0f;      ///< N of push towards someone lying in the way that trips people over them
+    float tripRate = 0.6f;         ///< falls per second when tripping (x push / tripForce, up to 3x)
+    float getUpSeconds = 3.0f;     ///< minimum time on the ground
+    float getUpPressure = 300.0f;  ///< N/m: fallen people get up only below this and with no one on top
 };
 
 struct SimConfig {
@@ -97,9 +97,9 @@ struct SimStats {
     std::uint64_t arrived = 0;  ///< goal arrivals (MoveToGoal / Queue completions)
     std::uint64_t despawned = 0;
     float averageSpeed = 0.0f;
-    std::uint32_t fallen = 0;      ///< agents on the ground now
-    std::uint64_t falls = 0;       ///< falls since the start
-    float peakPressure = 0.0f;     ///< N/m, highest on any agent now
+    std::uint32_t fallen = 0;   ///< agents on the ground now
+    std::uint64_t falls = 0;    ///< falls since the start
+    float peakPressure = 0.0f;  ///< N/m, highest on any agent now
 };
 
 /// Wall time of each phase of the last step, in milliseconds (always measured;
@@ -150,15 +150,15 @@ struct TaggedVolume {
 /// each one rides is behaviour (EscalatorRider, set from behaviour trees).
 struct Escalator {
     SceneId object = kNoSceneId;
-    glm::vec2 entry{0.0f};       ///< centre of the boarding edge (x, z)
-    glm::vec2 forward{0.0f};     ///< unit direction of travel (x, z)
-    glm::vec2 right{0.0f};       ///< unit right-hand side when facing `forward`
-    float length = 0.0f;         ///< horizontal length, m
-    float halfWidth = 0.0f;      ///< m
-    float entryHeight = 0.0f;    ///< floor height at the boarding edge
-    float exitHeight = 0.0f;     ///< floor height at the far edge
-    float beltSpeed = 0.5f;      ///< horizontal component of the step speed, m/s
-    float laneOffset = 0.3f;     ///< lane centre distance from the middle, m
+    glm::vec2 entry{0.0f};     ///< centre of the boarding edge (x, z)
+    glm::vec2 forward{0.0f};   ///< unit direction of travel (x, z)
+    glm::vec2 right{0.0f};     ///< unit right-hand side when facing `forward`
+    float length = 0.0f;       ///< horizontal length, m
+    float halfWidth = 0.0f;    ///< m
+    float entryHeight = 0.0f;  ///< floor height at the boarding edge
+    float exitHeight = 0.0f;   ///< floor height at the far edge
+    float beltSpeed = 0.5f;    ///< horizontal component of the step speed, m/s
+    float laneOffset = 0.3f;   ///< lane centre distance from the middle, m
 };
 
 /// A piece of static environment geometry (ECS component). Either a parametric
@@ -400,8 +400,8 @@ private:
     std::vector<entt::entity> goals_;     ///< creation order = goal index
     std::vector<entt::entity> spawners_;  ///< creation order = processing order
     std::vector<entt::entity> groups_;
-    std::vector<Area> goalAreas_;         ///< per-step copy for the hot loops
-    std::vector<Goal> goalsCache_;        ///< per-step copy of goal settings for the decision layer
+    std::vector<Area> goalAreas_;   ///< per-step copy for the hot loops
+    std::vector<Goal> goalsCache_;  ///< per-step copy of goal settings for the decision layer
 
     // Navigation (derived from the scene; rebuilt when dirty)
     geometry::TriangleMesh staticMesh_;

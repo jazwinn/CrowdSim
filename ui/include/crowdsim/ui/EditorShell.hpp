@@ -13,8 +13,8 @@
 
 #include <nlohmann/json.hpp>
 
-#include "crowdsim/ui/BtEditor.hpp"
 #include "crowdsim/ui/AttentionPanel.hpp"
+#include "crowdsim/ui/BtEditor.hpp"
 #include "crowdsim/ui/MetricsPanel.hpp"
 #include "crowdsim/ui/SceneEditor.hpp"
 #include "crowdsim/ui/Theme.hpp"
@@ -36,7 +36,7 @@ struct OverlayToggles {
     bool shadows = true;
     float lodNearDistance = 30.0f;
     float lodFarDistance = 90.0f;
-    int heatmap = 0;  ///< 0 off, 1 density, 2 speed, 3 peak pressure
+    int heatmap = 0;     ///< 0 off, 1 density, 2 speed, 3 peak pressure
     bool routes = true;  ///< spawner-to-goal arcs (one colour per goal)
     int viewCones = 0;   ///< 0 off, 1 the selected agent, 2 every agent
 };
@@ -113,7 +113,7 @@ struct EditorFrameData {
     std::span<const std::string> sceneFiles;   ///< content-relative *.scene.json files
     std::string_view sceneName;
     const metrics::MetricsCollector* metrics = nullptr;  ///< for the Metrics panel
-    const metrics::AttentionModel* attention = nullptr;     ///< for the Attention panel
+    const metrics::AttentionModel* attention = nullptr;  ///< for the Attention panel
 };
 
 /// Rectangle in framebuffer pixels.

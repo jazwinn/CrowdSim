@@ -221,9 +221,8 @@ void Simulation::assignEscalatorLanes() {
             // Off the steps and past the landing: done with it, so turning back across
             // that landing later is ordinary walking, not stepping off again.
             const std::uint16_t own = agents_.escalatorIndex[i];
-            if (own < escalators_.size() &&
-                !inExit(escalators_[own], toLocal(escalators_[own], agents_.position[i]), agents_.height[i],
-                        agents_.rider[i].clearLanding)) {
+            if (own < escalators_.size() && !inExit(escalators_[own], toLocal(escalators_[own], agents_.position[i]),
+                                                    agents_.height[i], agents_.rider[i].clearLanding)) {
                 agents_.escalatorIndex[i] = kNoEscalator;
             }
             continue;

@@ -49,8 +49,11 @@ struct World {
         setStyle.params["side"].kind = sim::BtParamKind::Text;
         setStyle.params["side"].text = style.substr(dash + 1);
         setStyle.params["walk"].number = style.starts_with("walk") ? 0.45f : 0.0f;
-        sim::BtNodeDesc root{"Sequence", "root", {}, {setStyle, sim::BtNodeDesc{"MoveToGoal", "walk", {}, {}},
-                                                      sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+        sim::BtNodeDesc root{
+            "Sequence",
+            "root",
+            {},
+            {setStyle, sim::BtNodeDesc{"MoveToGoal", "walk", {}, {}}, sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
         sim.setBehaviorTree(sim::compileBehaviorTree(root, style));
 
         sim::AgentType stander;
@@ -77,9 +80,9 @@ struct World {
 };
 
 struct Ride {
-    float seconds = 0.0f;        ///< time spent on the moving steps
-    float meanLateral = 0.0f;    ///< mean x while riding (left is -x when facing +z)
-    float maxGaitSpeed = 0.0f;   ///< largest walking speed the animation saw while riding
+    float seconds = 0.0f;       ///< time spent on the moving steps
+    float meanLateral = 0.0f;   ///< mean x while riding (left is -x when facing +z)
+    float maxGaitSpeed = 0.0f;  ///< largest walking speed the animation saw while riding
     bool reachedTop = false;
 };
 
@@ -281,8 +284,10 @@ TEST_CASE("Riders stepping off an up escalator do not board the down escalator b
         }
         sim.addStaticObject(sim::StaticObject{"escalator", esc, {}, {}, tags});
     }
-    sim::BtNodeDesc root{"Sequence", "root", {}, {sim::BtNodeDesc{"MoveToGoal", "go", {}, {}},
-                                                  sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+    sim::BtNodeDesc root{"Sequence",
+                         "root",
+                         {},
+                         {sim::BtNodeDesc{"MoveToGoal", "go", {}, {}}, sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
     sim.setBehaviorTree(sim::compileBehaviorTree(root, "up"));
     sim::AgentType t;
     t.name = "up";
@@ -327,19 +332,22 @@ TEST_CASE("A box tagged escalator is a moving walkway: carries riders and is one
             d.size = size;
             sim.addStaticObject(sim::StaticObject{"box", d, {}, {}, std::move(tags)});
         };
-        box({0.0f, -0.2f, -16.0f}, {8.0f, 0.2f, 12.0f}, {"walkable"});          // near landing
-        box({0.0f, -0.2f, 16.0f}, {8.0f, 0.2f, 12.0f}, {"walkable"});           // far landing
-        box({2.4f, -0.2f, 0.0f}, {3.2f, 0.2f, 20.0f}, {"walkable"});            // walkway beside it
-        box({-1.4f, -0.1f, 0.0f}, {2.4f, 0.1f, 20.0f},                         // the travelator
+        box({0.0f, -0.2f, -16.0f}, {8.0f, 0.2f, 12.0f}, {"walkable"});  // near landing
+        box({0.0f, -0.2f, 16.0f}, {8.0f, 0.2f, 12.0f}, {"walkable"});   // far landing
+        box({2.4f, -0.2f, 0.0f}, {3.2f, 0.2f, 20.0f}, {"walkable"});    // walkway beside it
+        box({-1.4f, -0.1f, 0.0f}, {2.4f, 0.1f, 20.0f},                  // the travelator
             {"walkable", "escalator", "escalator:speed=0.75"});
-        box({0.6f, 0.0f, 0.0f}, {0.2f, 1.0f, 20.0f}, {"obstacle"});            // balustrade between
+        box({0.6f, 0.0f, 0.0f}, {0.2f, 1.0f, 20.0f}, {"obstacle"});  // balustrade between
 
         sim::BtNodeDesc stand{"SetEscalatorStyle", "style", {}, {}};
         stand.params["side"].kind = sim::BtParamKind::Text;
         stand.params["side"].text = "either";
         stand.params["walk"].number = 0.0f;
-        sim::BtNodeDesc root{"Sequence", "root", {}, {stand, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}},
-                                                      sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
+        sim::BtNodeDesc root{
+            "Sequence",
+            "root",
+            {},
+            {stand, sim::BtNodeDesc{"MoveToGoal", "go", {}, {}}, sim::BtNodeDesc{"Despawn", "leave", {}, {}}}};
         sim.setBehaviorTree(sim::compileBehaviorTree(root, "stander"));
         sim::AgentType t;
         t.name = "stander";

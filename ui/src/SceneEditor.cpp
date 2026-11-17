@@ -20,8 +20,8 @@
 
 #include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/JsonTypes.hpp"
-#include "crowdsim/assets/TagCatalog.hpp"
 #include "crowdsim/assets/SceneReflection.hpp"
+#include "crowdsim/assets/TagCatalog.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/sim/Simulation.hpp"
@@ -75,8 +75,9 @@ bool eyeToggle(bool hidden, bool hiddenByGroup) {
     const ImVec2 pos = ImGui::GetCursorScreenPos();
     const bool clicked = ImGui::InvisibleButton("##eye", ImVec2(size * 0.75f, ImGui::GetTextLineHeight()));
     const bool hovered = ImGui::IsItemHovered();
-    ImGui::SetItemTooltip(hidden ? "Hidden: click to show" : (hiddenByGroup ? "Hidden with its group (click to hide it too)"
-                                                                           : "Shown: click to hide (H)"));
+    ImGui::SetItemTooltip(
+        hidden ? "Hidden: click to show"
+               : (hiddenByGroup ? "Hidden with its group (click to hide it too)" : "Shown: click to hide (H)"));
     ImVec4 tint = ImGui::GetStyleColorVec4(hovered ? ImGuiCol_Text
                                                    : (hidden || hiddenByGroup ? ImGuiCol_TextDisabled : ImGuiCol_Text));
     if (!hovered && !hidden && !hiddenByGroup) {
@@ -431,8 +432,8 @@ void SceneEditor::groupNode(const SceneEditorInput& in, sim::SceneId id, std::ve
     const sim::Group* group = in.sim.findGroup(id);
     const std::vector<sim::SceneId> children = in.sim.childrenOf(id);
     ImGui::PushID(static_cast<int>(id));
-    ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow |
-                               ImGuiTreeNodeFlags_OpenOnDoubleClick;
+    ImGuiTreeNodeFlags flags =
+        ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick;
     if (selected_ == id) {
         flags |= ImGuiTreeNodeFlags_Selected;
     }
@@ -594,9 +595,8 @@ bool SceneEditor::editTags(const char* label, Json& value, const assets::TagCata
         if (catalog != nullptr) {
             for (const assets::TagSpec* spec : catalog->all()) {
                 const bool have = spec->kind != assets::TagKind::Text &&
-                                  std::any_of(tags.begin(), tags.end(), [&](const std::string& t) {
-                                      return catalog->match(t).spec == spec;
-                                  });
+                                  std::any_of(tags.begin(), tags.end(),
+                                              [&](const std::string& t) { return catalog->match(t).spec == spec; });
                 if (have) {
                     continue;  // a flag or number tag is there once
                 }
@@ -632,7 +632,8 @@ bool SceneEditor::editTags(const char* label, Json& value, const assets::TagCata
         }
         ImGui::EndCombo();
     }
-    ImGui::SetItemTooltip("Tags describe the object; engine mechanics and scripts read them (content/tags explains each)");
+    ImGui::SetItemTooltip(
+        "Tags describe the object; engine mechanics and scripts read them (content/tags explains each)");
 
     // One row per tag: its name, then its value or meaning, and a remove button.
     const float removeW = ImGui::GetFrameHeight();
@@ -644,7 +645,8 @@ bool SceneEditor::editTags(const char* label, Json& value, const assets::TagCata
         // A refinement ("attention:salience") reads as an indented "salience" under its tag.
         std::string name = m.spec != nullptr ? m.spec->name : tags[i];
         const bool refines = m.spec != nullptr && !m.spec->requiredTag.empty() &&
-                             name.starts_with(m.spec->requiredTag + ":") && name.size() > m.spec->requiredTag.size() + 1;
+                             name.starts_with(m.spec->requiredTag + ":") &&
+                             name.size() > m.spec->requiredTag.size() + 1;
         if (refines) {
             name = "  " + name.substr(m.spec->requiredTag.size() + 1);
         }
@@ -707,9 +709,10 @@ bool SceneEditor::editAgentMix(Json& value) {
     ImGui::TextColored(palette::textDim(), "Agent mix");
     ImGui::SameLine();
     ImGui::TextDisabled("(?)");
-    ImGui::SetItemTooltip("Each agent this spawner creates picks one of these types at random,\n"
-                          "in proportion to its weight. With no entries, every agent uses the\n"
-                          "Agent settings above.");
+    ImGui::SetItemTooltip(
+        "Each agent this spawner creates picks one of these types at random,\n"
+        "in proportion to its weight. With no entries, every agent uses the\n"
+        "Agent settings above.");
     double total = 0.0;
     for (const Json& e : value) {
         total += e.is_object() ? e.value("weight", 1.0) : 0.0;
@@ -744,7 +747,8 @@ bool SceneEditor::editAgentMix(Json& value) {
         entry["weight"] = assets::roundFloat(std::max(weight, 0.0f));
         done = done || ImGui::IsItemDeactivatedAfterEdit();
         ImGui::SameLine();
-        const std::string share = total > 0.0 ? std::format("{:.0f}%", 100.0 * entry.value("weight", 1.0) / total) : "-";
+        const std::string share =
+            total > 0.0 ? std::format("{:.0f}%", 100.0 * entry.value("weight", 1.0) / total) : "-";
         ImGui::AlignTextToFramePadding();
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + shareW - ImGui::CalcTextSize(share.c_str()).x);
         ImGui::TextDisabled("%s", share.c_str());
@@ -1069,8 +1073,8 @@ void SceneEditor::drawRoutes(const SceneEditorInput& in) const {
                               IM_COL32(18, 20, 23, lit ? 210 : 110), 4.0f * scale);
             dl->AddRectFilled(p0, ImVec2(p0.x + 3.0f * scale, p0.y + size.y + pad * 1.4f), col, 4.0f * scale,
                               ImDrawFlags_RoundCornersLeft);
-            dl->AddText(ImVec2(p0.x + pad + 1.0f * scale, p0.y + pad * 0.7f),
-                        IM_COL32(235, 238, 241, lit ? 255 : 130), text.c_str());
+            dl->AddText(ImVec2(p0.x + pad + 1.0f * scale, p0.y + pad * 0.7f), IM_COL32(235, 238, 241, lit ? 255 : 130),
+                        text.c_str());
         }
     }
     dl->PopClipRect();

@@ -55,8 +55,8 @@ sim::SceneId requireId(const Json& params) {
 }
 
 Json restoreSceneCommand(CommandContext& ctx) {
-    return makeCommand("RestoreScene",
-                       Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)}, {"name", ctx.sceneName}});
+    return makeCommand("RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)},
+                                            {"name", ctx.sceneName}});
 }
 
 /// Add an entity of `kind` from params[key] (entity JSON) and return output with undo.
@@ -159,8 +159,9 @@ void registerBuiltinCommands(CommandRegistry& r) {
                const std::string path = p.at("path").get<std::string>();
                ctx.sceneName = assets::loadSceneFile(ctx.assets.resolve(path), ctx.sim, ctx.assets, ctx.sceneSections);
                // Log the content, not the path, so logs replay even if the file changes.
-               out.logAs = makeCommand(
-                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)}, {"name", ctx.sceneName}});
+               out.logAs = makeCommand("RestoreScene",
+                                       Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)},
+                                            {"name", ctx.sceneName}});
                out.result = Json{{"name", ctx.sceneName}};
                out.label = "Load " + path;
                return out;
@@ -199,8 +200,9 @@ void registerBuiltinCommands(CommandRegistry& r) {
                    ctx.sceneSections->resetToDefaults();
                }
                ctx.sceneName = name;
-               out.logAs = makeCommand(
-                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)}, {"name", ctx.sceneName}});
+               out.logAs = makeCommand("RestoreScene",
+                                       Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)},
+                                            {"name", ctx.sceneName}});
                out.label = "Scenario " + name;
                return out;
            }});
@@ -269,7 +271,8 @@ void registerBuiltinCommands(CommandRegistry& r) {
            obj({{"group", any("{name, parent: <group id, optional>}")}}, {"group"}),
            [](const Json& p, CommandContext& ctx) { return addEntity(p, ctx, "group", "group", "CreateGroup"); }});
 
-    r.add({"SetParent", "Put an entity (object, goal, spawner, link or group) in a group; parent 0 or null takes it out.",
+    r.add({"SetParent",
+           "Put an entity (object, goal, spawner, link or group) in a group; parent 0 or null takes it out.",
            obj({{"id", integer("entity id")}, {"parent", integer("group id; 0 = no group")}}, {"id"}),
            [](const Json& p, CommandContext& ctx) {
                Json parent = p.value("parent", Json(nullptr));
@@ -484,8 +487,7 @@ void registerBuiltinCommands(CommandRegistry& r) {
            },
            false});
 
-    r.add({"ListTags", "Known object tags: name, group, description, kind (flag, number, text), value range.",
-           obj({}),
+    r.add({"ListTags", "Known object tags: name, group, description, kind (flag, number, text), value range.", obj({}),
            [](const Json&, CommandContext& ctx) {
                Json list = Json::array();
                for (const assets::TagSpec* spec : ctx.assets.tags().all()) {

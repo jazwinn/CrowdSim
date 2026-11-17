@@ -135,8 +135,7 @@ TEST_CASE("Every script, behaviour and agent type in content/ loads") {
     int trees = 0;
     for (const auto& e : std::filesystem::directory_iterator(root / "behaviours")) {
         std::ifstream in(e.path());
-        CHECK_NOTHROW(
-            (void)assets::compileBehaviorJson(Json::parse(in), engine.simulation().customNodeSpecs()));
+        CHECK_NOTHROW((void)assets::compileBehaviorJson(Json::parse(in), engine.simulation().customNodeSpecs()));
         ++trees;
     }
     int types = 0;

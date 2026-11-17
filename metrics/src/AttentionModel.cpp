@@ -4,8 +4,8 @@
 #include <array>
 #include <charconv>
 #include <cmath>
-#include <fstream>
 #include <format>
+#include <fstream>
 #include <stdexcept>
 #include <string_view>
 #include <unordered_map>
@@ -130,7 +130,8 @@ public:
                     continue;
                 }
                 const float y = eye.y + (target.y - eye.y) * u;
-                const float h = a.agentType[j] < sim.agentTypes().size() ? sim.agentTypes()[a.agentType[j]].height : 1.75f;
+                const float h =
+                    a.agentType[j] < sim.agentTypes().size() ? sim.agentTypes()[a.agentType[j]].height : 1.75f;
                 if (y >= a.height[j] && y <= a.height[j] + h) {
                     return true;
                 }
@@ -310,8 +311,7 @@ void AttentionModel::evaluate(float dt) {
                 const glm::vec3 face = target.centre + front * (target.halfThickness + 0.02f);
                 const glm::vec3 up(0.0f, 1.0f, 0.0f);
                 const std::array<glm::vec3, kSamples> points{
-                    face,
-                    face + target.across * (0.9f * target.halfWidth) + up * (0.9f * target.halfHeight),
+                    face, face + target.across * (0.9f * target.halfWidth) + up * (0.9f * target.halfHeight),
                     face - target.across * (0.9f * target.halfWidth) + up * (0.9f * target.halfHeight),
                     face + target.across * (0.9f * target.halfWidth) - up * (0.9f * target.halfHeight),
                     face - target.across * (0.9f * target.halfWidth) - up * (0.9f * target.halfHeight)};
@@ -339,8 +339,8 @@ void AttentionModel::evaluate(float dt) {
                 const float dist = std::max(0.1f, glm::length(toFace));
                 const float cosIncidence = std::max(0.0f, glm::dot(-toFace / dist, front));
                 const float incidence = std::acos(std::min(1.0f, cosIncidence)) * kRadToDeg;
-                const float size = std::min(
-                    100.0f, 100.0f * 4.0f * target.halfWidth * target.halfHeight * cosIncidence / (dist * dist) / fieldSolidAngle);
+                const float size = std::min(100.0f, 100.0f * 4.0f * target.halfWidth * target.halfHeight *
+                                                        cosIncidence / (dist * dist) / fieldSolidAngle);
 
                 // Viewability: enough of it visible inside the field of view, continuously.
                 if (static_cast<float>(inField) >= P.viewableShare * kSamples) {
@@ -408,8 +408,7 @@ GazeView AttentionModel::gaze(std::uint32_t index) const {
     }
     const glm::vec2 v = a.velocity[index];
     const float speed = glm::length(v);
-    const glm::vec2 walk =
-        speed > 0.2f ? v / speed : glm::vec2(std::sin(a.heading[index]), std::cos(a.heading[index]));
+    const glm::vec2 walk = speed > 0.2f ? v / speed : glm::vec2(std::sin(a.heading[index]), std::cos(a.heading[index]));
     const float bodyHeight =
         a.agentType[index] < sim_.agentTypes().size() ? sim_.agentTypes()[a.agentType[index]].height : 1.75f;
     view.eye = glm::vec3(a.position[index].x, a.height[index] + params.eyeHeight * bodyHeight, a.position[index].y);
@@ -494,9 +493,7 @@ Json AttentionModel::summary() const {
             {"smallShare", s.visible > 0.0 ? round(100.0 * s.small / s.visible, 0.1) : 0.0},
         });
     }
-    return Json{{"targets", targets},
-                {"agentsSeen", gaze_.size()},
-                {"params", reflect::toJson(params)}};
+    return Json{{"targets", targets}, {"agentsSeen", gaze_.size()}, {"params", reflect::toJson(params)}};
 }
 
 void AttentionModel::exportCsv(const std::filesystem::path& perTarget, const std::filesystem::path& perViewer) const {
@@ -510,10 +507,24 @@ void AttentionModel::exportCsv(const std::filesystem::path& perTarget, const std
     if (!out) {
         throw std::runtime_error("cannot write '" + perTarget.string() + "'");
     }
-    const std::array<const char*, 18> columns{
-        "id", "name", "salience", "ots", "viewable", "viewabilityRate", "noticed", "noticeRate", "glances",
-        "dwellSeconds", "meanDwellPerOts", "meanDwellPerViewer", "medianDwellPerViewer", "visibleSeconds",
-        "meanAngularSize", "meanViewingAngle", "steepShare", "smallShare"};
+    const std::array<const char*, 18> columns{"id",
+                                              "name",
+                                              "salience",
+                                              "ots",
+                                              "viewable",
+                                              "viewabilityRate",
+                                              "noticed",
+                                              "noticeRate",
+                                              "glances",
+                                              "dwellSeconds",
+                                              "meanDwellPerOts",
+                                              "meanDwellPerViewer",
+                                              "medianDwellPerViewer",
+                                              "visibleSeconds",
+                                              "meanAngularSize",
+                                              "meanViewingAngle",
+                                              "steepShare",
+                                              "smallShare"};
     for (std::size_t c = 0; c < columns.size(); ++c) {
         out << (c ? "," : "") << columns[c];
     }
@@ -536,9 +547,9 @@ void AttentionModel::exportCsv(const std::filesystem::path& perTarget, const std
                 continue;
             }
             const double vis = x.visibleTime;
-            rows << std::format("{},\"{}\",{},{},{},{:.2f},{:.2f},{:.2f},{:.1f}\n", id, targets_[k].name, x.viewable ? 1 : 0,
-                                x.noticed ? 1 : 0, x.glances, x.dwell, vis, vis > 0 ? x.sizeSum / vis : 0.0,
-                                vis > 0 ? x.angleSum / vis : 0.0);
+            rows << std::format("{},\"{}\",{},{},{},{:.2f},{:.2f},{:.2f},{:.1f}\n", id, targets_[k].name,
+                                x.viewable ? 1 : 0, x.noticed ? 1 : 0, x.glances, x.dwell, vis,
+                                vis > 0 ? x.sizeSum / vis : 0.0, vis > 0 ? x.angleSum / vis : 0.0);
         }
     }
 }
@@ -548,7 +559,8 @@ void registerAttentionCommands(commands::CommandRegistry& r, AttentionModel& mod
     using commands::CommandOutput;
     const Json noParams{{"type", "object"}, {"properties", Json::object()}};
     r.add({"GetAttentionMetrics",
-           "How well each attention target (objects tagged `attention`) is seen: opportunity to see, viewability, noticing, dwell time, "
+           "How well each attention target (objects tagged `attention`) is seen: opportunity to see, viewability, "
+           "noticing, dwell time, "
            "angular size and viewing angle, from each agent's simulated gaze.",
            noParams, [&model](const Json&, CommandContext&) { return CommandOutput{model.summary()}; }, false});
     r.add({"ExportAttentionMetrics",
@@ -575,7 +587,9 @@ void registerAttentionCommands(commands::CommandRegistry& r, AttentionModel& mod
            "Change the attention model's settings (merge: only the keys given). Clears the attention record, "
            "since counts under different settings do not add up.",
            Json{{"type", "object"},
-                {"properties", {{"params", {{"type", "object"}, {"description", "settings to change (GetAttentionMetrics lists them)"}}}}},
+                {"properties",
+                 {{"params",
+                   {{"type", "object"}, {"description", "settings to change (GetAttentionMetrics lists them)"}}}}},
                 {"required", Json::array({"params"})}},
            [&model](const Json& p, CommandContext&) {
                AttentionParams next = model.params;

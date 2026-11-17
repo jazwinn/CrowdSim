@@ -95,8 +95,8 @@ void Simulation::computeBodies(float dt) {
                     return;
                 }
                 std::uint32_t slot = count < kMaxContacts ? count++ : count - 1;
-                while (slot > 0 && (near[slot - 1].distSq > d2 ||
-                                    (near[slot - 1].distSq == d2 && near[slot - 1].index > j))) {
+                while (slot > 0 &&
+                       (near[slot - 1].distSq > d2 || (near[slot - 1].distSq == d2 && near[slot - 1].index > j))) {
                     near[slot] = near[slot - 1];
                     --slot;
                 }

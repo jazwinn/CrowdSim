@@ -28,7 +28,7 @@ private:
                       std::vector<nlohmann::json>& commands);
 
     metrics::AttentionParams settings_;  ///< working copy while a setting is being edited
-    nlohmann::json report_;      ///< last summary (refreshed twice a simulated second)
+    nlohmann::json report_;              ///< last summary (refreshed twice a simulated second)
     double reportTime_ = -1.0;
 };
 

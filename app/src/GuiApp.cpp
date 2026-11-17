@@ -33,11 +33,11 @@
 #include "crowdsim/render/Camera.hpp"
 #include "crowdsim/render/ImGuiRenderer.hpp"
 #include "crowdsim/render/Renderer.hpp"
+#include "crowdsim/render/SceneRecorder.hpp"
 #include "crowdsim/render/SceneRenderer.hpp"
 #include "crowdsim/sim/Scenarios.hpp"
 #include "crowdsim/snapshot/CharacterAsset.hpp"
 #include "crowdsim/snapshot/RenderSnapshot.hpp"
-#include "crowdsim/render/SceneRecorder.hpp"
 #include "crowdsim/ui/EditorShell.hpp"
 #include "crowdsim/ui/Theme.hpp"
 
@@ -260,7 +260,7 @@ void appendViewCone(const metrics::AttentionModel& model, const metrics::GazeVie
     fan(p.fieldHalfAngle, reach, detailed ? 16 : 6, detailed ? 0x90ffd080u : 0x60ffd080u);
 
     // Central cone (ABGR colours): green on a target, amber turning to one, grey on a phone.
-    const std::uint32_t centre = g.phone ? 0xb0a0a0a0u
+    const std::uint32_t centre = g.phone            ? 0xb0a0a0a0u
                                  : g.lookingAt >= 0 ? 0xff50ff50u
                                  : g.glancing       ? 0xff20c0ffu
                                                     : 0xd0ffffffu;
@@ -603,7 +603,8 @@ int runGui(EngineContext& engine) {
             const ImVec2 p1((viewport.x + viewport.width) / fbScaleX, (viewport.y + viewport.height) / fbScaleY);
             const bool flip = recorder.bottomLeftOrigin();
             ImGui::GetBackgroundDrawList()->AddImage(static_cast<ImTextureID>(tex), p0, p1,
-                                                     ImVec2(0.0f, flip ? 1.0f : 0.0f), ImVec2(1.0f, flip ? 0.0f : 1.0f));
+                                                     ImVec2(0.0f, flip ? 1.0f : 0.0f),
+                                                     ImVec2(1.0f, flip ? 0.0f : 1.0f));
         }
 
         // Cursor picking against the collision world (Jolt raycast).

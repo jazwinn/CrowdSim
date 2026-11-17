@@ -225,9 +225,10 @@ void MetricsPanel::draw(const metrics::MetricsCollector& m, const float gatePoin
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::TextColored(palette::textDim(), "Peak pressure");
-            ImGui::SetItemTooltip("Highest crowd pressure on any body now (N/m); about %.0f N/m is dangerous "
-                                  "when sustained",
-                                  pr["criticalLevel"].get<double>());
+            ImGui::SetItemTooltip(
+                "Highest crowd pressure on any body now (N/m); about %.0f N/m is dangerous "
+                "when sustained",
+                pr["criticalLevel"].get<double>());
             ImGui::TableNextColumn();
             ImGui::TextColored(peakNow >= pr["criticalLevel"].get<double>() ? palette::warning() : palette::text(),
                                "%.0f N/m", peakNow);

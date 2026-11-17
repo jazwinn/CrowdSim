@@ -125,21 +125,21 @@ public:
     // Behaviour settings from the agent's tree (see EscalatorRider, QueueManners).
     std::vector<EscalatorRider> rider;
     std::vector<QueueManners> manners;
-    std::vector<float> push;  ///< N pressed forward when touching others (SetPushing)
+    std::vector<float> push;                    ///< N pressed forward when touching others (SetPushing)
     std::vector<std::uint8_t> emergencyRoutes;  ///< 1 = routes may use emergency routes (UseEmergencyRoutes)
     std::vector<Attention> attention;           ///< SetAttention
 
     // --- Bodies in dense crowds (only when the scene enables BodyParams) ---
-    std::vector<float> pressure;         ///< N/m: compressive force on the body per metre of its width
-    std::vector<glm::vec2> bodyForce;    ///< N: contact forces + slope lean, this step
-    std::vector<glm::vec2> wallForce;    ///< N: reaction of walls at the last move
-    std::vector<glm::vec2> separation;   ///< m/s: undoes overlap of incompressible cores
-    std::vector<std::uint8_t> inContact; ///< touching another body this step
-    std::vector<std::uint8_t> fallen;    ///< 1 = on the ground
-    std::vector<float> fallenFor;        ///< s on the ground
-    std::vector<std::uint8_t> pileLayer; ///< 1 = on the floor, 2+ = lying on others
-    std::vector<std::uint8_t> bodyRequest; ///< parallel phase -> serial: 1 fall, 2 get up
-    std::vector<float> slowTime;         ///< s spent wanting to move but barely moving (IsBlocked)
+    std::vector<float> pressure;            ///< N/m: compressive force on the body per metre of its width
+    std::vector<glm::vec2> bodyForce;       ///< N: contact forces + slope lean, this step
+    std::vector<glm::vec2> wallForce;       ///< N: reaction of walls at the last move
+    std::vector<glm::vec2> separation;      ///< m/s: undoes overlap of incompressible cores
+    std::vector<std::uint8_t> inContact;    ///< touching another body this step
+    std::vector<std::uint8_t> fallen;       ///< 1 = on the ground
+    std::vector<float> fallenFor;           ///< s on the ground
+    std::vector<std::uint8_t> pileLayer;    ///< 1 = on the floor, 2+ = lying on others
+    std::vector<std::uint8_t> bodyRequest;  ///< parallel phase -> serial: 1 fall, 2 get up
+    std::vector<float> slowTime;            ///< s spent wanting to move but barely moving (IsBlocked)
 
     // --- Decision layer ---
     std::vector<std::uint16_t> tree;

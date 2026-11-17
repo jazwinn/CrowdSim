@@ -615,8 +615,7 @@ struct ScriptHost::Impl {
             double sum = 0.0;
             for (std::uint32_t i = 0; i < a.size(); ++i) {
                 const glm::vec2 p = a.position[i];
-                if (p.x < minX || p.x > maxX || p.y < minZ || p.y > maxZ || a.height[i] < minY ||
-                    a.height[i] > maxY) {
+                if (p.x < minX || p.x > maxX || p.y < minZ || p.y > maxZ || a.height[i] < minY || a.height[i] > maxY) {
                     continue;
                 }
                 ++count;

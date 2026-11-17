@@ -17,10 +17,10 @@ namespace crowdsim::core {
 
 struct VideoWriterOptions {
     std::filesystem::path file;
-    std::uint32_t width = 0;   ///< every frame must have this size
+    std::uint32_t width = 0;  ///< every frame must have this size
     std::uint32_t height = 0;
     double fps = 30.0;
-    int jpegQuality = 85;              ///< 1..100
+    int jpegQuality = 85;               ///< 1..100
     std::uint32_t maxQueuedFrames = 8;  ///< beyond this, new frames are dropped
 };
 

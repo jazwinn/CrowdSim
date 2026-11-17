@@ -9,8 +9,8 @@ namespace crowdsim::assets {
 
 void SceneSections::add(Section section) {
     static constexpr std::array<std::string_view, 13> kReserved = {
-        "format", "version", "name",   "navigation", "bodies", "nextId",  "behaviours",
-        "agentTypes", "groups", "objects", "links", "goals", "spawners"};
+        "format",     "version", "name",    "navigation", "bodies", "nextId",  "behaviours",
+        "agentTypes", "groups",  "objects", "links",      "goals",  "spawners"};
     if (section.key.empty() || std::find(kReserved.begin(), kReserved.end(), section.key) != kReserved.end()) {
         throw std::invalid_argument("scene section key '" + section.key + "' is reserved");
     }
