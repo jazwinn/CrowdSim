@@ -78,6 +78,8 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   time steeper than 60 deg) and **angular size** (% of the field of view; share below 1%). See
   `GetAdMetrics`, the Ads panel and `scripts/ad_report.lua`. The model only observes: it never
   changes the simulation, and its results do not depend on the thread count.
+  The editor's View cones overlay (Overlays, or `--overlays cones`) draws this gaze for the
+  selected agent or for everyone.
 - **Bodies** (optional `"bodies": {...}`; off when absent): physical contact in packed crowds.
   Below contact density agents avoid each other as usual. When bodies touch (a crowd packed past
   what avoidance can keep apart, or people held up for a few seconds pressing into the gaps),

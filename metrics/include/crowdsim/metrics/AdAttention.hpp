@@ -105,6 +105,16 @@ struct AdExposure {
     std::uint32_t glances = 0;
 };
 
+/// Where an agent is looking right now (for display): eye position, head direction
+/// (unit), and what the gaze model says it is doing.
+struct GazeView {
+    glm::vec3 eye{0.0f};
+    glm::vec3 head{0.0f, 0.0f, 1.0f};
+    bool phone = false;       ///< looking down at a phone
+    bool glancing = false;    ///< head turned towards an ad
+    std::int32_t lookingAt = -1;  ///< ad (index into ads()) in central vision at the last update, or -1
+};
+
 class AdAttention final : public sim::StepObserver {
 public:
     AdAttention(sim::Simulation& sim, core::JobSystem& jobs, const physics::IPhysicsWorld& world);
@@ -116,6 +126,9 @@ public:
     void reset();
 
     [[nodiscard]] const std::vector<AdSurface>& ads() const noexcept { return ads_; }
+    /// Gaze of the agent at pool index `index`, from the current positions (works in scenes
+    /// without ads too: the head then follows the walking direction).
+    [[nodiscard]] GazeView gaze(std::uint32_t index) const;
     /// Per-ad report (see docs/formats.md, GetAdMetrics).
     [[nodiscard]] nlohmann::json summary() const;
     /// Write the per-ad report and one row per agent and ad seen as CSV files.
@@ -128,6 +141,7 @@ private:
         bool phone = false;
         float phoneLeft = 0.0f;
         std::int32_t glanceAd = -1;
+        std::int32_t lookingAt = -1;  ///< ad in central vision at the last evaluation
         float glanceLeft = 0.0f;
         bool started = false;
         std::map<std::uint32_t, AdExposure> exposure;  ///< by ad index

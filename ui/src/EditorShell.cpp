@@ -391,6 +391,11 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         ImGui::SetItemTooltip("An arc from each spawner to its goal, one colour per goal");
         ImGui::Checkbox("Velocities", &overlays_.velocities);
         ImGui::Checkbox("Flow field", &overlays_.flowField);
+        propertyLabel("View cones");
+        ImGui::Combo("##viewcones", &overlays_.viewCones, "Off\0Selected agent\0All agents\0");
+        ImGui::SetItemTooltip("Where people look: the 120 deg field of view and the narrow central cone used for "
+                              "reading.\nCentral cone: white ahead, amber turning to an ad, green on an ad, "
+                              "grey on a phone.");
         propertyLabel("Heatmap");
         ImGui::Combo("##heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0Peak pressure\0");
         ImGui::SetItemTooltip("Peak pressure: the highest crowd pressure on any body in each cell (scene bodies)");

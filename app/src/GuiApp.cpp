@@ -228,6 +228,62 @@ void appendAgentHighlight(const sim::Simulation& sim, std::uint32_t agentId, std
     }
 }
 
+/// One agent's view: a fan for the field of view (and, in detail, the wider periphery that
+/// can draw a glance) and the central cone used for reading, coloured by what it is doing.
+void appendViewCone(const metrics::AdAttention& ads, const metrics::GazeView& g, bool detailed,
+                    std::vector<render::DebugLine>& lines) {
+    constexpr float kDegToRad = 0.017453292f;
+    const metrics::AdParams& p = ads.params;
+    const glm::vec3 f = g.head;
+    glm::vec3 r = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), f);
+    r = glm::length(r) > 1e-4f ? glm::normalize(r) : glm::vec3(1.0f, 0.0f, 0.0f);
+    const glm::vec3 u = glm::cross(f, r);
+    auto ray = [&](float yawDeg, float pitchDeg) {
+        const float y = yawDeg * kDegToRad;
+        const float q = pitchDeg * kDegToRad;
+        return glm::normalize(f * (std::cos(y) * std::cos(q)) + r * (std::sin(y) * std::cos(q)) + u * std::sin(q));
+    };
+    auto fan = [&](float half, float length, int segments, std::uint32_t colour) {
+        glm::vec3 prev = g.eye + ray(-half, 0.0f) * length;
+        lines.push_back({g.eye, prev, colour});
+        for (int k = 1; k <= segments; ++k) {
+            const glm::vec3 next = g.eye + ray(-half + 2.0f * half * static_cast<float>(k) / segments, 0.0f) * length;
+            lines.push_back({prev, next, colour});
+            prev = next;
+        }
+        lines.push_back({g.eye, prev, colour});
+    };
+    const float reach = detailed ? 6.0f : 2.0f;
+    if (detailed) {
+        fan(p.peripheralHalfAngle, reach * 0.6f, 16, 0x40ffd080u);
+    }
+    fan(p.fieldHalfAngle, reach, detailed ? 16 : 6, detailed ? 0x90ffd080u : 0x60ffd080u);
+
+    // Central cone (ABGR colours): green on an ad, amber turning to one, grey on a phone.
+    const std::uint32_t centre = g.phone ? 0xb0a0a0a0u
+                                 : g.lookingAt >= 0 ? 0xff50ff50u
+                                 : g.glancing       ? 0xff20c0ffu
+                                                    : 0xd0ffffffu;
+    float length = detailed ? 10.0f : 3.0f;
+    if (g.lookingAt >= 0) {
+        length = glm::length(ads.ads()[static_cast<std::size_t>(g.lookingAt)].centre - g.eye);
+    } else if (g.phone) {
+        length = 0.6f;
+    }
+    const float h = p.fovealHalfAngle;
+    constexpr int kRing = 12;
+    for (int k = 0; k < kRing; ++k) {
+        const float a0 = 6.2831853f * static_cast<float>(k) / kRing;
+        const float a1 = 6.2831853f * static_cast<float>(k + 1) / kRing;
+        const glm::vec3 e0 = g.eye + ray(h * std::cos(a0), h * std::sin(a0)) * length;
+        const glm::vec3 e1 = g.eye + ray(h * std::cos(a1), h * std::sin(a1)) * length;
+        lines.push_back({e0, e1, centre});
+        if (k % 3 == 0) {
+            lines.push_back({g.eye, e0, centre});
+        }
+    }
+}
+
 std::vector<std::string> listContentFiles(const assets::AssetLibrary& assets, const char* dir, const char* suffix) {
     std::vector<std::string> files;
     std::error_code ec;
@@ -296,6 +352,7 @@ int runGui(EngineContext& engine) {
         initialOverlays.navmesh = has("navmesh");
         initialOverlays.flowField = has("flow");
         initialOverlays.velocities = has("velocities");
+        initialOverlays.viewCones = has("cones") ? 2 : 0;
         initialOverlays.agents = !has("noagents");
         initialOverlays.ground = !has("nogrid");
         initialOverlays.areas = !has("noareas");
@@ -852,6 +909,17 @@ int runGui(EngineContext& engine) {
             const glm::vec3 left = glm::normalize(glm::vec3(-d.z, 0.0f, d.x)) * 0.8f;
             sceneRenderer.extraLines.push_back({a, b, 0xff00c8ffu});
             sceneRenderer.extraLines.push_back({mid, mid + left, 0xff00c8ffu});
+        }
+        if (req.overlays.viewCones != 0 && !recorder.active()) {
+            const sim::AgentPool& pool = simulation.agents();
+            const std::uint32_t chosen = shell.sceneEditor().selectedAgent();
+            for (std::uint32_t i = 0; i < pool.size(); ++i) {
+                const bool isChosen = pool.id[i] == chosen && chosen != ui::SceneEditor::kNoAgentSelected;
+                if (req.overlays.viewCones == 2 || isChosen) {
+                    appendViewCone(engine.adAttention(), engine.adAttention().gaze(i), isChosen,
+                                   sceneRenderer.extraLines);
+                }
+            }
         }
         if (const std::uint32_t agentId = shell.sceneEditor().selectedAgent();
             agentId != ui::SceneEditor::kNoAgentSelected) {

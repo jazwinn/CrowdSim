@@ -285,6 +285,7 @@ void AdAttention::evaluate(float dt) {
             }
 
             candidates.clear();
+            g.lookingAt = -1;
             for (std::uint32_t k = 0; k < ads_.size(); ++k) {
                 const AdSurface& ad = ads_[k];
                 const glm::vec3 toCentre = ad.centre - eye;
@@ -349,6 +350,7 @@ void AdAttention::evaluate(float dt) {
                 if (!g.phone && centreVisible && angleBetween(head, toFace) <= P.fovealHalfAngle) {
                     x.dwell += dt;
                     x.fixation += dt;
+                    g.lookingAt = static_cast<std::int32_t>(k);
                     if (x.fixation >= P.noticeSeconds - 1e-4f && incidence <= P.readableAngle &&
                         size >= P.minAngularSize) {
                         x.noticed = true;
@@ -388,6 +390,39 @@ void AdAttention::evaluate(float dt) {
             }
         }
     });
+}
+
+GazeView AdAttention::gaze(std::uint32_t index) const {
+    const sim::AgentPool& a = sim_.agents();
+    GazeView view;
+    if (index >= a.size()) {
+        return view;
+    }
+    const glm::vec2 v = a.velocity[index];
+    const float speed = glm::length(v);
+    const glm::vec2 walk =
+        speed > 0.2f ? v / speed : glm::vec2(std::sin(a.heading[index]), std::cos(a.heading[index]));
+    const float bodyHeight =
+        a.agentType[index] < sim_.agentTypes().size() ? sim_.agentTypes()[a.agentType[index]].height : 1.75f;
+    view.eye = glm::vec3(a.position[index].x, a.height[index] + params.eyeHeight * bodyHeight, a.position[index].y);
+    view.head = direction(walk, params.gazePitch);
+    const auto it = gaze_.find(a.id[index]);
+    if (it == gaze_.end()) {
+        return view;
+    }
+    const Gaze& g = it->second;
+    view.phone = g.phone;
+    view.lookingAt = g.lookingAt < static_cast<std::int32_t>(ads_.size()) ? g.lookingAt : -1;
+    if (g.phone) {
+        view.head = direction(walk, params.phonePitch);
+    } else if (g.glanceAd >= 0 && g.glanceAd < static_cast<std::int32_t>(ads_.size())) {
+        const glm::vec3 to = ads_[static_cast<std::size_t>(g.glanceAd)].centre - view.eye;
+        if (glm::length(to) > 0.1f) {
+            view.head = glm::normalize(to);
+            view.glancing = true;
+        }
+    }
+    return view;
 }
 
 Json AdAttention::summary() const {
