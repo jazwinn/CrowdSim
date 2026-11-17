@@ -473,11 +473,12 @@ bool SceneEditor::agentTypeCombo(const char* id, Json& value, bool byIndex) {
                 value = byIndex ? Json(t) : Json(types[t].name);
                 done = true;
             }
-            // Behaviour tree name, dimmed and right-aligned, so types are told apart at a glance.
-            const float w = ImGui::CalcTextSize(types[t].behaviour.c_str()).x;
-            ImGui::GetWindowDrawList()->AddText(
-                ImVec2(ImGui::GetItemRectMax().x - w - ImGui::GetStyle().ItemInnerSpacing.x, ImGui::GetItemRectMin().y),
-                ImGui::GetColorU32(ImGuiCol_TextDisabled), types[t].behaviour.c_str());
+            // Behaviour tree name, dimmed and right-aligned, when it adds something: not when it
+            // repeats the type's name, and not where it would run into it.
+            if (types[t].behaviour != types[t].name) {
+                rightAlignedNote(types[t].behaviour,
+                                 ImGui::GetItemRectMin().x + ImGui::CalcTextSize(types[t].name.c_str()).x);
+            }
             ImGui::PopID();
         }
         ImGui::EndCombo();
