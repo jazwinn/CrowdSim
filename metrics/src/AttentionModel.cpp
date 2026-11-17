@@ -1,4 +1,4 @@
-#include "crowdsim/metrics/AdAttention.hpp"
+#include "crowdsim/metrics/AttentionModel.hpp"
 
 #include <algorithm>
 #include <array>
@@ -28,7 +28,7 @@ using Json = nlohmann::json;
 
 constexpr float kDegToRad = 0.017453292f;
 constexpr float kRadToDeg = 57.29578f;
-constexpr int kSamples = 5;  ///< centre and four corners of the ad face
+constexpr int kSamples = 5;  ///< centre and four corners of the target face
 
 /// Uniform [0, 1) from (agent, evaluation, purpose): deterministic, no shared state.
 float hashed(std::uint64_t a, std::uint64_t b, std::uint64_t c) {
@@ -40,6 +40,10 @@ float hashed(std::uint64_t a, std::uint64_t b, std::uint64_t c) {
     x *= 0x94D049BB133111EBull;
     x ^= x >> 31;
     return static_cast<float>(x >> 40) * (1.0f / 16777216.0f);
+}
+
+bool hasTag(const std::vector<std::string>& tags, std::string_view tag) {
+    return std::find(tags.begin(), tags.end(), tag) != tags.end();
 }
 
 float tagNumber(const std::vector<std::string>& tags, std::string_view key, float fallback) {
@@ -118,7 +122,7 @@ public:
                 const glm::vec2 c = a.position[j];
                 const float u = len > 1e-4f ? std::clamp(glm::dot(c - e, d) / (len * len), 0.0f, 1.0f) : 0.0f;
                 if (u <= 0.0f || u >= 1.0f) {
-                    continue;  // not between the eyes and the ad
+                    continue;  // not between the eyes and the target
                 }
                 const glm::vec2 closest = e + d * u;
                 if (glm::length(c - closest) > a.radius[j] * 0.85f) {  // shoulders, not the avoidance disc
@@ -144,26 +148,27 @@ private:
 
 }  // namespace
 
-AdAttention::AdAttention(sim::Simulation& sim, core::JobSystem& jobs, const physics::IPhysicsWorld& world)
+AttentionModel::AttentionModel(sim::Simulation& sim, core::JobSystem& jobs, const physics::IPhysicsWorld& world)
     : sim_(sim), jobs_(jobs), world_(world) {
     sim_.addStepObserver(this);
 }
 
-AdAttention::~AdAttention() {
+AttentionModel::~AttentionModel() {
     sim_.removeStepObserver(this);
 }
 
-void AdAttention::reset() {
+void AttentionModel::reset() {
     gaze_.clear();
     evaluations_ = 0;
     stepsSinceEval_ = 0;
 }
 
-void AdAttention::rebuildAds() {
-    ads_.clear();
+void AttentionModel::rebuildTargets() {
+    targets_.clear();
     for (sim::SceneId id : sim_.staticObjectIds()) {
         const sim::StaticObject* o = sim_.findStaticObject(id);
-        if (o == nullptr || std::find(o->tags.begin(), o->tags.end(), "ad") == o->tags.end() ||
+        // `ad` is the tag's older name, still read so earlier scenes keep working.
+        if (o == nullptr || !(hasTag(o->tags, "attention") || hasTag(o->tags, "ad")) ||
             o->primitive.kind != geometry::PrimitiveKind::Box) {
             continue;
         }
@@ -173,34 +178,36 @@ void AdAttention::rebuildAds() {
         const float s = std::sin(p.rotationY);
         const glm::vec3 localX(c, 0.0f, -s);
         const glm::vec3 localZ(s, 0.0f, c);
-        AdSurface ad;
-        ad.object = id;
-        ad.name = o->name;
-        ad.centre = p.position + glm::vec3(0.0f, 0.5f * p.size.y, 0.0f);
+        AttentionTarget target;
+        target.object = id;
+        target.name = o->name;
+        target.centre = p.position + glm::vec3(0.0f, 0.5f * p.size.y, 0.0f);
         // The face is across the thinner horizontal axis.
         const bool thinX = p.size.x <= p.size.z;
-        ad.normal = thinX ? localX : localZ;
-        ad.across = thinX ? localZ : localX;
-        ad.halfThickness = 0.5f * (thinX ? p.size.x : p.size.z);
-        ad.halfWidth = 0.5f * (thinX ? p.size.z : p.size.x);
-        ad.halfHeight = 0.5f * p.size.y;
-        ad.salience = std::clamp(tagNumber(o->tags, "ad:salience", params.defaultSalience), 0.0f, 1.0f);
-        ad.range = std::max(0.5f, tagNumber(o->tags, "ad:range", params.defaultRange));
-        ads_.push_back(ad);
+        target.normal = thinX ? localX : localZ;
+        target.across = thinX ? localZ : localX;
+        target.halfThickness = 0.5f * (thinX ? p.size.x : p.size.z);
+        target.halfWidth = 0.5f * (thinX ? p.size.z : p.size.x);
+        target.halfHeight = 0.5f * p.size.y;
+        const float salience = tagNumber(o->tags, "ad:salience", params.defaultSalience);
+        const float range = tagNumber(o->tags, "ad:range", params.defaultRange);
+        target.salience = std::clamp(tagNumber(o->tags, "attention:salience", salience), 0.0f, 1.0f);
+        target.range = std::max(0.5f, tagNumber(o->tags, "attention:range", range));
+        targets_.push_back(target);
     }
 }
 
-void AdAttention::afterStep(sim::Simulation& sim) {
+void AttentionModel::afterStep(sim::Simulation& sim) {
     if (sim.stepIndex() < lastStep_) {
         reset();  // ResetSimulation / scene replaced
     }
     lastStep_ = sim.stepIndex();
-    if (sim.staticVersion() != adsVersion_) {
-        adsVersion_ = sim.staticVersion();
-        rebuildAds();
-        reset();  // ad indices changed
+    if (sim.staticVersion() != targetsVersion_) {
+        targetsVersion_ = sim.staticVersion();
+        rebuildTargets();
+        reset();  // target indices changed
     }
-    if (ads_.empty()) {
+    if (targets_.empty()) {
         return;
     }
     const auto every = std::max<std::uint32_t>(
@@ -212,7 +219,7 @@ void AdAttention::afterStep(sim::Simulation& sim) {
     evaluate(static_cast<float>(sim.stepSeconds() * every));
 }
 
-void AdAttention::evaluate(float dt) {
+void AttentionModel::evaluate(float dt) {
     const sim::Simulation& sim = sim_;
     const sim::AgentPool& a = sim.agents();
     const std::uint32_t n = a.size();
@@ -226,14 +233,14 @@ void AdAttention::evaluate(float dt) {
         states[i] = &gaze_[a.id[i]];
     }
 
-    const AdParams& P = params;
+    const AttentionParams& P = params;
     const float fieldSolidAngle = 6.2831853f * (1.0f - std::cos(P.fieldHalfAngle * kDegToRad));
     const std::uint64_t tick = evaluations_;
 
     jobs_.parallelFor(n, 16, [&](core::IndexRange range, std::uint32_t) {
         std::vector<std::int64_t> seen;
         struct Candidate {
-            std::uint32_t ad;
+            std::uint32_t target;
             float weight;
         };
         std::vector<Candidate> candidates;
@@ -261,10 +268,10 @@ void AdAttention::evaluate(float dt) {
                 }
             }
             if (g.phone) {
-                g.glanceAd = -1;
+                g.glanceTarget = -1;
             }
 
-            // Where the head points: the walking direction, down a little; or a glanced ad.
+            // Where the head points: the walking direction, down a little; or a glanced target.
             const glm::vec2 v = a.velocity[i];
             const float speed = glm::length(v);
             const glm::vec2 walk = speed > 0.2f ? v / speed : glm::vec2(std::sin(a.heading[i]), std::cos(a.heading[i]));
@@ -272,13 +279,13 @@ void AdAttention::evaluate(float dt) {
                 a.agentType[i] < sim.agentTypes().size() ? sim.agentTypes()[a.agentType[i]].height : 1.75f;
             const glm::vec3 eye(a.position[i].x, a.height[i] + P.eyeHeight * bodyHeight, a.position[i].y);
             glm::vec3 head = direction(walk, g.phone ? P.phonePitch : P.gazePitch);
-            if (g.glanceAd >= 0) {
-                const AdSurface& ad = ads_[static_cast<std::size_t>(g.glanceAd)];
-                const glm::vec3 to = ad.centre - eye;
+            if (g.glanceTarget >= 0) {
+                const AttentionTarget& target = targets_[static_cast<std::size_t>(g.glanceTarget)];
+                const glm::vec3 to = target.centre - eye;
                 const float yaw = angleBetween(glm::vec3(to.x, 0.0f, to.z), glm::vec3(walk.x, 0.0f, walk.y));
                 g.glanceLeft -= dt;
                 if (g.glanceLeft <= 0.0f || yaw > P.maxHeadYaw) {
-                    g.glanceAd = -1;
+                    g.glanceTarget = -1;
                 } else {
                     head = to;
                 }
@@ -286,27 +293,27 @@ void AdAttention::evaluate(float dt) {
 
             candidates.clear();
             g.lookingAt = -1;
-            for (std::uint32_t k = 0; k < ads_.size(); ++k) {
-                const AdSurface& ad = ads_[k];
-                const glm::vec3 toCentre = ad.centre - eye;
-                if (glm::length(glm::vec2(toCentre.x, toCentre.z)) > ad.range || toCentre.y < -2.5f ||
+            for (std::uint32_t k = 0; k < targets_.size(); ++k) {
+                const AttentionTarget& target = targets_[k];
+                const glm::vec3 toCentre = target.centre - eye;
+                if (glm::length(glm::vec2(toCentre.x, toCentre.z)) > target.range || toCentre.y < -2.5f ||
                     toCentre.y > 4.0f) {
                     continue;  // outside its zone, or on another floor
                 }
-                AdExposure& x = g.exposure[k];
+                Exposure& x = g.exposure[k];
                 x.inZone = true;
 
                 // The face towards the viewer, just in front of the panel.
-                const float side = glm::dot(eye - ad.centre, ad.normal) >= 0.0f ? 1.0f : -1.0f;
-                const glm::vec3 front = ad.normal * side;
-                const glm::vec3 face = ad.centre + front * (ad.halfThickness + 0.02f);
+                const float side = glm::dot(eye - target.centre, target.normal) >= 0.0f ? 1.0f : -1.0f;
+                const glm::vec3 front = target.normal * side;
+                const glm::vec3 face = target.centre + front * (target.halfThickness + 0.02f);
                 const glm::vec3 up(0.0f, 1.0f, 0.0f);
                 const std::array<glm::vec3, kSamples> points{
                     face,
-                    face + ad.across * (0.9f * ad.halfWidth) + up * (0.9f * ad.halfHeight),
-                    face - ad.across * (0.9f * ad.halfWidth) + up * (0.9f * ad.halfHeight),
-                    face + ad.across * (0.9f * ad.halfWidth) - up * (0.9f * ad.halfHeight),
-                    face - ad.across * (0.9f * ad.halfWidth) - up * (0.9f * ad.halfHeight)};
+                    face + target.across * (0.9f * target.halfWidth) + up * (0.9f * target.halfHeight),
+                    face - target.across * (0.9f * target.halfWidth) + up * (0.9f * target.halfHeight),
+                    face + target.across * (0.9f * target.halfWidth) - up * (0.9f * target.halfHeight),
+                    face - target.across * (0.9f * target.halfWidth) - up * (0.9f * target.halfHeight)};
                 int inField = 0;
                 int visible = 0;
                 bool centreVisible = false;
@@ -332,7 +339,7 @@ void AdAttention::evaluate(float dt) {
                 const float cosIncidence = std::max(0.0f, glm::dot(-toFace / dist, front));
                 const float incidence = std::acos(std::min(1.0f, cosIncidence)) * kRadToDeg;
                 const float size = std::min(
-                    100.0f, 100.0f * 4.0f * ad.halfWidth * ad.halfHeight * cosIncidence / (dist * dist) / fieldSolidAngle);
+                    100.0f, 100.0f * 4.0f * target.halfWidth * target.halfHeight * cosIncidence / (dist * dist) / fieldSolidAngle);
 
                 // Viewability: enough of it visible inside the field of view, continuously.
                 if (static_cast<float>(inField) >= P.viewableShare * kSamples) {
@@ -346,7 +353,7 @@ void AdAttention::evaluate(float dt) {
                 } else {
                     x.viewRun = 0.0f;
                 }
-                // Dwell: the ad's centre in the foveal cone (not while reading a phone).
+                // Dwell: the target's centre in the foveal cone (not while reading a phone).
                 if (!g.phone && centreVisible && angleBetween(head, toFace) <= P.fovealHalfAngle) {
                     x.dwell += dt;
                     x.fixation += dt;
@@ -362,12 +369,12 @@ void AdAttention::evaluate(float dt) {
                 const float yaw = angleBetween(glm::vec3(toFace.x, 0.0f, toFace.z), glm::vec3(walk.x, 0.0f, walk.y));
                 if (!g.phone && visible >= 2 && yaw <= P.maxHeadYaw && size >= 0.5f * P.minAngularSize) {
                     const float sizeFactor = std::clamp(size / 4.0f, 0.25f, 1.0f);
-                    candidates.push_back({k, ad.salience * sizeFactor});
+                    candidates.push_back({k, target.salience * sizeFactor});
                 }
             }
 
-            // A glance: the ads in view compete for it (clutter), the agent's interest scales it.
-            if (!g.phone && g.glanceAd < 0 && !candidates.empty() && att.interest > 0.0f) {
+            // A glance: the targets in view compete for it (clutter), the agent's interest scales it.
+            if (!g.phone && g.glanceTarget < 0 && !candidates.empty() && att.interest > 0.0f) {
                 float total = 0.0f;
                 for (const Candidate& c : candidates) {
                     total += c.weight;
@@ -375,15 +382,15 @@ void AdAttention::evaluate(float dt) {
                 const float rate = P.glanceRate * att.interest * total / static_cast<float>(candidates.size());
                 if (hashed(id, tick, 5) < 1.0f - std::exp(-rate * dt)) {
                     float pick = hashed(id, tick, 6) * total;
-                    std::uint32_t chosen = candidates.back().ad;
+                    std::uint32_t chosen = candidates.back().target;
                     for (const Candidate& c : candidates) {
                         pick -= c.weight;
                         if (pick < 0.0f) {
-                            chosen = c.ad;
+                            chosen = c.target;
                             break;
                         }
                     }
-                    g.glanceAd = static_cast<std::int32_t>(chosen);
+                    g.glanceTarget = static_cast<std::int32_t>(chosen);
                     g.glanceLeft = P.glanceMin + (P.glanceMax - P.glanceMin) * hashed(id, tick, 7);
                     ++g.exposure[chosen].glances;
                 }
@@ -392,7 +399,7 @@ void AdAttention::evaluate(float dt) {
     });
 }
 
-GazeView AdAttention::gaze(std::uint32_t index) const {
+GazeView AttentionModel::gaze(std::uint32_t index) const {
     const sim::AgentPool& a = sim_.agents();
     GazeView view;
     if (index >= a.size()) {
@@ -412,11 +419,11 @@ GazeView AdAttention::gaze(std::uint32_t index) const {
     }
     const Gaze& g = it->second;
     view.phone = g.phone;
-    view.lookingAt = g.lookingAt < static_cast<std::int32_t>(ads_.size()) ? g.lookingAt : -1;
+    view.lookingAt = g.lookingAt < static_cast<std::int32_t>(targets_.size()) ? g.lookingAt : -1;
     if (g.phone) {
         view.head = direction(walk, params.phonePitch);
-    } else if (g.glanceAd >= 0 && g.glanceAd < static_cast<std::int32_t>(ads_.size())) {
-        const glm::vec3 to = ads_[static_cast<std::size_t>(g.glanceAd)].centre - view.eye;
+    } else if (g.glanceTarget >= 0 && g.glanceTarget < static_cast<std::int32_t>(targets_.size())) {
+        const glm::vec3 to = targets_[static_cast<std::size_t>(g.glanceTarget)].centre - view.eye;
         if (glm::length(to) > 0.1f) {
             view.head = glm::normalize(to);
             view.glancing = true;
@@ -425,13 +432,13 @@ GazeView AdAttention::gaze(std::uint32_t index) const {
     return view;
 }
 
-Json AdAttention::summary() const {
+Json AttentionModel::summary() const {
     struct Totals {
         std::uint32_t ots = 0, viewable = 0, noticed = 0, viewers = 0, glances = 0;
         double dwell = 0.0, visible = 0.0, size = 0.0, angle = 0.0, steep = 0.0, small = 0.0;
         std::vector<float> dwells;
     };
-    std::vector<Totals> t(ads_.size());
+    std::vector<Totals> t(targets_.size());
     for (const auto& [id, g] : gaze_) {
         for (const auto& [k, x] : g.exposure) {
             if (k >= t.size() || !x.inZone) {
@@ -459,16 +466,16 @@ Json AdAttention::summary() const {
         const double scale = std::round(1.0 / unit);
         return std::round(v * scale) / scale;
     };
-    Json ads = Json::array();
-    for (std::size_t k = 0; k < ads_.size(); ++k) {
+    Json targets = Json::array();
+    for (std::size_t k = 0; k < targets_.size(); ++k) {
         Totals& s = t[k];
         std::sort(s.dwells.begin(), s.dwells.end());
         const double median = s.dwells.empty() ? 0.0 : s.dwells[s.dwells.size() / 2];
         const auto rate = [&](std::uint32_t c) { return s.ots > 0 ? round(100.0 * c / s.ots, 0.1) : 0.0; };
-        ads.push_back(Json{
-            {"id", ads_[k].object},
-            {"name", ads_[k].name},
-            {"salience", round(ads_[k].salience, 0.01)},
+        targets.push_back(Json{
+            {"id", targets_[k].object},
+            {"name", targets_[k].name},
+            {"salience", round(targets_[k].salience, 0.01)},
             {"ots", s.ots},
             {"viewable", s.viewable},
             {"viewabilityRate", rate(s.viewable)},
@@ -486,7 +493,7 @@ Json AdAttention::summary() const {
             {"smallShare", s.visible > 0.0 ? round(100.0 * s.small / s.visible, 0.1) : 0.0},
         });
     }
-    return Json{{"ads", ads},
+    return Json{{"targets", targets},
                 {"agentsSeen", gaze_.size()},
                 {"params",
                  {{"fovealHalfAngle", params.fovealHalfAngle},
@@ -501,16 +508,16 @@ Json AdAttention::summary() const {
                   {"minAngularSize", params.minAngularSize}}}};
 }
 
-void AdAttention::exportCsv(const std::filesystem::path& perAd, const std::filesystem::path& perViewer) const {
-    for (const auto& file : {perAd, perViewer}) {
+void AttentionModel::exportCsv(const std::filesystem::path& perTarget, const std::filesystem::path& perViewer) const {
+    for (const auto& file : {perTarget, perViewer}) {
         if (file.has_parent_path()) {
             std::filesystem::create_directories(file.parent_path());
         }
     }
     const Json s = summary();
-    std::ofstream out(perAd, std::ios::binary);
+    std::ofstream out(perTarget, std::ios::binary);
     if (!out) {
-        throw std::runtime_error("cannot write '" + perAd.string() + "'");
+        throw std::runtime_error("cannot write '" + perTarget.string() + "'");
     }
     const std::array<const char*, 18> columns{
         "id", "name", "salience", "ots", "viewable", "viewabilityRate", "noticed", "noticeRate", "glances",
@@ -520,9 +527,9 @@ void AdAttention::exportCsv(const std::filesystem::path& perAd, const std::files
         out << (c ? "," : "") << columns[c];
     }
     out << '\n';
-    for (const Json& ad : s["ads"]) {
+    for (const Json& target : s["targets"]) {
         for (std::size_t c = 0; c < columns.size(); ++c) {
-            const Json& v = ad[columns[c]];
+            const Json& v = target[columns[c]];
             out << (c ? "," : "") << (v.is_string() ? "\"" + v.get<std::string>() + "\"" : v.dump());
         }
         out << '\n';
@@ -531,51 +538,51 @@ void AdAttention::exportCsv(const std::filesystem::path& perAd, const std::files
     if (!rows) {
         throw std::runtime_error("cannot write '" + perViewer.string() + "'");
     }
-    rows << "agent,ad,viewable,noticed,glances,dwell,visibleSeconds,meanAngularSize,meanViewingAngle\n";
+    rows << "agent,target,viewable,noticed,glances,dwell,visibleSeconds,meanAngularSize,meanViewingAngle\n";
     for (const auto& [id, g] : gaze_) {
         for (const auto& [k, x] : g.exposure) {
-            if (k >= ads_.size() || !x.inZone) {
+            if (k >= targets_.size() || !x.inZone) {
                 continue;
             }
             const double vis = x.visibleTime;
-            rows << std::format("{},\"{}\",{},{},{},{:.2f},{:.2f},{:.2f},{:.1f}\n", id, ads_[k].name, x.viewable ? 1 : 0,
+            rows << std::format("{},\"{}\",{},{},{},{:.2f},{:.2f},{:.2f},{:.1f}\n", id, targets_[k].name, x.viewable ? 1 : 0,
                                 x.noticed ? 1 : 0, x.glances, x.dwell, vis, vis > 0 ? x.sizeSum / vis : 0.0,
                                 vis > 0 ? x.angleSum / vis : 0.0);
         }
     }
 }
 
-void registerAdCommands(commands::CommandRegistry& r, AdAttention& ads) {
+void registerAttentionCommands(commands::CommandRegistry& r, AttentionModel& model) {
     using commands::CommandContext;
     using commands::CommandOutput;
     const Json noParams{{"type", "object"}, {"properties", Json::object()}};
-    r.add({"GetAdMetrics",
-           "Ad effectiveness per ad (objects tagged `ad`): opportunity to see, viewability, noticing, dwell time, "
+    r.add({"GetAttentionMetrics",
+           "How well each attention target (objects tagged `attention`) is seen: opportunity to see, viewability, noticing, dwell time, "
            "angular size and viewing angle, from each agent's simulated gaze.",
-           noParams, [&ads](const Json&, CommandContext&) { return CommandOutput{ads.summary()}; }, false});
-    r.add({"ExportAdMetrics",
-           "Write the ad report as CSV (default recordings/ads.csv) and one row per agent and ad seen "
-           "(recordings/ad_viewers.csv).",
+           noParams, [&model](const Json&, CommandContext&) { return CommandOutput{model.summary()}; }, false});
+    r.add({"ExportAttentionMetrics",
+           "Write the target report as CSV (default recordings/attention.csv) and one row per agent and target seen "
+           "(recordings/attention_viewers.csv).",
            Json{{"type", "object"},
                 {"properties",
-                 {{"path", {{"type", "string"}, {"description", "content-relative CSV path, per ad"}}},
+                 {{"path", {{"type", "string"}, {"description", "content-relative CSV path, per target"}}},
                   {"viewersPath", {{"type", "string"}, {"description", "content-relative CSV path, per viewer"}}}}}},
-           [&ads](const Json& p, CommandContext& ctx) {
+           [&model](const Json& p, CommandContext& ctx) {
                CommandOutput out;
                if (!ctx.replaying) {
-                   const auto perAd = ctx.assets.resolve(p.value("path", std::string("recordings/ads.csv")));
+                   const auto perTarget = ctx.assets.resolve(p.value("path", std::string("recordings/attention.csv")));
                    const auto perViewer =
-                       ctx.assets.resolve(p.value("viewersPath", std::string("recordings/ad_viewers.csv")));
-                   ads.exportCsv(perAd, perViewer);
-                   out.result = Json{{"path", ctx.assets.relativize(perAd)},
+                       ctx.assets.resolve(p.value("viewersPath", std::string("recordings/attention_viewers.csv")));
+                   model.exportCsv(perTarget, perViewer);
+                   out.result = Json{{"path", ctx.assets.relativize(perTarget)},
                                      {"viewersPath", ctx.assets.relativize(perViewer)}};
                }
                return out;
            },
            false});
-    r.add({"ResetAdMetrics", "Clear the ad attention record and start counting again from now.", noParams,
-           [&ads](const Json&, CommandContext&) {
-               ads.reset();
+    r.add({"ResetAttentionMetrics", "Clear the attention record and start counting again from now.", noParams,
+           [&model](const Json&, CommandContext&) {
+               model.reset();
                return CommandOutput{};
            }});
 }

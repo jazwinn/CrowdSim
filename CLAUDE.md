@@ -10,7 +10,7 @@ Decide where a change belongs before writing it:
 
 | It describes... | It goes in | Examples |
 |---|---|---|
-| How the world physically works | engine, as a generic mechanism driven by data | navmesh, avoidance, escalator steps that carry people in two lanes (`escalator` object tag), queues at goals with `capacity`, body contact / pressure / falls in packed crowds (scene `bodies`), emergency routes (`emergency` object tag), ad attention (`ad` object tag, an observer) |
+| How the world physically works | engine, as a generic mechanism driven by data | navmesh, avoidance, escalator steps that carry people in two lanes (`escalator` object tag), queues at goals with `capacity`, body contact / pressure / falls in packed crowds (scene `bodies`), emergency routes (`emergency` object tag), visual attention (`attention` object tag: ads, signs, exits; an observer) |
 | What a person decides to do | a **behaviour tree node** with parameters, used from `content/behaviours/*.bt.json` | `MoveToGoal`, `Queue`, `SetQueueManners {gap, ease}`, `SetEscalatorStyle {side, walk, clear}`, `SetEscalatorBoarding {gap, squeeze}`, `SetPushing {force}`, `UseEmergencyRoutes {use}`, `SetAttention {phone, interest}` |
 | A particular population | `content/agents/*.agent.json` (body parameters + which tree) | `escalator_stander_left` = speed/radius/mass + tree `escalator_stand_left` |
 | A particular place or study | `content/scenes/*.scene.json`, `content/scripts/*.lua`, `tools/make_*.py` | `escalator_etiquette` scene, `escalator_trial.lua` report |

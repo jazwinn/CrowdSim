@@ -1,4 +1,4 @@
-// Ad attention (metrics/AdAttention): an ad beside a corridor is seen, glanced at and noticed
+// Visual attention (metrics/AttentionModel): an ad (an attention target) beside a corridor is seen, glanced at and noticed
 // by people walking past; a wall in between hides it; people on their phones do not read
 // it; results do not depend on the thread count.
 
@@ -10,7 +10,7 @@
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/geometry/Primitives.hpp"
-#include "crowdsim/metrics/AdAttention.hpp"
+#include "crowdsim/metrics/AttentionModel.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
 #include "crowdsim/sim/BehaviorTree.hpp"
 #include "crowdsim/sim/Simulation.hpp"
@@ -23,6 +23,7 @@ struct Options {
     bool wall = false;        ///< an opaque wall between the corridor and the ad
     float phone = 0.0f;       ///< SetAttention phone
     float interest = 3.0f;    ///< SetAttention interest
+    bool legacyTag = false;   ///< tag the ad with the older `ad` tags
     std::uint32_t threads = 4;
 };
 
@@ -38,7 +39,9 @@ nlohmann::json walkPast(const Options& o) {
         sim.addStaticObject(sim::StaticObject{name, d, {}, {}, std::move(tags)});
     };
     box("floor", {0.0f, -0.2f, 20.0f}, {4.0f, 0.2f, 44.0f}, {"walkable"});
-    box("ad", {2.2f, 1.0f, 20.0f}, {0.05f, 1.5f, 3.0f}, {"obstacle", "ad", "ad:salience=1"});
+    box("ad", {2.2f, 1.0f, 20.0f}, {0.05f, 1.5f, 3.0f},
+        o.legacyTag ? std::vector<std::string>{"obstacle", "ad", "ad:salience=1"}
+                    : std::vector<std::string>{"obstacle", "attention", "attention:salience=1"});
     if (o.wall) {
         box("wall", {1.9f, 0.0f, 20.0f}, {0.2f, 3.0f, 30.0f}, {"obstacle"});
     }
@@ -72,12 +75,12 @@ nlohmann::json walkPast(const Options& o) {
     for (sim::SceneId id : sim.staticObjectIds()) {
         (void)world->addStaticMesh(sim.objectMesh(id));
     }
-    metrics::AdAttention ads(sim, jobs, *world);
+    metrics::AttentionModel model(sim, jobs, *world);
     for (int step = 0; step < 30 * 90; ++step) {
         sim.step();
     }
-    REQUIRE(ads.ads().size() == 1);
-    return ads.summary()["ads"][0];
+    REQUIRE(model.targets().size() == 1);
+    return model.summary()["targets"][0];
 }
 
 }  // namespace
@@ -111,8 +114,12 @@ TEST_CASE("People on their phones do not read ads, and the uninterested do not g
     CHECK(bored["glances"] == 0);
 }
 
-TEST_CASE("Ad attention is the same whatever the thread count") {
+TEST_CASE("Attention is the same whatever the thread count") {
     CHECK(walkPast({.threads = 1}).dump() == walkPast({.threads = 4}).dump());
+}
+
+TEST_CASE("The older `ad` tags still make an attention target") {
+    CHECK(walkPast({.legacyTag = true}).dump() == walkPast({}).dump());
 }
 
 TEST_CASE("SetAttention validates its parameters") {

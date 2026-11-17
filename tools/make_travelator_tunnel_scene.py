@@ -6,8 +6,8 @@ like the link tunnels of Singapore's MRT:
 
   wall ads | travelator -> B |   walkway with ad stands down the middle   | travelator -> A | wall ads
 
-Every ad (each face of each stand, each wall poster) is tagged `ad`, so the ad-attention
-model measures how well it is seen; scripts/ad_report.lua ranks them.
+Every ad (each face of each stand, each wall poster) is tagged `attention`, so the attention
+model measures how well it is seen; scripts/attention_report.lua ranks them.
 
   - A moving walkway (travelator, 100 m, 0.75 m/s) along each wall, one each way. People
     keep left, so the one on the left as you face station B carries people towards B.
@@ -65,7 +65,7 @@ FLOOR_C, WALL_C, BELT_C, RAIL_C, STAND_C, CONCOURSE_C = (
     "#b9b2a6", "#c9c4bc", "#3b3f45", "#9aa1a9", "#1e2024", "#a59d90")
 ADS = ["#ff5a1f", "#ff5a1f", "#ff5a1f", "#f2f2f2"]  # mostly one campaign, the odd other one
 SCREENS = ["#2563d9", "#ff5a1f", "#1aa37a", "#7b3fe4"]  # what the ad stands are showing
-# How eye-catching each kind of ad is (ad attention, see AdAttention.hpp): the stands are
+# How eye-catching each kind of ad is (attention model, see AttentionModel.hpp): the stands are
 # bright moving screens; the wall posters are large but printed.
 SCREEN_SALIENCE = 0.9
 POSTER_SALIENCE = 0.6
@@ -161,7 +161,7 @@ z = STAND_Z0
 while z <= STAND_Z1 + 1e-6:
     name = f"Ad stand {k + 1}"
     hw, hd = STAND_W / 2, STAND_D / 2
-    tags = ["obstacle", "ad", f"ad:salience={SCREEN_SALIENCE}"]
+    tags = ["obstacle", "attention", f"attention:salience={SCREEN_SALIENCE}"]
     colour = SCREENS[k % len(SCREENS)]
     if VARIANT == "across":
         box(f"{name} plinth", -hd - 0.04, hd + 0.04, 0.0, 0.45, z - hw - 0.04, z + hw + 0.04, ["obstacle"], STAND_C)
@@ -186,7 +186,7 @@ while z + 9.0 <= TRAV_Z1 - 2.0:
     for sx in (-1, 1):
         x = sx * HALF
         box(f"Wall {'W' if sx < 0 else 'E'} {k + 1}", min(x, x - sx * 0.05),
-            max(x, x - sx * 0.05), 1.0, 3.6, z, z + 9.0, ["obstacle", "ad", f"ad:salience={POSTER_SALIENCE}"], colour)
+            max(x, x - sx * 0.05), 1.0, 3.6, z, z + 9.0, ["obstacle", "attention", f"attention:salience={POSTER_SALIENCE}"], colour)
     z += 10.0
     k += 1
 

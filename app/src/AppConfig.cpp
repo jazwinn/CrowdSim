@@ -255,7 +255,7 @@ std::string usage(std::string_view exeName, bool gui) {
             "  --no-vsync          present without vsync (for measuring frame time)\n"
             "  --sim-speed X       initial simulation speed multiplier (default 1)\n"
             "  --overlays LIST     enable overlays: navmesh,flow,velocities,cones,nogrid,noareas,nolinks;\n"
-            "                      metrics or ads bring that panel to the front\n"
+            "                      metrics or attention bring that panel to the front\n"
             "  --camera x,z,d,y,p  initial camera: target x/z, distance, yaw and pitch in degrees\n"
             "  --lod NEAR,FAR      character LOD distances in metres (default 30,90; capsules beyond FAR)\n"
             "  --select ID         select a scene entity at startup\n"

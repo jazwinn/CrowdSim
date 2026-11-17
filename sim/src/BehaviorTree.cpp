@@ -237,9 +237,9 @@ constexpr std::array<BtNodeTypeInfo, 33> kNodeTypes = {{
      0,
      2,
      {BtParamSpec{"phone", K::Number, 0.0f, "", "share of the time spent looking at a phone, 0..1"},
-      BtParamSpec{"interest", K::Number, 1.0f, "", "inclination to look around at ads, x the usual (0 = never)"},
+      BtParamSpec{"interest", K::Number, 1.0f, "", "inclination to look around at attention targets, x the usual (0 = never)"},
       kNone},
-     "From now on, spend this share of the time on the phone and look around this much (ad attention; does not "
+     "From now on, spend this share of the time on the phone and look around this much (attention model; does not "
      "change movement)."},
     {BtNodeType::Despawn,
      "Despawn",

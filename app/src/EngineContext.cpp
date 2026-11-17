@@ -19,12 +19,12 @@ EngineContext::EngineContext(const AppConfig& config)
       dispatcher_(registry_),
       scriptHost_(registry_, commandContext_, logService_.logger()),
       metrics_(simulation_),
-      adAttention_(simulation_, jobs_, *physics_),
+      attention_(simulation_, jobs_, *physics_),
       contentWatcher_(assets_.contentRoot()) {
     commands::registerBuiltinCommands(registry_);
     script::registerScriptCommands(registry_, scriptHost_);
     metrics::registerMetricsCommands(registry_, metrics_);
-    metrics::registerAdCommands(registry_, adAttention_);
+    metrics::registerAttentionCommands(registry_, attention_);
     // Command logs start by re-loading the scripts, then the scene snapshot.
     commandContext_.logPrelude = [this] { return scriptHost_.logPrelude(); };
     log().info("CrowdSim {} | {} job threads | sim {} Hz | seed {} | content {}", CROWDSIM_VERSION, jobs_.threadCount(),

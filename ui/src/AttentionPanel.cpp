@@ -1,4 +1,4 @@
-#include "crowdsim/ui/AdsPanel.hpp"
+#include "crowdsim/ui/AttentionPanel.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -8,7 +8,7 @@
 #include <imgui.h>
 
 #include "crowdsim/commands/Command.hpp"
-#include "crowdsim/metrics/AdAttention.hpp"
+#include "crowdsim/metrics/AttentionModel.hpp"
 
 namespace crowdsim::ui {
 
@@ -19,48 +19,48 @@ using commands::makeCommand;
 
 struct Column {
     const char* title;
-    const char* key;  ///< field of the ad report
+    const char* key;  ///< field of the target report
     const char* tooltip;
 };
 
 // The table's columns, in the order shown; tooltips say what each one means. The rest of an
-// ad's figures are in the details below the table.
+// target's figures are in the details below the table.
 constexpr Column kColumns[] = {
-    {"Ad", "name", "The ad (an object tagged `ad`). Click to select it and see its details."},
-    {"OTS", "ots", "Opportunity to see: people who came within the ad's zone, whichever way they faced."},
+    {"Target", "name", "The target (an object tagged `attention`). Click to select it and see its details."},
+    {"OTS", "ots", "Opportunity to see: people who came within the target's zone, whichever way they faced."},
     {"View", "viewabilityRate",
-     "Viewability: share of OTS who had at least half the ad unobstructed inside their field of view for a "
+     "Viewability: share of OTS who had at least half the target unobstructed inside their field of view for a "
      "continuous second (the industry standard)."},
     {"Noticed", "noticeRate",
      "Share of OTS who fixated on it long enough to read it, at a readable angle and size."},
     {"Dwell", "meanDwellPerViewer",
-     "Mean time the ad was in a viewer's central vision, over people who looked at it at all (s). Longer dwell "
+     "Mean time the target was in a viewer's central vision, over people who looked at it at all (s). Longer dwell "
      "goes with better recall."},
 };
 
-double number(const Json& ad, const char* key) {
-    const Json& v = ad[key];
+double number(const Json& target, const char* key) {
+    const Json& v = target[key];
     return v.is_number() ? v.get<double>() : 0.0;
 }
 
 }  // namespace
 
-std::uint32_t AdsPanel::draw(const metrics::AdAttention& ads, double simTime, std::uint32_t selected,
+std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, double simTime, std::uint32_t selected,
                              const ThemeFonts& fonts, std::vector<Json>& commands) {
     // The report sums every viewer's record: refresh it twice per simulated second, and
     // whenever the simulation was reset.
     if (reportTime_ < 0.0 || simTime < reportTime_ || simTime - reportTime_ >= 0.5) {
-        report_ = ads.summary();
+        report_ = targets.summary();
         reportTime_ = simTime;
     }
     std::uint32_t clicked = 0;
-    const Json& list = report_["ads"];
+    const Json& list = report_["targets"];
     if (list.empty()) {
         ImGui::Spacing();
-        ImGui::TextWrapped("No ads in this scene.");
+        ImGui::TextWrapped("No targets in this scene.");
         ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
-        ImGui::TextWrapped("Tag a thin box `ad` (optionally `ad:salience=0..1` for how eye-catching it is and "
-                           "`ad:range=<m>` for its zone) and every person's gaze is measured against it.");
+        ImGui::TextWrapped("Tag a thin box `attention` (optionally `attention:salience=0..1` for how eye-catching "
+                           "it is and `attention:range=<m>` for its zone) and every person's gaze is measured against it.");
         ImGui::PopStyleColor();
         return clicked;
     }
@@ -76,11 +76,11 @@ std::uint32_t AdsPanel::draw(const metrics::AdAttention& ads, double simTime, st
             best = k;
         }
     }
-    if (beginReadout("adsOverview")) {
-        readout("Ads", "%zu", list.size());
+    if (beginReadout("attentionOverview")) {
+        readout("Targets", "%zu", list.size());
         readout("People seen", "%llu", static_cast<unsigned long long>(report_["agentsSeen"].get<std::uint64_t>()));
         readout("Noticed overall", "%.1f%%", ots > 0 ? 100.0 * static_cast<double>(noticed) / ots : 0.0);
-        ImGui::SetItemTooltip("Noticings over opportunities to see, all ads together");
+        ImGui::SetItemTooltip("Noticings over opportunities to see, all targets together");
         readout("Most noticed", "%s", list[best]["name"].get<std::string>().c_str());
         endReadout();
     }
@@ -89,30 +89,30 @@ std::uint32_t AdsPanel::draw(const metrics::AdAttention& ads, double simTime, st
     const double readableAngle = params.value("readableAngle", 60.0);
     const double minSize = params.value("minAngularSize", 1.0);
     // Hard to read: mostly seen too steeply, or too small in view.
-    auto problems = [&](const Json& ad) {
+    auto problems = [&](const Json& target) {
         std::string why;
-        if (number(ad, "meanViewingAngle") > readableAngle) {
+        if (number(target, "meanViewingAngle") > readableAngle) {
             why += std::format("Mostly seen at a steep angle ({:.0f} deg on average): hard to read.",
-                               number(ad, "meanViewingAngle"));
+                               number(target, "meanViewingAngle"));
         }
-        if (number(ad, "meanAngularSize") < minSize) {
+        if (number(target, "meanAngularSize") < minSize) {
             why += std::string(why.empty() ? "" : "\n") +
                    std::format("Mostly small in view ({:.1f}% of the field on average): hard to read.",
-                               number(ad, "meanAngularSize"));
+                               number(target, "meanAngularSize"));
         }
         return why;
     };
 
     // --- Table ----------------------------------------------------------------------------
-    sectionHeading("Per ad", fonts);
+    sectionHeading("Per target", fonts);
     constexpr int kCols = static_cast<int>(std::size(kColumns));
     const ImGuiTableFlags flags = ImGuiTableFlags_RowBg | ImGuiTableFlags_Sortable | ImGuiTableFlags_ScrollY |
                                   ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerH;
     const float rowH = ImGui::GetTextLineHeightWithSpacing() + ImGui::GetStyle().CellPadding.y * 2.0f;
-    // Up to about half the panel, so the selected ad's details below stay in view.
+    // Up to about half the panel, so the selected target's details below stay in view.
     const float rows = std::clamp(std::floor(ImGui::GetContentRegionAvail().y * 0.5f / rowH), 4.0f, 12.0f);
     const float height = rowH * (std::min(static_cast<float>(list.size()), rows) + 1.0f) + 2.0f;
-    if (ImGui::BeginTable("ads", kCols, flags, ImVec2(0.0f, height))) {
+    if (ImGui::BeginTable("targets", kCols, flags, ImVec2(0.0f, height))) {
         ImGui::TableSetupScrollFreeze(0, 1);
         for (int c = 0; c < kCols; ++c) {
             ImGuiTableColumnFlags f = c == 0 ? ImGuiTableColumnFlags_WidthStretch
@@ -150,18 +150,18 @@ std::uint32_t AdsPanel::draw(const metrics::AdAttention& ads, double simTime, st
             });
         }
         double maxNoticed = 0.0;
-        for (const Json& ad : list) {
-            maxNoticed = std::max(maxNoticed, number(ad, "noticeRate"));
+        for (const Json& target : list) {
+            maxNoticed = std::max(maxNoticed, number(target, "noticeRate"));
         }
         const float figure = ImGui::CalcTextSize("100.0%").x;
         for (std::size_t k : order) {
-            const Json& ad = list[k];
-            const auto id = ad["id"].get<std::uint32_t>();
+            const Json& target = list[k];
+            const auto id = target["id"].get<std::uint32_t>();
             ImGui::TableNextRow();
             ImGui::TableNextColumn();
             ImGui::PushID(static_cast<int>(id));
-            const std::string name = ad["name"].get<std::string>();
-            const std::string why = problems(ad);
+            const std::string name = target["name"].get<std::string>();
+            const std::string why = problems(target);
             if (ImGui::Selectable(name.c_str(), selected == id, ImGuiSelectableFlags_SpanAllColumns)) {
                 clicked = id;
             }
@@ -172,13 +172,13 @@ std::uint32_t AdsPanel::draw(const metrics::AdAttention& ads, double simTime, st
             }
             ImGui::PopID();
             ImGui::TableNextColumn();
-            ImGui::Text("%llu", static_cast<unsigned long long>(ad["ots"].get<std::uint64_t>()));
+            ImGui::Text("%llu", static_cast<unsigned long long>(target["ots"].get<std::uint64_t>()));
             ImGui::TableNextColumn();
-            ImGui::Text("%.0f%%", number(ad, "viewabilityRate"));
+            ImGui::Text("%.0f%%", number(target, "viewabilityRate"));
             ImGui::TableNextColumn();
             {
-                // A thin bar under the figure, scaled to the most-noticed ad, for a quick read.
-                const double v = number(ad, "noticeRate");
+                // A thin bar under the figure, scaled to the most-noticed target, for a quick read.
+                const double v = number(target, "noticeRate");
                 const ImVec2 p = ImGui::GetCursorScreenPos();
                 const float h = ImGui::GetTextLineHeight();
                 const float frac = maxNoticed > 0.0 ? static_cast<float>(v / maxNoticed) : 0.0f;
@@ -190,45 +190,45 @@ std::uint32_t AdsPanel::draw(const metrics::AdAttention& ads, double simTime, st
                 ImGui::Text("%.1f%%", v);
             }
             ImGui::TableNextColumn();
-            ImGui::Text("%.1f s", number(ad, "meanDwellPerViewer"));
+            ImGui::Text("%.1f s", number(target, "meanDwellPerViewer"));
         }
         ImGui::EndTable();
     }
 
-    // --- Details of the selected ad ---------------------------------------------------------
+    // --- Details of the selected target ---------------------------------------------------------
     const Json* chosen = nullptr;
-    for (const Json& ad : list) {
-        if (ad["id"].get<std::uint32_t>() == selected) {
-            chosen = &ad;
+    for (const Json& target : list) {
+        if (target["id"].get<std::uint32_t>() == selected) {
+            chosen = &target;
         }
     }
     if (chosen == nullptr) {
         ImGui::Spacing();
         ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
-        ImGui::TextWrapped("Select an ad, here or in the scene, for its details.");
+        ImGui::TextWrapped("Select a target, here or in the scene, for its details.");
         ImGui::PopStyleColor();
     } else {
-        const Json& ad = *chosen;
-        sectionHeading(ad["name"].get<std::string>().c_str(), fonts);
-        if (beginReadout("adDetails")) {
+        const Json& target = *chosen;
+        sectionHeading(target["name"].get<std::string>().c_str(), fonts);
+        if (beginReadout("targetDetails")) {
             readout("Opportunity to see", "%llu people",
-                    static_cast<unsigned long long>(ad["ots"].get<std::uint64_t>()));
-            readout("Viewable", "%llu (%.1f%%)", static_cast<unsigned long long>(ad["viewable"].get<std::uint64_t>()),
-                    number(ad, "viewabilityRate"));
-            readout("Noticed", "%llu (%.1f%%)", static_cast<unsigned long long>(ad["noticed"].get<std::uint64_t>()),
-                    number(ad, "noticeRate"));
-            readout("Glances drawn", "%llu", static_cast<unsigned long long>(ad["glances"].get<std::uint64_t>()));
-            ImGui::SetItemTooltip("Head turns towards the ad, drawn from the corner of the eye");
-            readout("Dwell per viewer", "%.2f s mean, %.2f s median", number(ad, "meanDwellPerViewer"),
-                    number(ad, "medianDwellPerViewer"));
-            readout("Dwell per OTS", "%.2f s", number(ad, "meanDwellPerOts"));
+                    static_cast<unsigned long long>(target["ots"].get<std::uint64_t>()));
+            readout("Viewable", "%llu (%.1f%%)", static_cast<unsigned long long>(target["viewable"].get<std::uint64_t>()),
+                    number(target, "viewabilityRate"));
+            readout("Noticed", "%llu (%.1f%%)", static_cast<unsigned long long>(target["noticed"].get<std::uint64_t>()),
+                    number(target, "noticeRate"));
+            readout("Glances drawn", "%llu", static_cast<unsigned long long>(target["glances"].get<std::uint64_t>()));
+            ImGui::SetItemTooltip("Head turns towards the target, drawn from the corner of the eye");
+            readout("Dwell per viewer", "%.2f s mean, %.2f s median", number(target, "meanDwellPerViewer"),
+                    number(target, "medianDwellPerViewer"));
+            readout("Dwell per OTS", "%.2f s", number(target, "meanDwellPerOts"));
             ImGui::SetItemTooltip("Total dwell over everyone who had the opportunity to see it");
-            readout("Viewing angle", "%.0f deg mean, %.0f%% steeper than %.0f", number(ad, "meanViewingAngle"),
-                    number(ad, "steepShare"), readableAngle);
-            readout("Size in view", "%.2f%% mean, %.0f%% below %.0f%%", number(ad, "meanAngularSize"),
-                    number(ad, "smallShare"), minSize);
-            readout("Salience", "%.2f", number(ad, "salience"));
-            ImGui::SetItemTooltip("How eye-catching it is (tag ad:salience)");
+            readout("Viewing angle", "%.0f deg mean, %.0f%% steeper than %.0f", number(target, "meanViewingAngle"),
+                    number(target, "steepShare"), readableAngle);
+            readout("Size in view", "%.2f%% mean, %.0f%% below %.0f%%", number(target, "meanAngularSize"),
+                    number(target, "smallShare"), minSize);
+            readout("Salience", "%.2f", number(target, "salience"));
+            ImGui::SetItemTooltip("How eye-catching it is (tag attention:salience)");
             endReadout();
         }
     }
@@ -236,12 +236,12 @@ std::uint32_t AdsPanel::draw(const metrics::AdAttention& ads, double simTime, st
 
     // --- Actions --------------------------------------------------------------------------
     if (ImGui::Button("Export CSV")) {
-        commands.push_back(makeCommand("ExportAdMetrics"));
+        commands.push_back(makeCommand("ExportAttentionMetrics"));
     }
-    ImGui::SetItemTooltip("recordings/ads.csv (per ad) and recordings/ad_viewers.csv (per person and ad)");
+    ImGui::SetItemTooltip("recordings/attention.csv (per target) and recordings/attention_viewers.csv (per person and target)");
     ImGui::SameLine();
     if (ImGui::Button("Reset")) {
-        commands.push_back(makeCommand("ResetAdMetrics"));
+        commands.push_back(makeCommand("ResetAttentionMetrics"));
         reportTime_ = -1.0;
     }
     ImGui::SetItemTooltip("Start counting again from now");

@@ -1,25 +1,27 @@
 #pragma once
 
-/// @file AdAttention.hpp
-/// Advertising attention: who could see each ad, who did, for how long and how well.
+/// @file AttentionModel.hpp
+/// Visual attention: who could see each target, who did, for how long and how well.
 ///
-/// Ads are static objects tagged `ad` (a thin box: its large vertical face is the ad).
-/// `ad:salience=<0..1>` says how eye-catching it is (bright, backlit, moving: high) and
-/// `ad:range=<m>` how far its zone reaches (default 20 m).
+/// A target is anything people may look at (an ad, a sign, an exit, an artwork): a static
+/// box tagged `attention` (a thin box: its large vertical face is what is looked at).
+/// `attention:salience=<0..1>` says how eye-catching it is (bright, backlit, moving: high)
+/// and `attention:range=<m>` how far its zone reaches (default 20 m). The older `ad`,
+/// `ad:salience` and `ad:range` tags are read too.
 ///
 /// Each agent gets a simple gaze model, evaluated a few times a second:
 ///  * the head points the way the agent walks, pitched down to watch the footing;
 ///  * two nested cones: a small central (foveal) one for reading and a wide field of view;
-///    ads in the periphery may draw a glance (a head turn, within the neck's reach), more
-///    likely the brighter and bigger they are, less likely with more ads competing for
+///    targets in the periphery may draw a glance (a head turn, within the neck's reach), more
+///    likely the brighter and bigger they are, less likely with more targets competing for
 ///    attention (clutter) and with the agent's own inclination (SetAttention `interest`);
 ///  * agents spend a share of the time looking down at a phone (SetAttention `phone`).
-/// Lines of sight run from the eyes to the four corners and the centre of the ad face,
+/// Lines of sight run from the eyes to the four corners and the centre of the target face,
 /// blocked by static objects (physics raycasts) and by other people's bodies.
 ///
-/// Per ad it reports opportunity to see (agents entering its zone), viewability (at least
-/// half the ad visible inside the field of view for a continuous second), dwell time (the
-/// ad's centre inside the foveal cone), noticing (a fixation long enough to read it at a
+/// Per target it reports opportunity to see (agents entering its zone), viewability (at least
+/// half the target visible inside the field of view for a continuous second), dwell time (the
+/// target's centre inside the foveal cone), noticing (a fixation long enough to read it at a
 /// readable angle and size), angular size and viewing angle.
 ///
 /// A read-only StepObserver: it never changes the simulation, and its random numbers are
@@ -53,7 +55,7 @@ class CommandRegistry;
 namespace crowdsim::metrics {
 
 /// Physiology and attention constants (degrees, metres, seconds).
-struct AdParams {
+struct AttentionParams {
     float evaluationHz = 5.0f;       ///< gaze updates per second
     float eyeHeight = 0.94f;         ///< eye height, x body height
     float gazePitch = -12.0f;        ///< head pitch while walking (watching the footing)
@@ -62,21 +64,21 @@ struct AdParams {
     float fieldHalfAngle = 60.0f;    ///< field of view for viewability (120 deg wide)
     float peripheralHalfAngle = 90.0f;  ///< what can draw a glance (180 deg wide)
     float maxHeadYaw = 60.0f;        ///< how far the head turns from the walking direction
-    float glanceRate = 0.6f;         ///< glances per second at a fully salient, large ad, alone in view
+    float glanceRate = 0.6f;         ///< glances per second at a fully salient, large target, alone in view
     float glanceMin = 0.6f;          ///< glance duration range
     float glanceMax = 2.2f;
     float phoneEpisode = 15.0f;      ///< mean time looking at the phone at a stretch
-    float viewableShare = 0.5f;      ///< share of the ad that must be visible...
+    float viewableShare = 0.5f;      ///< share of the target that must be visible...
     float viewableSeconds = 1.0f;    ///< ...for this long, continuously (industry standard)
     float noticeSeconds = 0.4f;      ///< a fixation this long, readable, counts as noticed
-    float readableAngle = 60.0f;     ///< steeper viewing angles distort the ad too much
+    float readableAngle = 60.0f;     ///< steeper viewing angles distort the target too much
     float minAngularSize = 1.0f;     ///< % of the field of view below which it cannot be read
-    float defaultRange = 20.0f;      ///< zone of an ad without `ad:range`
+    float defaultRange = 20.0f;      ///< zone of a target without `attention:range`
     float defaultSalience = 0.5f;
 };
 
-/// One ad face, from an object tagged `ad`.
-struct AdSurface {
+/// One target face, from an object tagged `attention`.
+struct AttentionTarget {
     sim::SceneId object = sim::kNoSceneId;
     std::string name;
     glm::vec3 centre{0.0f};
@@ -89,8 +91,8 @@ struct AdSurface {
     float range = 20.0f;
 };
 
-/// What one agent did with one ad.
-struct AdExposure {
+/// What one agent did with one target.
+struct Exposure {
     bool inZone = false;     ///< opportunity to see
     bool viewable = false;   ///< met the viewability standard at least once
     bool noticed = false;    ///< fixated long enough at a readable angle and size
@@ -111,56 +113,56 @@ struct GazeView {
     glm::vec3 eye{0.0f};
     glm::vec3 head{0.0f, 0.0f, 1.0f};
     bool phone = false;       ///< looking down at a phone
-    bool glancing = false;    ///< head turned towards an ad
-    std::int32_t lookingAt = -1;  ///< ad (index into ads()) in central vision at the last update, or -1
+    bool glancing = false;    ///< head turned towards a target
+    std::int32_t lookingAt = -1;  ///< target (index into targets()) in central vision at the last update, or -1
 };
 
-class AdAttention final : public sim::StepObserver {
+class AttentionModel final : public sim::StepObserver {
 public:
-    AdAttention(sim::Simulation& sim, core::JobSystem& jobs, const physics::IPhysicsWorld& world);
-    ~AdAttention() override;
-    AdAttention(const AdAttention&) = delete;
-    AdAttention& operator=(const AdAttention&) = delete;
+    AttentionModel(sim::Simulation& sim, core::JobSystem& jobs, const physics::IPhysicsWorld& world);
+    ~AttentionModel() override;
+    AttentionModel(const AttentionModel&) = delete;
+    AttentionModel& operator=(const AttentionModel&) = delete;
 
     void afterStep(sim::Simulation& sim) override;
     void reset();
 
-    [[nodiscard]] const std::vector<AdSurface>& ads() const noexcept { return ads_; }
+    [[nodiscard]] const std::vector<AttentionTarget>& targets() const noexcept { return targets_; }
     /// Gaze of the agent at pool index `index`, from the current positions (works in scenes
-    /// without ads too: the head then follows the walking direction).
+    /// without targets too: the head then follows the walking direction).
     [[nodiscard]] GazeView gaze(std::uint32_t index) const;
-    /// Per-ad report (see docs/formats.md, GetAdMetrics).
+    /// Per-target report (see docs/formats.md, GetAttentionMetrics).
     [[nodiscard]] nlohmann::json summary() const;
-    /// Write the per-ad report and one row per agent and ad seen as CSV files.
-    void exportCsv(const std::filesystem::path& perAd, const std::filesystem::path& perViewer) const;
+    /// Write the per-target report and one row per agent and target seen as CSV files.
+    void exportCsv(const std::filesystem::path& perTarget, const std::filesystem::path& perViewer) const;
 
-    AdParams params;
+    AttentionParams params;
 
 private:
     struct Gaze {
         bool phone = false;
         float phoneLeft = 0.0f;
-        std::int32_t glanceAd = -1;
-        std::int32_t lookingAt = -1;  ///< ad in central vision at the last evaluation
+        std::int32_t glanceTarget = -1;
+        std::int32_t lookingAt = -1;  ///< target in central vision at the last evaluation
         float glanceLeft = 0.0f;
         bool started = false;
-        std::map<std::uint32_t, AdExposure> exposure;  ///< by ad index
+        std::map<std::uint32_t, Exposure> exposure;  ///< by target index
     };
 
-    void rebuildAds();
+    void rebuildTargets();
     void evaluate(float dt);
 
     sim::Simulation& sim_;
     core::JobSystem& jobs_;
     const physics::IPhysicsWorld& world_;
-    std::vector<AdSurface> ads_;
-    std::uint64_t adsVersion_ = ~0ull;
+    std::vector<AttentionTarget> targets_;
+    std::uint64_t targetsVersion_ = ~0ull;
     std::uint64_t lastStep_ = 0;
     std::uint64_t evaluations_ = 0;
     std::uint32_t stepsSinceEval_ = 0;
     std::map<std::uint32_t, Gaze> gaze_;  ///< by agent id (kept after they leave)
 };
 
-void registerAdCommands(commands::CommandRegistry& registry, AdAttention& ads);
+void registerAttentionCommands(commands::CommandRegistry& registry, AttentionModel& targets);
 
 }  // namespace crowdsim::metrics

@@ -5,7 +5,7 @@ crowdsim_add_library(ui
     src/AgentDebugger.cpp
     src/BtEditor.cpp
     src/MetricsPanel.cpp
-    src/AdsPanel.cpp
+    src/AttentionPanel.cpp
     src/EditorShell.cpp
     src/SceneEditor.cpp
     src/Theme.cpp

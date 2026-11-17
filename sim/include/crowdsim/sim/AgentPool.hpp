@@ -51,10 +51,10 @@ struct QueueManners {
 };
 
 /// Where an agent's attention goes while walking (SetAttention). Read by observers such
-/// as the ad-attention model; it never changes how the agent moves.
+/// as the attention model; it never changes how the agent moves.
 struct Attention {
     float phone = 0.0f;     ///< share of the time looking down at a phone, 0..1
-    float interest = 1.0f;  ///< inclination to look around at things (ads), x the usual
+    float interest = 1.0f;  ///< inclination to look around at attention targets (ads, signs...), x the usual
 };
 
 /// How hard an agent presses forward when bodies touch (SetPushing), newtons. The

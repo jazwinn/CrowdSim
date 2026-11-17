@@ -230,10 +230,10 @@ void appendAgentHighlight(const sim::Simulation& sim, std::uint32_t agentId, std
 
 /// One agent's view: a fan for the field of view (and, in detail, the wider periphery that
 /// can draw a glance) and the central cone used for reading, coloured by what it is doing.
-void appendViewCone(const metrics::AdAttention& ads, const metrics::GazeView& g, bool detailed,
+void appendViewCone(const metrics::AttentionModel& model, const metrics::GazeView& g, bool detailed,
                     std::vector<render::DebugLine>& lines) {
     constexpr float kDegToRad = 0.017453292f;
-    const metrics::AdParams& p = ads.params;
+    const metrics::AttentionParams& p = model.params;
     const glm::vec3 f = g.head;
     glm::vec3 r = glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), f);
     r = glm::length(r) > 1e-4f ? glm::normalize(r) : glm::vec3(1.0f, 0.0f, 0.0f);
@@ -259,14 +259,14 @@ void appendViewCone(const metrics::AdAttention& ads, const metrics::GazeView& g,
     }
     fan(p.fieldHalfAngle, reach, detailed ? 16 : 6, detailed ? 0x90ffd080u : 0x60ffd080u);
 
-    // Central cone (ABGR colours): green on an ad, amber turning to one, grey on a phone.
+    // Central cone (ABGR colours): green on a target, amber turning to one, grey on a phone.
     const std::uint32_t centre = g.phone ? 0xb0a0a0a0u
                                  : g.lookingAt >= 0 ? 0xff50ff50u
                                  : g.glancing       ? 0xff20c0ffu
                                                     : 0xd0ffffffu;
     float length = detailed ? 10.0f : 3.0f;
     if (g.lookingAt >= 0) {
-        length = glm::length(ads.ads()[static_cast<std::size_t>(g.lookingAt)].centre - g.eye);
+        length = glm::length(model.targets()[static_cast<std::size_t>(g.lookingAt)].centre - g.eye);
     } else if (g.phone) {
         length = 0.6f;
     }
@@ -370,8 +370,8 @@ int runGui(EngineContext& engine) {
     if (config.overlays.find("metrics") != std::string::npos) {
         shell.focusMetrics();
     }
-    if (config.overlays.find("ads") != std::string::npos) {
-        shell.focusAds();
+    if (config.overlays.find("attention") != std::string::npos || config.overlays.find("ads") != std::string::npos) {
+        shell.focusAttention();
     }
     shell.sceneEditor().select(config.selectId);
     if (!config.editBehaviour.empty()) {
@@ -698,7 +698,7 @@ int runGui(EngineContext& engine) {
             .sceneFiles = sceneFiles,
             .sceneName = engine.sceneName(),
             .metrics = &engine.metrics(),
-            .ads = &engine.adAttention(),
+            .attention = &engine.attentionModel(),
         });
         updateCamera(camera, req.viewportHovered);
 
@@ -916,7 +916,7 @@ int runGui(EngineContext& engine) {
             for (std::uint32_t i = 0; i < pool.size(); ++i) {
                 const bool isChosen = pool.id[i] == chosen && chosen != ui::SceneEditor::kNoAgentSelected;
                 if (req.overlays.viewCones == 2 || isChosen) {
-                    appendViewCone(engine.adAttention(), engine.adAttention().gaze(i), isChosen,
+                    appendViewCone(engine.attentionModel(), engine.attentionModel().gaze(i), isChosen,
                                    sceneRenderer.extraLines);
                 }
             }

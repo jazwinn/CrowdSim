@@ -19,7 +19,7 @@ add_executable(crowdsim_tests
   assets/test_bt_graph.cpp
   mcp/test_mcp.cpp
   metrics/test_metrics.cpp
-  metrics/test_ads.cpp
+  metrics/test_attention.cpp
   physics/test_physics.cpp
   commands/test_commands.cpp
   app/test_command_line.cpp

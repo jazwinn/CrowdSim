@@ -26,7 +26,7 @@ constexpr const char* kInspectorWindow = "Inspector";
 constexpr const char* kScriptWindow = "Script";
 constexpr const char* kBehaviourWindow = "Behaviour";
 constexpr const char* kMetricsWindow = "Metrics";
-constexpr const char* kAdsWindow = "Ads";
+constexpr const char* kAttentionWindow = "Attention";
 
 /// An undo (curving left) or redo (curving right) arrow button for the menu bar.
 /// Returns true when clicked.
@@ -84,7 +84,7 @@ void EditorShell::buildDefaultLayout(unsigned int dockspaceId) {
     ImGui::DockBuilderDockWindow(kSimWindow, rightTop);
     ImGui::DockBuilderDockWindow(kStatsWindow, rightTop);
     ImGui::DockBuilderDockWindow(kMetricsWindow, rightTop);
-    ImGui::DockBuilderDockWindow(kAdsWindow, rightTop);
+    ImGui::DockBuilderDockWindow(kAttentionWindow, rightTop);
     ImGui::DockBuilderDockWindow(kInspectorWindow, rightBottom);
     ImGui::DockBuilderDockWindow(kLogWindow, bottom);
     ImGui::DockBuilderDockWindow(kScriptWindow, bottom);
@@ -394,7 +394,7 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
         propertyLabel("View cones");
         ImGui::Combo("##viewcones", &overlays_.viewCones, "Off\0Selected agent\0All agents\0");
         ImGui::SetItemTooltip("Where people look: the 120 deg field of view and the narrow central cone used for "
-                              "reading.\nCentral cone: white ahead, amber turning to an ad, green on an ad, "
+                              "reading.\nCentral cone: white ahead, amber turning to a target (an ad, a sign...), green on one, "
                               "grey on a phone.");
         propertyLabel("Heatmap");
         ImGui::Combo("##heatmap", &overlays_.heatmap, "Off\0Density\0Speed\0Peak pressure\0");
@@ -618,17 +618,24 @@ EditorRequests EditorShell::draw(const EditorFrameData& data) {
     }
     ImGui::End();
 
-    // Ads: how well each ad is seen. A tab beside Metrics.
+    // Attention: how well each target (ads, signs...) is seen. A tab beside Metrics.
     if (statsDock != 0) {
         ImGui::SetNextWindowDockID(statsDock, ImGuiCond_FirstUseEver);
     }
-    if (focusAds_ > 0) {
+    if (focusAttention_ > 0) {
         ImGui::SetNextWindowFocus();
-        --focusAds_;
+        --focusAttention_;
     }
-    ImGui::Begin(kAdsWindow);
-    if (data.ads != nullptr) {
-        if (const std::uint32_t clicked = adsPanel_.draw(*data.ads, data.simTimeSeconds, sceneEditor_.selected(), fonts_, req.commands)) {
+    // A layout saved before this window existed has no place for it: dock it beside Metrics.
+    if (ImGui::FindWindowSettingsByID(ImHashStr(kAttentionWindow)) == nullptr) {
+        if (const ImGuiWindow* metrics = ImGui::FindWindowByName(kMetricsWindow);
+            metrics != nullptr && metrics->DockId != 0) {
+            ImGui::SetNextWindowDockID(metrics->DockId, ImGuiCond_FirstUseEver);
+        }
+    }
+    ImGui::Begin(kAttentionWindow);
+    if (data.attention != nullptr) {
+        if (const std::uint32_t clicked = attentionPanel_.draw(*data.attention, data.simTimeSeconds, sceneEditor_.selected(), fonts_, req.commands)) {
             sceneEditor_.select(clicked);
         }
     }

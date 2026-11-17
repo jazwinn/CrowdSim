@@ -18,7 +18,7 @@
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/mcp/CrowdSimTools.hpp"
-#include "crowdsim/metrics/AdAttention.hpp"
+#include "crowdsim/metrics/AttentionModel.hpp"
 #include "crowdsim/metrics/Metrics.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
 #include "crowdsim/script/ScriptHost.hpp"
@@ -53,7 +53,7 @@ public:
     [[nodiscard]] const std::string& sceneName() const noexcept { return sceneName_; }
     [[nodiscard]] script::ScriptHost& scripts() noexcept { return scriptHost_; }
     [[nodiscard]] metrics::MetricsCollector& metrics() noexcept { return metrics_; }
-    [[nodiscard]] metrics::AdAttention& adAttention() noexcept { return adAttention_; }
+    [[nodiscard]] metrics::AttentionModel& attentionModel() noexcept { return attention_; }
 
     /// Execute a command now and log a warning if it fails.
     commands::CommandOutcome execute(const commands::Json& command);
@@ -93,7 +93,7 @@ private:
     commands::CommandDispatcher dispatcher_;
     script::ScriptHost scriptHost_;      ///< Lua domain; detaches from the simulation before it is destroyed
     metrics::MetricsCollector metrics_;  ///< observes every step
-    metrics::AdAttention adAttention_;   ///< observes every step: who sees the ads
+    metrics::AttentionModel attention_;   ///< observes every step: who sees the attention targets
     ContentWatcher contentWatcher_;
 
     std::uint64_t physicsVersion_ = ~0ull;

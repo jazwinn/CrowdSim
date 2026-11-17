@@ -341,10 +341,10 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "SetSimParams");
 
     // --- Analysis ---------------------------------------------------------------------------
-    command("ads_get",
-            "Ad effectiveness per ad (objects tagged `ad`): opportunity to see, viewability, noticing, dwell, "
+    command("attention_get",
+            "How well each attention target (objects tagged `attention`: ads, signs, exits...) is seen: opportunity to see, viewability, noticing, dwell, "
             "glances, viewing angle and angular size, from each person's simulated gaze. Run the simulation first.",
-            schema(), "GetAdMetrics");
+            schema(), "GetAttentionMetrics");
     server.addTool({"metrics_get",
                     "Metrics summary: counts, per-goal arrivals, agents by type/state, speed and density "
                     "statistics, gate counts and flow rates, time-to-goal distribution, stuck agents.",
