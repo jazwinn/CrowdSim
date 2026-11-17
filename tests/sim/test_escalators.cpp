@@ -358,7 +358,10 @@ TEST_CASE("A box tagged escalator is a moving walkway: carries riders and is one
         const float from = towardsFar ? -13.0f : 13.0f;
         sim::Goal goal;
         goal.name = "end";
-        goal.area = {{0.0f, -from}, {3.0f, 1.0f}, 0.0f};
+        // In line with the travelator, so riding it is clearly the shortest route. Centred
+        // between it and the walkway, the two routes were within a metre of each other and
+        // small navmesh differences between compilers decided which one won.
+        goal.area = {{-1.4f, -from}, {1.5f, 1.0f}, 0.0f};
         const sim::SceneId goalId = sim.addGoal(goal);
         sim::Spawner s;
         s.name = "start";
