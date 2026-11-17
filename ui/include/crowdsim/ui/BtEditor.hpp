@@ -45,6 +45,10 @@ private:
     void toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, std::vector<nlohmann::json>& commands);
     void canvas(const sim::Simulation& sim, std::uint32_t selectedAgent);
     void newGraph();
+    /// Problems to show: none for a tree that is only its starting root (not yet built, so
+    /// not wrong); it still cannot be applied or saved.
+    [[nodiscard]] std::vector<assets::BtGraphIssue> shownIssues(std::span<const sim::CustomNodeSpec> custom) const;
+    [[nodiscard]] bool isBlank() const noexcept { return graph_.nodes.size() == 1 && graph_.links.empty(); }
 
     struct Context;
     std::unique_ptr<Context> ctx_;

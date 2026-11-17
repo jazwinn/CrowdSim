@@ -113,6 +113,13 @@ void BtEditor::open(const Json& doc) {
     setStatus("Opened '" + graph_.name + "'", false);
 }
 
+std::vector<assets::BtGraphIssue> BtEditor::shownIssues(std::span<const sim::CustomNodeSpec> custom) const {
+    if (isBlank()) {
+        return {};
+    }
+    return graph_.validate(custom);
+}
+
 void BtEditor::setStatus(std::string text, bool error) {
     status_ = std::move(text);
     statusError_ = error;
@@ -165,10 +172,12 @@ void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, 
     }
 
     // Validate: structural issues first, then the real compiler.
-    const auto issues = graph_.validate(sim.customNodeSpecs());
+    const auto issues = shownIssues(sim.customNodeSpecs());
+    // A blank tree is unfinished rather than wrong: no error, but nothing to apply yet.
+    const bool blank = isBlank() && !graph_.validate(sim.customNodeSpecs()).empty();
     std::string compileError;
     Json doc;
-    if (issues.empty()) {
+    if (issues.empty() && !blank) {
         try {
             doc = graph_.toJson();
             (void)assets::compileBehaviorJson(doc, sim.customNodeSpecs());
@@ -176,7 +185,7 @@ void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, 
             compileError = e.what();
         }
     }
-    const bool valid = issues.empty() && compileError.empty();
+    const bool valid = issues.empty() && compileError.empty() && !blank;
     ImGui::SameLine();
     ImGui::BeginDisabled(!valid);
     if (ImGui::Button("Apply")) {
@@ -190,7 +199,10 @@ void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, 
     }
     ImGui::EndDisabled();
 
-    if (!valid) {
+    if (blank) {
+        ImGui::TextDisabled(
+            "New tree. Right-click the canvas to add a node, then drag from the root's right pin to it.");
+    } else if (!valid) {
         const std::string first = !issues.empty() ? issues.front().message : compileError;
         ImGui::TextColored(palette::error(), "%zu problem%s: %s",
                            std::max<std::size_t>(1, issues.size()), issues.size() > 1 ? "s" : "", first.c_str());
@@ -206,7 +218,7 @@ void BtEditor::toolbar(const sim::Simulation& sim, std::uint32_t selectedAgent, 
 
 void BtEditor::canvas(const sim::Simulation& sim, std::uint32_t selectedAgent) {
     const auto custom = std::span<const sim::CustomNodeSpec>(sim.customNodeSpecs());
-    const auto issues = graph_.validate(custom);
+    const auto issues = shownIssues(custom);
 
     // Live highlighting: map the selected agent's compiled node flags onto graph nodes by node id.
     std::map<std::string, int> liveState;  // nodeId -> 2 running, 1 visited
