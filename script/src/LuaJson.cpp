@@ -60,7 +60,7 @@ Json luaToJson(const sol::object& value, int depth) {
             if (sequence) {
                 Json arr = Json::array();
                 for (std::size_t i = 1; i <= count; ++i) {
-                    const sol::object v = t[i];
+                    const sol::object v = t.get<sol::object>(i);
                     if (v.get_type() == sol::type::lua_nil) {
                         sequence = false;  // holes: not a sequence after all
                         break;

@@ -348,11 +348,11 @@ struct ScriptHost::Impl {
             throw std::invalid_argument("entities.register_type needs a name without ':'");
         }
         t.script = current;
-        const sol::object object = def["object"];
+        const sol::object object = def.get<sol::object>("object");
         t.object = object.valid() && object.get_type() == sol::type::table ? luaToJson(object) : Json::object();
         // Shorthand fields on the definition itself.
         for (const char* key : {"type", "size", "color", "steps", "scale", "asset"}) {
-            const sol::object v = def[key];
+            const sol::object v = def.get<sol::object>(key);
             if (v.valid() && v.get_type() != sol::type::lua_nil) {
                 t.object[key == std::string("type") ? "type" : key] = luaToJson(v);
             }
@@ -361,7 +361,7 @@ struct ScriptHost::Impl {
             t.object["type"] = "box";
         }
         Json tags = t.object.value("tags", Json::array());
-        const sol::object extraTags = def["tags"];
+        const sol::object extraTags = def.get<sol::object>("tags");
         if (extraTags.valid() && extraTags.get_type() == sol::type::table) {
             for (const Json& tag : luaToJson(extraTags)) {
                 tags.push_back(tag);
@@ -399,7 +399,7 @@ struct ScriptHost::Impl {
             throw std::invalid_argument("bt.register_node needs a tick = function(ctx, agents) ... end");
         }
         // params: { name = {type=, default=, description=} } (sorted by name) or an array of {name=, ...}.
-        const sol::object params = def["params"];
+        const sol::object params = def.get<sol::object>("params");
         if (params.valid() && params.get_type() == sol::type::table) {
             const Json p = luaToJson(params);
             auto add = [&](const std::string& name, const Json& d) {
