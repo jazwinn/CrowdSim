@@ -32,6 +32,15 @@ on an i7-13700H laptop. The simulation runs at 4× speed.</sub>
   a four-storey mall with fire stairs, and the Itaewon 2022 crowd crush with three
   counterfactual layouts.
 
+## The editor
+
+<img src="docs/assets/editor.webp" alt="CrowdSim editor showing the travelator tunnel with agents' view cones, the scene hierarchy, the simulation controls and a selected agent in the Inspector" width="100%">
+
+<sub>The MRT travelator tunnel with view cones on (green: looking at an ad stand). Agent #40
+is selected and the Inspector shows its tree, goal and movement live. Captured with
+<code>crowdsim --scene scenes/travelator_tunnel_stands_facing_flow.scene.json --overlays cones
+--select-agent 40 --frames 1500 --screenshot editor.png</code>.</sub>
+
 ## Highlights
 
 **Mechanics in the engine; behaviour and scenarios in content.** The engine never branches on
