@@ -494,7 +494,7 @@ struct ScriptHost::Impl {
         lua.set_function("loadstring", safeLoad);
         lua.set_function("print", [this](sol::variadic_args args) {
             std::string line;
-            const sol::protected_function tostring = lua["tostring"];
+            const auto tostring = lua.get<sol::protected_function>("tostring");
             for (std::size_t i = 0; i < args.size(); ++i) {
                 if (i > 0) {
                     line += '\t';
@@ -505,7 +505,7 @@ struct ScriptHost::Impl {
             printBuffer += line + '\n';
             log.info("[lua:{}] {}", current, line);
         });
-        sol::table math = lua["math"];
+        sol::table math = lua.get<sol::table>("math");
         math.set_function("random", [this](sol::optional<double> a, sol::optional<double> b) -> double {
             const double r = uniform();
             if (!a) {
@@ -884,7 +884,7 @@ void ScriptHost::runCustomNodes(sim::Simulation& sim, std::span<const sim::Custo
         if (ret.get_type() == sol::type::table) {
             const sol::table t = ret.as<sol::table>();
             for (std::size_t k = 0; k < batch.results.size(); ++k) {
-                batch.results[k] = parseResult(t[k + 1]);
+                batch.results[k] = parseResult(t.get<sol::object>(k + 1));
             }
         } else {
             std::fill(batch.results.begin(), batch.results.end(), parseResult(ret));
