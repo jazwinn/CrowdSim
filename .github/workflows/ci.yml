@@ -130,7 +130,10 @@ jobs:
         working-directory: build/${{ matrix.preset }}/bin/Release
         run: PATH="$PWD:$PATH" ${{ matrix.gui_smoke }}
 
+      # The sources are the same everywhere, so Linux and Windows cover this check; the
+      # macOS runner has no clang-tidy on its PATH.
       - name: clang-tidy (global variables)
+        if: runner.os != 'macOS'
         shell: bash
         run: |
           find core geometry sim physics assets commands animation script mcp metrics platform render ui app -name '*.cpp' -print0 \
