@@ -78,7 +78,7 @@ TriangleMesh buildPrimitive(const PrimitiveDesc& desc) {
     const glm::vec3 h = desc.size * 0.5f;
     const bool obstacle = (desc.flags & kSurfaceObstacle) != 0;
     const std::uint8_t top = obstacle ? static_cast<std::uint8_t>(kSurfaceObstacle) : desc.flags;
-    const std::uint8_t side = obstacle ? static_cast<std::uint8_t>(kSurfaceObstacle) : kSurfaceNone;
+    const std::uint8_t side = static_cast<std::uint8_t>(obstacle ? kSurfaceObstacle : kSurfaceNone);
 
     switch (desc.kind) {
         case PrimitiveKind::Box:
