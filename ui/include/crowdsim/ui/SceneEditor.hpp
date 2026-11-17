@@ -14,6 +14,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "crowdsim/sim/Environment.hpp"
 #include "crowdsim/ui/Inspect.hpp"
 #include "crowdsim/ui/Theme.hpp"
 
@@ -62,13 +63,21 @@ public:
     void select(std::uint32_t id) noexcept {
         selected_ = id;
         selectedAgent_ = kNoAgentSelected;
+        selectedType_.clear();
     }
     /// Select an agent by id for the behaviour-tree debugger (clears the entity selection).
     void selectAgent(std::uint32_t agentId) noexcept {
         selectedAgent_ = agentId;
         selected_ = 0;
+        selectedType_.clear();
     }
     [[nodiscard]] std::uint32_t selectedAgent() const noexcept { return selectedAgent_; }
+    /// Select an agent type by name for the Inspector (clears the other selections).
+    void selectType(std::string name) {
+        selectedType_ = std::move(name);
+        selected_ = 0;
+        selectedAgent_ = kNoAgentSelected;
+    }
     static constexpr std::uint32_t kNoAgentSelected = 0xFFFFFFFFu;
     /// Inspector "Follow" toggle: the app keeps the camera on the selected agent.
     bool followAgent = false;
@@ -90,6 +99,8 @@ private:
     /// "Move to group" menu items for `id` (every group it may go in, and none).
     void moveToGroupMenu(const SceneEditorInput& in, std::uint32_t id, std::vector<nlohmann::json>& commands);
     void drawAgentInspector(const SceneEditorInput& in);
+    /// The selected agent type (from its reflection descriptor); edits become DefineAgentType.
+    void drawAgentTypeInspector(const SceneEditorInput& in, std::vector<nlohmann::json>& commands);
     /// Property rows for the selected entity of type T (from its reflection descriptor);
     /// committed edits go into `patch` as the keys that differ from `live`.
     template <typename T>
@@ -102,6 +113,8 @@ private:
 
     std::uint32_t selected_ = 0;
     std::uint32_t selectedAgent_ = kNoAgentSelected;
+    std::string selectedType_;   ///< agent type picked in the Lists view (empty: none)
+    sim::AgentType typeBuffer_;  ///< inspector working copy of the selected agent type
     bool gizmoActive_ = false;
     bool gizmoTranslate_ = true;
     std::uint32_t dragSerial_ = 0;

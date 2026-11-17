@@ -1,5 +1,7 @@
 #include "crowdsim/ui/AttentionPanel.hpp"
 
+#include "crowdsim/ui/Inspect.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <format>
@@ -62,6 +64,8 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
         ImGui::TextWrapped("Tag a thin box `attention` (optionally `attention:salience=0..1` for how eye-catching "
                            "it is and `attention:range=<m>` for its zone) and every person's gaze is measured against it.");
         ImGui::PopStyleColor();
+        ImGui::Spacing();
+        drawSettings(targets, fonts, commands);
         return clicked;
     }
 
@@ -245,7 +249,39 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
         reportTime_ = -1.0;
     }
     ImGui::SetItemTooltip("Start counting again from now");
+    ImGui::Spacing();
+    drawSettings(targets, fonts, commands);
     return clicked;
+}
+
+void AttentionPanel::drawSettings(const metrics::AttentionModel& model, const ThemeFonts& fonts,
+                                  std::vector<Json>& commands) {
+    if (!sectionToggle("Settings", fonts.strong)) {
+        return;
+    }
+    // A working copy while a widget is being edited, so a drag carries on from where it is.
+    if (!ImGui::IsAnyItemActive()) {
+        settings_ = model.params;
+    }
+    ImGui::PushID("attentionSettings");
+    if (inspect(settings_)) {
+        const Json now = reflect::toJson(settings_);
+        const Json live = reflect::toJson(model.params);
+        Json changed = Json::object();
+        for (const auto& [key, v] : now.items()) {
+            if (live[key] != v) {
+                changed[key] = v;
+            }
+        }
+        if (!changed.empty()) {
+            commands.push_back(makeCommand("SetAttentionParams", {{"params", changed}}));
+            reportTime_ = -1.0;
+        }
+    }
+    ImGui::PopID();
+    ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
+    ImGui::TextWrapped("Changing a setting starts the count again.");
+    ImGui::PopStyleColor();
 }
 
 }  // namespace crowdsim::ui

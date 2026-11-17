@@ -18,6 +18,7 @@
 #include <set>
 #include <string>
 
+#include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/JsonTypes.hpp"
 #include "crowdsim/assets/SceneReflection.hpp"
 #include "crowdsim/commands/Command.hpp"
@@ -314,7 +315,75 @@ void SceneEditor::drawHierarchy(const SceneEditorInput& in, std::vector<Json>& c
         section("Spawners", in.sim.spawnerIds());
         section("Links", in.sim.offMeshLinkIds());
         section("Objects", in.sim.staticObjectIds());
+
+        // Agent types are content (agents/*.agent.json), not scene entities, but they are
+        // picked and edited the same way.
+        const auto& types = in.sim.agentTypes();
+        const bool open = heading("Agent types");
+        rightAlignedNote(std::to_string(types.size()));
+        if (open) {
+            ImGui::Indent();
+            for (const sim::AgentType& t : types) {
+                ImGui::PushID(t.name.c_str());
+                if (ImGui::Selectable(t.name.c_str(), selectedType_ == t.name)) {
+                    selectedType_ = t.name;
+                    selected_ = 0;
+                    selectedAgent_ = kNoAgentSelected;
+                }
+                if (t.behaviour != t.name) {
+                    rightAlignedNote(t.behaviour, ImGui::GetItemRectMin().x + ImGui::CalcTextSize(t.name.c_str()).x);
+                }
+                ImGui::PopID();
+            }
+            ImGui::Unindent();
+            ImGui::Spacing();
+        }
     }
+}
+
+void SceneEditor::drawAgentTypeInspector(const SceneEditorInput& in, std::vector<Json>& commands) {
+    const sim::AgentType* type = in.sim.findAgentType(selectedType_);
+    if (type == nullptr) {
+        selectedType_.clear();
+        return;
+    }
+    // Working copy while a widget is being edited, so drags are not reset every frame.
+    if (typeBuffer_.name != selectedType_ || !ImGui::IsAnyItemActive()) {
+        typeBuffer_ = *type;
+    }
+    ImGui::PushFont(fonts_.strong, ImGui::GetStyle().FontSizeBase * 1.2f);
+    ImGui::TextUnformatted(type->name.c_str());
+    ImGui::PopFont();
+    ImGui::TextDisabled("Agent type");
+    ImGui::Separator();
+    ImGui::Spacing();
+    auto custom = [&](std::string_view widget, const char* label, Json& value) -> std::optional<bool> {
+        if (widget != "behaviour") {
+            return std::nullopt;
+        }
+        propertyLabel(label);
+        bool done = false;
+        const std::string current = value.get<std::string>();
+        if (ImGui::BeginCombo("##behaviour", current.c_str())) {
+            for (const sim::CompiledTree& tree : in.sim.behaviorTrees()) {
+                if (ImGui::Selectable(tree.name.c_str(), tree.name == current) && tree.name != current) {
+                    value = tree.name;
+                    done = true;
+                }
+            }
+            ImGui::EndCombo();
+        }
+        return done;
+    };
+    // The name identifies the type (spawners refer to it), so it is not edited here.
+    if (inspect(typeBuffer_, custom, "name")) {
+        commands.push_back(makeCommand("DefineAgentType", {{"type", assets::toJson(typeBuffer_)}}));
+    }
+    ImGui::Spacing();
+    if (ImGui::Button("Save to file", ImVec2(-1.0f, 0.0f))) {
+        commands.push_back(makeCommand("SaveAgentType", {{"name", type->name}}));
+    }
+    ImGui::SetItemTooltip("Write it to its agents/*.agent.json file; edits otherwise last until the content reloads");
 }
 
 void SceneEditor::entityRow(const SceneEditorInput& in, sim::SceneId id, std::vector<Json>& commands) {
@@ -585,6 +654,13 @@ void SceneEditor::inspectEntity(const Json& live, Json& patch, const CustomWidge
 
 void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& commands) {
     inspectedSim_ = &in.sim;
+    if (selected_ != 0 || selectedAgent_ != kNoAgentSelected) {
+        selectedType_.clear();  // something else was picked
+    }
+    if (!selectedType_.empty()) {
+        drawAgentTypeInspector(in, commands);
+        return;
+    }
     if (selectedAgent_ != kNoAgentSelected) {
         drawAgentInspector(in);
         return;
@@ -648,7 +724,7 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
     }
     // The entity's own fields, from its type's reflection descriptor (assets/SceneReflection.hpp).
     const Json live = assets::entityToJson(in.sim, selected_);
-    auto custom = [&](std::string_view widget, const char* label, Json& value) -> bool {
+    auto custom = [&](std::string_view widget, const char* label, Json& value) -> std::optional<bool> {
         if (widget == "goal") {
             const sim::Goal* g = value.is_number() ? in.sim.findGoal(value.get<sim::SceneId>()) : nullptr;
             propertyLabel(label);
@@ -674,7 +750,7 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
             ImGui::Spacing();
             return editAgentMix(value);
         }
-        return false;
+        return std::nullopt;
     };
     switch (assets::entityKindOf(in.sim, selected_)) {
         case assets::EntityKind::Object:

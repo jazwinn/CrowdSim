@@ -378,6 +378,9 @@ int runGui(EngineContext& engine) {
         engine.dispatcher().submit(commands::makeCommand("GetBehaviorTree", {{"name", config.editBehaviour}}));
         shell.focusBehaviourEditor();
     }
+    if (!config.selectType.empty()) {
+        shell.sceneEditor().selectType(config.selectType);
+    }
     if (config.selectAgentId != ui::SceneEditor::kNoAgentSelected) {
         shell.sceneEditor().selectAgent(config.selectAgentId);
         shell.sceneEditor().followAgent = true;

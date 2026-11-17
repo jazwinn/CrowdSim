@@ -11,6 +11,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -23,8 +24,11 @@
 namespace crowdsim::ui {
 
 /// Widgets the editor supplies for fields marked `.widget(name)` (pick a goal, an agent
-/// type, ...). Draws the field's JSON value with its label; returns true when committed.
-using CustomWidget = std::function<bool(std::string_view widget, const char* label, reflect::Json& value)>;
+/// type, ...). Draws the field's JSON value with its label and returns whether an edit was
+/// committed, or nullopt (drawing nothing) for a widget it does not supply, which then gets
+/// the default widget.
+using CustomWidget =
+    std::function<std::optional<bool>(std::string_view widget, const char* label, reflect::Json& value)>;
 
 namespace inspect_detail {
 
@@ -97,7 +101,7 @@ bool widget(E& v, const reflect::Meta&) {
 }  // namespace inspect_detail
 
 template <reflect::Reflected T>
-bool inspect(T& value, const CustomWidget& custom = {});
+bool inspect(T& value, const CustomWidget& custom = {}, const char* omit = nullptr);
 
 namespace inspect_detail {
 
@@ -145,18 +149,38 @@ bool field(const F& f, C& owner, const CustomWidget& custom) {
     ImGui::PushID(f.key);
     V v = f.get(owner);
     bool done = false;
+    std::optional<bool> handled;
     if (meta.widget != nullptr && custom) {
         reflect::Json j = reflect::Codec<V>::encode(v, meta);
-        done = custom(meta.widget, label.c_str(), j);
-        tooltip(meta);
-        if (done) {
-            try {
-                reflect::readValue(j, v, meta);
-            } catch (const std::exception&) {
-                done = false;  // the widget produced something the field cannot hold
+        handled = custom(meta.widget, label.c_str(), j);
+        if (handled) {
+            tooltip(meta);
+            done = *handled;
+            if (done) {
+                try {
+                    reflect::readValue(j, v, meta);
+                } catch (const std::exception&) {
+                    done = false;  // the widget produced something the field cannot hold
+                }
             }
         }
-    } else if constexpr (reflect::Reflected<V> || isReflectedList<V>) {
+    }
+    if (handled) {
+        // drawn by the editor's widget
+    } else if constexpr (reflect::Reflected<V>) {
+        if (meta.flatten) {
+            done = inspect(v, custom, meta.omit);  // inline, as it is saved
+        } else {
+            ImGui::Spacing();
+            const bool open = ImGui::TreeNodeEx("##group", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth,
+                                                "%s", label.c_str());
+            tooltip(meta);
+            if (open) {
+                done = widget(v, meta, custom);
+                ImGui::TreePop();
+            }
+        }
+    } else if constexpr (isReflectedList<V>) {
         ImGui::Spacing();
         const bool open = ImGui::TreeNodeEx("##group", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth,
                                             "%s", label.c_str());
@@ -178,9 +202,13 @@ bool field(const F& f, C& owner, const CustomWidget& custom) {
 }  // namespace inspect_detail
 
 template <reflect::Reflected T>
-bool inspect(T& value, const CustomWidget& custom) {
+bool inspect(T& value, const CustomWidget& custom, const char* omit) {
     bool done = false;
-    reflect::forEachField<T>([&](const auto& f) { done = inspect_detail::field(f, value, custom) || done; });
+    reflect::forEachField<T>([&](const auto& f) {
+        if (omit == nullptr || std::string_view(f.key) != omit) {
+            done = inspect_detail::field(f, value, custom) || done;
+        }
+    });
     return done;
 }
 

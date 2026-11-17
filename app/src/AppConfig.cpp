@@ -114,6 +114,10 @@ ParseResult parseCommandLine(std::span<const std::string_view> args, bool gui) {
             }
         } else if (gui && arg == "--select-agent") {
             number(c.selectAgentId);
+        } else if (gui && arg == "--select-type") {
+            if (auto v = value()) {
+                c.selectType = std::string(*v);
+            }
         } else if (gui && arg == "--overlays") {
             if (auto v = value()) {
                 c.overlays = std::string(*v);
@@ -260,6 +264,7 @@ std::string usage(std::string_view exeName, bool gui) {
             "  --lod NEAR,FAR      character LOD distances in metres (default 30,90; capsules beyond FAR)\n"
             "  --select ID         select a scene entity at startup\n"
             "  --select-agent ID   inspect (and follow) an agent at startup\n"
+            "  --select-type NAME  inspect an agent type at startup\n"
             "  --edit-bt NAME      open a behaviour tree in the node editor at startup\n"
             "  --frames N          exit after N frames (smoke tests)\n"
             "  --screenshot PATH   save a PNG of the final frame (use with --frames)\n"
