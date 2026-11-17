@@ -20,6 +20,9 @@ class Simulation;
 namespace crowdsim::core {
 class LogService;
 }
+namespace crowdsim::assets {
+class SceneSections;
+}
 
 namespace crowdsim::mcp {
 
@@ -33,6 +36,8 @@ struct McpServices {
     std::filesystem::path contentRoot;
     std::filesystem::path docsDir;
     std::function<std::string()> sceneName;
+    /// Scene sections owned outside the simulation, written into the scene resource. Optional.
+    const assets::SceneSections* sceneSections = nullptr;
     /// GUI only: render a PNG of the viewport (base64) — null in headless mode.
     std::function<std::shared_future<ToolResult>(const Json& args)> screenshot;
     /// GUI only: start / stop a video of the 3D view (no UI), tools video_start / video_stop

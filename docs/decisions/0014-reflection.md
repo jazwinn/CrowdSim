@@ -42,6 +42,9 @@ CROWDSIM_REFLECT(crowdsim::sim::Goal,
 - A new field is one line in the descriptor; it is saved, read, validated and shown.
 - Agent type files are described too (the body parameters inline with `flatten`), and edited
   in the Inspector from the Scene panel's Lists view; the attention model's settings are
-  described beside the model and edited in the Attention panel (`SetAttentionParams`).
+  described beside the model and edited in the Attention panel (`SetAttentionParams`). They
+  are saved with the scene through `assets::SceneSections`: owners outside the simulation
+  register a top-level section (save, and check-then-apply on load), passed explicitly to
+  saveScene / loadScene, so `assets` does not depend on the metrics module.
 - Behaviour tree node parameters keep their own table (`kNodeTypes`), which already drives
   validation and the node editor.

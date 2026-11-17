@@ -280,7 +280,7 @@ void AttentionPanel::drawSettings(const metrics::AttentionModel& model, const Th
     }
     ImGui::PopID();
     ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
-    ImGui::TextWrapped("Changing a setting starts the count again.");
+    ImGui::TextWrapped("Saved with the scene. Changing a setting starts the count again.");
     ImGui::PopStyleColor();
 }
 

@@ -9,11 +9,12 @@
 #include "crowdsim/assets/AssetLibrary.hpp"
 #include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/JsonTypes.hpp"
+#include "crowdsim/assets/SceneSections.hpp"
 #include "crowdsim/sim/Simulation.hpp"
 
 namespace crowdsim::assets {
 
-nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name) {
+nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name, const SceneSections* sections) {
     Json j;
     j["format"] = "crowdsim.scene";
     j["version"] = kSceneFormatVersion;
@@ -84,6 +85,13 @@ nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name) {
     j["links"] = list(sim.offMeshLinkIds());
     j["goals"] = list(sim.goalIds());
     j["spawners"] = list(sim.spawnerIds());
+    if (sections != nullptr) {
+        for (const SceneSections::Section& s : sections->sections()) {
+            if (Json content = s.save(); !content.is_null()) {
+                j[s.key] = std::move(content);
+            }
+        }
+    }
     return j;
 }
 
@@ -97,12 +105,26 @@ void migrateScene(nlohmann::json& scene) {
     scene["version"] = kSceneFormatVersion;
 }
 
-std::string loadScene(const nlohmann::json& input, sim::Simulation& sim, AssetLibrary& assets) {
+std::string loadScene(const nlohmann::json& input, sim::Simulation& sim, AssetLibrary& assets,
+                      const SceneSections* sections) {
     Json scene = input;
     if (scene.value("format", "crowdsim.scene") != "crowdsim.scene") {
         throw std::invalid_argument("not a crowdsim.scene document");
     }
     migrateScene(scene);
+
+    // Other owners' sections are checked first, so an invalid one changes nothing.
+    std::vector<std::function<void()>> applySections;
+    if (sections != nullptr) {
+        for (const SceneSections::Section& s : sections->sections()) {
+            const auto it = scene.find(s.key);
+            try {
+                applySections.push_back(s.prepare(it == scene.end() ? nullptr : &*it));
+            } catch (const std::exception& e) {
+                throw std::invalid_argument(s.key + "." + e.what());
+            }
+        }
+    }
 
     sim.clearScene();
     if (scene.contains("navigation")) {
@@ -144,10 +166,14 @@ std::string loadScene(const nlohmann::json& input, sim::Simulation& sim, AssetLi
     addAll("goals", "goal");
     addAll("spawners", "spawner");
     sim.reserveSceneIds(scene.value<sim::SceneId>("nextId", sim::kNoSceneId));
+    for (const auto& apply : applySections) {
+        apply();
+    }
     return scene.value("name", std::string("untitled"));
 }
 
-void saveSceneFile(const sim::Simulation& sim, const std::string& name, const std::filesystem::path& file) {
+void saveSceneFile(const sim::Simulation& sim, const std::string& name, const std::filesystem::path& file,
+                   const SceneSections* sections) {
     if (file.has_parent_path()) {
         std::filesystem::create_directories(file.parent_path());
     }
@@ -155,15 +181,16 @@ void saveSceneFile(const sim::Simulation& sim, const std::string& name, const st
     if (!out) {
         throw std::runtime_error("cannot write '" + file.string() + "'");
     }
-    out << saveScene(sim, name).dump(2) << '\n';
+    out << saveScene(sim, name, sections).dump(2) << '\n';
 }
 
-std::string loadSceneFile(const std::filesystem::path& file, sim::Simulation& sim, AssetLibrary& assets) {
+std::string loadSceneFile(const std::filesystem::path& file, sim::Simulation& sim, AssetLibrary& assets,
+                          const SceneSections* sections) {
     std::ifstream in(file, std::ios::binary);
     if (!in) {
         throw std::runtime_error("cannot read '" + file.string() + "'");
     }
-    return loadScene(nlohmann::json::parse(in), sim, assets);
+    return loadScene(nlohmann::json::parse(in), sim, assets, sections);
 }
 
 }  // namespace crowdsim::assets

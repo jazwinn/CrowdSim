@@ -18,6 +18,7 @@
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/mcp/CrowdSimTools.hpp"
+#include "crowdsim/assets/SceneSections.hpp"
 #include "crowdsim/metrics/AttentionModel.hpp"
 #include "crowdsim/metrics/Metrics.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
@@ -54,6 +55,7 @@ public:
     [[nodiscard]] script::ScriptHost& scripts() noexcept { return scriptHost_; }
     [[nodiscard]] metrics::MetricsCollector& metrics() noexcept { return metrics_; }
     [[nodiscard]] metrics::AttentionModel& attentionModel() noexcept { return attention_; }
+    [[nodiscard]] const assets::SceneSections& sceneSections() const noexcept { return sceneSections_; }
 
     /// Execute a command now and log a warning if it fails.
     commands::CommandOutcome execute(const commands::Json& command);
@@ -94,6 +96,7 @@ private:
     script::ScriptHost scriptHost_;      ///< Lua domain; detaches from the simulation before it is destroyed
     metrics::MetricsCollector metrics_;  ///< observes every step
     metrics::AttentionModel attention_;   ///< observes every step: who sees the attention targets
+    assets::SceneSections sceneSections_;  ///< scene parts owned outside the simulation (attention settings)
     ContentWatcher contentWatcher_;
 
     std::uint64_t physicsVersion_ = ~0ull;

@@ -213,7 +213,8 @@ int main(int argc, char** argv) {
             dumpRemaining(sim);
         }
         if (!config.exportScene.empty()) {
-            assets::saveSceneFile(sim, engine.sceneName(), engine.assets().resolve(config.exportScene));
+            assets::saveSceneFile(sim, engine.sceneName(), engine.assets().resolve(config.exportScene),
+                                  &engine.sceneSections());
         }
         if (!config.saveLogFile.empty()) {
             writeJsonFile(config.saveLogFile, engine.dispatcher().logToJson(engine.commandContext()));

@@ -15,6 +15,7 @@
 #include <glm/vec2.hpp>
 
 #include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/SceneSections.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/physics/PhysicsWorld.hpp"
@@ -591,6 +592,27 @@ void registerAttentionCommands(commands::CommandRegistry& r, AttentionModel& mod
                model.reset();
                return CommandOutput{};
            }});
+}
+
+void registerAttentionSceneSection(assets::SceneSections& sections, AttentionModel& model) {
+    sections.add({"attention",
+                  [&model]() -> Json {
+                      const Json now = reflect::toJson(model.params);
+                      // Left out at the defaults, so scenes that do not study attention stay as they were.
+                      return now == reflect::toJson(AttentionParams{}) ? Json(nullptr) : now;
+                  },
+                  [&model](const Json* section) -> std::function<void()> {
+                      AttentionParams next;
+                      if (section != nullptr) {
+                          reflect::fromJson(*section, next);  // throws on an invalid setting
+                      }
+                      return [&model, next] {
+                          if (reflect::toJson(model.params) != reflect::toJson(next)) {
+                              model.params = next;
+                              model.reset();  // counts under other settings do not add up
+                          }
+                      };
+                  }});
 }
 
 }  // namespace crowdsim::metrics

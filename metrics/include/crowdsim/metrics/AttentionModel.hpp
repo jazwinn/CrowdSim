@@ -52,6 +52,9 @@ class IPhysicsWorld;
 namespace crowdsim::commands {
 class CommandRegistry;
 }
+namespace crowdsim::assets {
+class SceneSections;
+}
 
 namespace crowdsim::metrics {
 
@@ -165,6 +168,10 @@ private:
 };
 
 void registerAttentionCommands(commands::CommandRegistry& registry, AttentionModel& targets);
+
+/// The scene section "attention": the model's settings, saved with a scene when they differ
+/// from the defaults and restored (or reset to the defaults) when one is loaded.
+void registerAttentionSceneSection(assets::SceneSections& sections, AttentionModel& model);
 
 }  // namespace crowdsim::metrics
 

@@ -15,7 +15,8 @@
 ///     "goals":    [ {"id": 3, "name": "Exit", "area": {"center": [x,z], "halfExtents": [x,z],
 ///                    "elevation": 0}} ],
 ///     "spawners": [ {"id": 4, "name": "Entrance", "area": {...}, "rate": 20, "total": 500,
-///                    "startTime": 0, "stopTime": null, "goal": 3, "agent": {...}} ]
+///                    "startTime": 0, "stopTime": null, "goal": 3, "agent": {...}} ],
+///     "attention": {...}   // and other sections registered in SceneSections (optional)
 ///   }
 ///
 /// Entities are written in creation order, so save -> load -> save is byte-identical.
@@ -32,18 +33,25 @@ class Simulation;
 namespace crowdsim::assets {
 
 class AssetLibrary;
+class SceneSections;
 
 inline constexpr int kSceneFormatVersion = 1;
 
-[[nodiscard]] nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name);
+/// `sections` adds the sections other owners registered (observer settings); optional.
+[[nodiscard]] nlohmann::json saveScene(const sim::Simulation& sim, const std::string& name,
+                                       const SceneSections* sections = nullptr);
 
-/// Replace the simulation's scene with `scene` (also resets the simulation).
-/// Throws std::invalid_argument / nlohmann::json::exception on malformed input.
-/// Returns the scene name.
-std::string loadScene(const nlohmann::json& scene, sim::Simulation& sim, AssetLibrary& assets);
+/// Replace the simulation's scene with `scene` (also resets the simulation), and the
+/// registered `sections` with the scene's (defaults where it has none).
+/// Throws std::invalid_argument / nlohmann::json::exception on malformed input; an invalid
+/// section is reported before anything changes. Returns the scene name.
+std::string loadScene(const nlohmann::json& scene, sim::Simulation& sim, AssetLibrary& assets,
+                      const SceneSections* sections = nullptr);
 
-void saveSceneFile(const sim::Simulation& sim, const std::string& name, const std::filesystem::path& file);
-std::string loadSceneFile(const std::filesystem::path& file, sim::Simulation& sim, AssetLibrary& assets);
+void saveSceneFile(const sim::Simulation& sim, const std::string& name, const std::filesystem::path& file,
+                   const SceneSections* sections = nullptr);
+std::string loadSceneFile(const std::filesystem::path& file, sim::Simulation& sim, AssetLibrary& assets,
+                          const SceneSections* sections = nullptr);
 
 /// Upgrade older scene documents in place (migration hook; v1 is current).
 void migrateScene(nlohmann::json& scene);

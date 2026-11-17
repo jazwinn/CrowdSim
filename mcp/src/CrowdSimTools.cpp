@@ -478,7 +478,7 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
              };
              if (uri == "crowdsim://scene") {
                  return std::pair{std::string("application/json"),
-                                  assets::saveScene(svc.sim, svc.sceneName ? svc.sceneName() : "scene").dump(2)};
+                                  assets::saveScene(svc.sim, svc.sceneName ? svc.sceneName() : "scene", svc.sceneSections).dump(2)};
              }
              if (const auto name = after("crowdsim://bt/")) {
                  const auto o = svc.execute(makeCommand("GetBehaviorTree", {{"name", *name}}));

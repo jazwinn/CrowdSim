@@ -10,6 +10,7 @@
 #include "crowdsim/assets/AssetLibrary.hpp"
 #include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/JsonTypes.hpp"
+#include "crowdsim/assets/SceneSections.hpp"
 #include "crowdsim/assets/SceneSerializer.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/sim/Scenarios.hpp"
@@ -55,7 +56,7 @@ sim::SceneId requireId(const Json& params) {
 
 Json restoreSceneCommand(CommandContext& ctx) {
     return makeCommand("RestoreScene",
-                       Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName)}, {"name", ctx.sceneName}});
+                       Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)}, {"name", ctx.sceneName}});
 }
 
 /// Add an entity of `kind` from params[key] (entity JSON) and return output with undo.
@@ -132,6 +133,9 @@ void registerBuiltinCommands(CommandRegistry& r) {
                CommandOutput out;
                out.undo = restoreSceneCommand(ctx);
                ctx.sim.clearScene();
+               if (ctx.sceneSections != nullptr) {
+                   ctx.sceneSections->resetToDefaults();
+               }
                ctx.sceneName = p.value("name", std::string("untitled"));
                out.label = "New scene";
                return out;
@@ -142,7 +146,7 @@ void registerBuiltinCommands(CommandRegistry& r) {
            [](const Json& p, CommandContext& ctx) {
                CommandOutput out;
                out.undo = restoreSceneCommand(ctx);
-               const std::string name = assets::loadScene(p.at("scene"), ctx.sim, ctx.assets);
+               const std::string name = assets::loadScene(p.at("scene"), ctx.sim, ctx.assets, ctx.sceneSections);
                ctx.sceneName = p.value("name", name);
                out.label = "Restore scene";
                return out;
@@ -153,10 +157,10 @@ void registerBuiltinCommands(CommandRegistry& r) {
                CommandOutput out;
                out.undo = restoreSceneCommand(ctx);
                const std::string path = p.at("path").get<std::string>();
-               ctx.sceneName = assets::loadSceneFile(ctx.assets.resolve(path), ctx.sim, ctx.assets);
+               ctx.sceneName = assets::loadSceneFile(ctx.assets.resolve(path), ctx.sim, ctx.assets, ctx.sceneSections);
                // Log the content, not the path, so logs replay even if the file changes.
                out.logAs = makeCommand(
-                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName)}, {"name", ctx.sceneName}});
+                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)}, {"name", ctx.sceneName}});
                out.result = Json{{"name", ctx.sceneName}};
                out.label = "Load " + path;
                return out;
@@ -171,7 +175,7 @@ void registerBuiltinCommands(CommandRegistry& r) {
                }
                if (!ctx.replaying) {
                    const auto file = ctx.assets.resolve(p.at("path").get<std::string>());
-                   assets::saveSceneFile(ctx.sim, ctx.sceneName, file);
+                   assets::saveSceneFile(ctx.sim, ctx.sceneName, file, ctx.sceneSections);
                    out.result = Json{{"path", ctx.assets.relativize(file)}};
                    ctx.log.info("Saved scene '{}' to {}", ctx.sceneName, file.string());
                }
@@ -191,9 +195,12 @@ void registerBuiltinCommands(CommandRegistry& r) {
                CommandOutput out;
                out.undo = restoreSceneCommand(ctx);
                sim::buildScenario(ctx.sim, *kind, p.value<std::uint32_t>("agents", 2000));
+               if (ctx.sceneSections != nullptr) {
+                   ctx.sceneSections->resetToDefaults();
+               }
                ctx.sceneName = name;
                out.logAs = makeCommand(
-                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName)}, {"name", ctx.sceneName}});
+                   "RestoreScene", Json{{"scene", assets::saveScene(ctx.sim, ctx.sceneName, ctx.sceneSections)}, {"name", ctx.sceneName}});
                out.label = "Scenario " + name;
                return out;
            }});

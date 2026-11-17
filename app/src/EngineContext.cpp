@@ -25,6 +25,8 @@ EngineContext::EngineContext(const AppConfig& config)
     script::registerScriptCommands(registry_, scriptHost_);
     metrics::registerMetricsCommands(registry_, metrics_);
     metrics::registerAttentionCommands(registry_, attention_);
+    metrics::registerAttentionSceneSection(sceneSections_, attention_);
+    commandContext_.sceneSections = &sceneSections_;
     // Command logs start by re-loading the scripts, then the scene snapshot.
     commandContext_.logPrelude = [this] { return scriptHost_.logPrelude(); };
     log().info("CrowdSim {} | {} job threads | sim {} Hz | seed {} | content {}", CROWDSIM_VERSION, jobs_.threadCount(),
@@ -144,6 +146,7 @@ mcp::McpServices EngineContext::mcpServices() {
         .contentRoot = assets_.contentRoot(),
         .docsDir = CROWDSIM_DOCS_DIR,
         .sceneName = [this] { return sceneName_; },
+        .sceneSections = &sceneSections_,
         .screenshot = nullptr,
     };
 }

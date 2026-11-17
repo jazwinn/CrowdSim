@@ -27,6 +27,7 @@ class Simulation;
 
 namespace crowdsim::assets {
 class AssetLibrary;
+class SceneSections;
 }
 
 namespace crowdsim::commands {
@@ -49,6 +50,9 @@ struct CommandContext {
     spdlog::logger& log;
     std::string& sceneName;
     bool replaying = false;  ///< true during log replay: skip external side effects (file writes)
+    /// Scene sections owned outside the simulation (observer settings), saved and loaded with
+    /// every scene. Optional.
+    const assets::SceneSections* sceneSections = nullptr;
     /// Commands recorded before the scene snapshot when a command log (re)starts,
     /// e.g. LoadScript for every loaded script. Optional.
     std::function<std::vector<Json>()> logPrelude;

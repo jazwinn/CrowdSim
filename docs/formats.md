@@ -80,6 +80,10 @@ diff and review it. All paths are relative to the **content root** (`content/` b
   time steeper than 60 deg) and **angular size** (% of the field of view; share below 1%). See
   `GetAttentionMetrics`, the Attention panel and `scripts/attention_report.lua`. The model only observes: it never
   changes the simulation, and its results do not depend on the thread count.
+  The model's settings (Attention panel, `SetAttentionParams`) are saved in the scene as a
+  top-level `"attention": {...}` section (the keys `GetAttentionMetrics` lists under `params`)
+  when they differ from the defaults, and restored when the scene is loaded; a scene without
+  the section uses the defaults.
   The editor's View cones overlay (Overlays, or `--overlays cones`) draws this gaze for the
   selected agent or for everyone.
 - **Bodies** (optional `"bodies": {...}`; off when absent): physical contact in packed crowds.
@@ -278,7 +282,7 @@ every command with its JSON Schema.
 | `GetAttentionMetrics` | no | How well each attention target is seen (see Attention targets above): `{targets: [{id, name, salience, ots, viewable, viewabilityRate, noticed, noticeRate, glances, dwellSeconds, meanDwellPerOts, meanDwellPerViewer, medianDwellPerViewer, visibleSeconds, meanAngularSize, meanViewingAngle, steepShare, smallShare}], agentsSeen, params}` (rates and shares in %). |
 | `ExportAttentionMetrics` | no | Write the attention report (`path`, default `recordings/attention.csv`) and one row per agent and target seen (`viewersPath`, default `recordings/attention_viewers.csv`). |
 | `ResetAttentionMetrics` | yes | Clear the attention record and start counting again. |
-| `SetAttentionParams` | yes | Change attention model settings (`params`: only the keys given; `GetAttentionMetrics` lists them, the Attention panel's Settings edits them). Clears the attention record. |
+| `SetAttentionParams` | yes | Change attention model settings (`params`: only the keys given; `GetAttentionMetrics` lists them, the Attention panel's Settings edits them). Saved with the scene. Clears the attention record. |
 | `RebuildNavmesh` | yes | Rebuild navmesh + flow fields now; returns polygon/tile/wall counts. |
 | `SetNavigationSettings` | yes | Change navmesh build settings. |
 | `SetSimParams` | yes | Locomotion parameters and/or seed. |

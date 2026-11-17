@@ -8,6 +8,8 @@
 #include <vector>
 
 #include "crowdsim/assets/AssetLibrary.hpp"
+#include "crowdsim/assets/SceneSections.hpp"
+#include "crowdsim/assets/SceneSerializer.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/core/JobSystem.hpp"
@@ -161,4 +163,39 @@ TEST_CASE("SetAttentionParams changes only the settings given, checks them and c
     CHECK(model.params.fovealHalfAngle == 7.5f);  // nothing changed
     REQUIRE(dispatcher.undo(ctx).ok);
     CHECK(model.params.fieldHalfAngle == 60.0f);
+}
+
+TEST_CASE("Attention settings are saved with the scene and restored when it is loaded") {
+    core::LogService logs{core::LogConfig{.console = false}};
+    core::JobSystem jobs{2};
+    sim::Simulation sim{{logs.logger(), jobs}, sim::SimConfig{}};
+    assets::AssetLibrary library{logs.logger(), CROWDSIM_CONTENT_DIR};
+    physics::JoltRuntime runtime;
+    auto world = physics::createJoltPhysicsWorld(runtime, logs.logger());
+    metrics::AttentionModel model(sim, jobs, *world);
+    assets::SceneSections sections;
+    metrics::registerAttentionSceneSection(sections, model);
+
+    // At the defaults the scene has no section, so scenes that do not study attention are unchanged.
+    CHECK_FALSE(assets::saveScene(sim, "s", &sections).contains("attention"));
+
+    model.params.fieldHalfAngle = 45.0f;
+    const nlohmann::json studied = assets::saveScene(sim, "s", &sections);
+    REQUIRE(studied.contains("attention"));
+    CHECK(studied["attention"]["fieldHalfAngle"] == 45.0);
+
+    // A scene without the section brings the defaults back; the studied one restores them.
+    (void)assets::loadScene(assets::saveScene(sim, "plain"), sim, library, &sections);
+    CHECK(model.params.fieldHalfAngle == 60.0f);
+    (void)assets::loadScene(studied, sim, library, &sections);
+    CHECK(model.params.fieldHalfAngle == 45.0f);
+
+    // An invalid setting is reported with its path and changes nothing.
+    nlohmann::json bad = studied;
+    bad["attention"]["fieldHalfAngle"] = 500;
+    CHECK_THROWS_WITH((void)assets::loadScene(bad, sim, library, &sections),
+                      "attention.fieldHalfAngle: must be at least 10 and at most 90");
+    CHECK(model.params.fieldHalfAngle == 45.0f);
+
+    CHECK_THROWS((void)sections.add({"objects", nullptr, nullptr}));  // the scene format's own keys
 }
