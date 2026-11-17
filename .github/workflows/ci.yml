@@ -74,7 +74,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build autoconf automake libtool pkg-config xvfb \
+          sudo apt-get install -y ninja-build autoconf autoconf-archive automake libtool pkg-config xvfb \
             libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev libxtst-dev \
             libxkbcommon-dev libwayland-dev wayland-protocols libegl1-mesa-dev libgl1-mesa-dev \
             libgl1-mesa-dri mesa-utils libdbus-1-dev libltdl-dev clang-tidy
@@ -136,4 +136,5 @@ jobs:
           find core geometry sim physics assets commands animation script mcp metrics platform render ui app -name '*.cpp' -print0 \
             | xargs -0 -n 8 clang-tidy -p build/${{ matrix.preset }} --quiet \
                 -checks='-*,cppcoreguidelines-avoid-non-const-global-variables' \
-                -warnings-as-errors='*'
+                -warnings-as-errors='cppcoreguidelines-avoid-non-const-global-variables' \
+                --extra-arg=-Wno-unknown-warning-option --extra-arg=-Wno-unused-command-line-argument
