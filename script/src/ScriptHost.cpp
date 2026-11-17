@@ -701,7 +701,10 @@ struct ScriptHost::Impl {
             }
         });
 
-        lua.new_usertype<NodeContext>("NodeContext", sol::no_constructor, "params", &NodeContext::params, "position",
+        // A getter rather than &NodeContext::params: Clang cannot instantiate sol2's
+        // data-member binding for a sol::table member (GCC and MSVC can).
+        lua.new_usertype<NodeContext>("NodeContext", sol::no_constructor, "params",
+                                      sol::readonly_property([](const NodeContext& c) { return c.params; }), "position",
                                       &NodeContext::position, "velocity", &NodeContext::velocity, "speed",
                                       &NodeContext::speed, "id", &NodeContext::id, "state", &NodeContext::state, "type",
                                       &NodeContext::type, "random", &NodeContext::random, "time", &NodeContext::time,
