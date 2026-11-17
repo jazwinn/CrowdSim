@@ -137,4 +137,5 @@ jobs:
             | xargs -0 -n 8 clang-tidy -p build/${{ matrix.preset }} --quiet \
                 -checks='-*,cppcoreguidelines-avoid-non-const-global-variables' \
                 -warnings-as-errors='cppcoreguidelines-avoid-non-const-global-variables' \
-                --extra-arg=-Wno-unknown-warning-option --extra-arg=-Wno-unused-command-line-argument
+                --extra-arg=-Wno-error --extra-arg=-Wno-unknown-warning-option \
+                --extra-arg=-Wno-unused-command-line-argument
