@@ -247,7 +247,8 @@ void appendViewCone(const metrics::AttentionModel& model, const metrics::GazeVie
         glm::vec3 prev = g.eye + ray(-half, 0.0f) * length;
         lines.push_back({g.eye, prev, colour});
         for (int k = 1; k <= segments; ++k) {
-            const glm::vec3 next = g.eye + ray(-half + 2.0f * half * static_cast<float>(k) / segments, 0.0f) * length;
+            const glm::vec3 next =
+                g.eye + ray(-half + 2.0f * half * static_cast<float>(k) / static_cast<float>(segments), 0.0f) * length;
             lines.push_back({prev, next, colour});
             prev = next;
         }

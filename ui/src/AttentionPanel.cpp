@@ -83,7 +83,8 @@ std::uint32_t AttentionPanel::draw(const metrics::AttentionModel& targets, doubl
     if (beginReadout("attentionOverview")) {
         readout("Targets", "%zu", list.size());
         readout("People seen", "%llu", static_cast<unsigned long long>(report_["agentsSeen"].get<std::uint64_t>()));
-        readout("Noticed overall", "%.1f%%", ots > 0 ? 100.0 * static_cast<double>(noticed) / ots : 0.0);
+        readout("Noticed overall", "%.1f%%",
+                ots > 0 ? 100.0 * static_cast<double>(noticed) / static_cast<double>(ots) : 0.0);
         ImGui::SetItemTooltip("Noticings over opportunities to see, all targets together");
         readout("Most noticed", "%s", list[best]["name"].get<std::string>().c_str());
         endReadout();

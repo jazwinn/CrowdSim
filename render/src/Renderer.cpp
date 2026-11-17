@@ -39,7 +39,7 @@ bgfx::RendererType::Enum parseBackend(std::string_view name) {
 
 /// Routes bgfx diagnostics into our logger and writes screenshots as PNG.
 struct Renderer::Callback final : public bgfx::CallbackI {
-    explicit Callback(spdlog::logger& log) : log(log) {}
+    explicit Callback(spdlog::logger& logger) : log(logger) {}
 
     void fatal(const char* filePath, std::uint16_t line, bgfx::Fatal::Enum code, const char* str) override {
         log.critical("bgfx fatal {:#x} at {}:{}: {}", static_cast<int>(code), filePath, line, str);
