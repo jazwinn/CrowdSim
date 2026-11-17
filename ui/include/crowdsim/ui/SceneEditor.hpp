@@ -14,6 +14,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include "crowdsim/ui/Inspect.hpp"
 #include "crowdsim/ui/Theme.hpp"
 
 namespace crowdsim::sim {
@@ -89,7 +90,10 @@ private:
     /// "Move to group" menu items for `id` (every group it may go in, and none).
     void moveToGroupMenu(const SceneEditorInput& in, std::uint32_t id, std::vector<nlohmann::json>& commands);
     void drawAgentInspector(const SceneEditorInput& in);
-    bool editJson(const char* label, nlohmann::json& value, nlohmann::json& patch, const std::string& path);
+    /// Property rows for the selected entity of type T (from its reflection descriptor);
+    /// committed edits go into `patch` as the keys that differ from `live`.
+    template <typename T>
+    void inspectEntity(const nlohmann::json& live, nlohmann::json& patch, const CustomWidget& custom);
     bool agentTypeCombo(const char* id, nlohmann::json& value, bool byIndex);
     bool editAgentMix(nlohmann::json& value);
 

@@ -1,5 +1,7 @@
 #include "crowdsim/ui/SceneEditor.hpp"
 
+#include "crowdsim/ui/Inspect.hpp"
+
 #include <imgui.h>
 // ImGuizmo must come after imgui.h.
 #include <ImGuizmo.h>
@@ -17,6 +19,7 @@
 #include <string>
 
 #include "crowdsim/assets/JsonTypes.hpp"
+#include "crowdsim/assets/SceneReflection.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
 #include "crowdsim/sim/Simulation.hpp"
@@ -555,162 +558,29 @@ bool SceneEditor::editAgentMix(Json& value) {
     return done;
 }
 
-bool SceneEditor::editJson(const char* label, Json& value, Json& patch, const std::string& path) {
-    ImGui::PushID(path.c_str());
-    bool done = false;
-    auto finished = [&]() { return ImGui::IsItemDeactivatedAfterEdit(); };
-    const std::string key = label;
-    const std::string nice = humanize(key);
-    auto row = [&]() { propertyLabel(nice.c_str()); };
-
-    // `agentType` (spawner default parameters) stores an index into the agent types.
-    if (inspectedSim_ != nullptr && key == "agentType" && value.is_number()) {
-        row();
-        done = agentTypeCombo("##agentType", value, true);
-    } else if (key == "agentMix" && value.is_array()) {
-        ImGui::Spacing();
-        done = editAgentMix(value);
-    } else if (value.is_boolean()) {
-        bool b = value.get<bool>();
-        row();
-        if (ImGui::Checkbox("##v", &b)) {
-            value = b;
-            done = true;
-        }
-    } else if (value.is_number_integer() || value.is_number_unsigned()) {
-        int v = value.get<int>();
-        row();
-        ImGui::DragInt("##v", &v, 0.25f);
-        value = v;
-        done = finished();
-    } else if (value.is_number()) {
-        float v = value.get<float>();
-        row();
-        ImGui::DragFloat("##v", &v, key == "rotationY" ? 1.0f : 0.05f, 0.0f, 0.0f,
-                         key == "rotationY" ? "%.1f deg" : "%.3f");
-        value = assets::roundFloat(v);
-        done = finished();
-    } else if (value.is_string()) {
-        const std::string s = value.get<std::string>();
-        row();
-        if (key == "color" && s.size() == 7) {
-            unsigned rgb = 0;
-            std::from_chars(s.data() + 1, s.data() + s.size(), rgb, 16);
-            float c[3] = {static_cast<float>((rgb >> 16) & 0xff) / 255.0f,
-                          static_cast<float>((rgb >> 8) & 0xff) / 255.0f, static_cast<float>(rgb & 0xff) / 255.0f};
-            if (ImGui::ColorEdit3("##v", c, ImGuiColorEditFlags_DisplayHex)) {
-                value = std::format("#{:02x}{:02x}{:02x}", static_cast<int>(c[0] * 255.0f + 0.5f),
-                                    static_cast<int>(c[1] * 255.0f + 0.5f), static_cast<int>(c[2] * 255.0f + 0.5f));
+template <typename T>
+void SceneEditor::inspectEntity(const Json& live, Json& patch, const CustomWidget& custom) {
+    // The working copy (buffer_) holds the document while a widget is being edited, so a drag
+    // carries on from where it is rather than from the scene's value.
+    T value{};
+    try {
+        reflect::fromJson(buffer_, value);
+    } catch (const std::exception& e) {
+        ImGui::TextColored(palette::warning(), "%s", e.what());
+        return;
+    }
+    const bool committed = inspect(value, custom);
+    const Json now = reflect::toJson(value);
+    for (const auto& [key, v] : now.items()) {
+        buffer_[key] = v;
+    }
+    if (committed) {
+        for (const auto& [key, v] : now.items()) {
+            if (!live.contains(key) || live[key] != v) {
+                patch[key] = v;
             }
-            done = finished();
-        } else {
-            char buf[256];
-            std::snprintf(buf, sizeof(buf), "%s", s.c_str());
-            ImGui::InputText("##v", buf, sizeof(buf));
-            value = std::string(buf);
-            done = finished();
-        }
-    } else if (value.is_array() && (value.size() == 2 || value.size() == 3) &&
-               std::all_of(value.begin(), value.end(), [](const Json& x) { return x.is_number(); })) {
-        float v[3] = {0, 0, 0};
-        for (std::size_t i = 0; i < value.size(); ++i) {
-            v[i] = value[i].get<float>();
-        }
-        row();
-        if (value.size() == 2) {
-            ImGui::DragFloat2("##v", v, 0.05f, 0.0f, 0.0f, "%.2f");
-        } else {
-            ImGui::DragFloat3("##v", v, 0.05f, 0.0f, 0.0f, "%.2f");
-        }
-        for (std::size_t i = 0; i < value.size(); ++i) {
-            value[i] = assets::roundFloat(v[i]);
-        }
-        done = finished();
-    } else if (value.is_array() &&
-               !std::all_of(value.begin(), value.end(), [](const Json& x) { return x.is_string(); })) {
-        // Other structured lists: edit, add and remove elements; any change sends the whole array.
-        if (ImGui::TreeNodeEx("##list", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s (%zu)",
-                              nice.c_str(), value.size())) {
-            std::size_t remove = value.size();
-            for (std::size_t i = 0; i < value.size(); ++i) {
-                ImGui::PushID(static_cast<int>(i));
-                Json ignored = Json::object();
-                if (editJson(std::format("item {}", i + 1).c_str(), value[i], ignored, path + "/" + std::to_string(i))) {
-                    done = true;
-                }
-                if (ImGui::SmallButton("Remove")) {
-                    remove = i;
-                }
-                ImGui::PopID();
-            }
-            if (remove < value.size()) {
-                value.erase(value.begin() + static_cast<std::ptrdiff_t>(remove));
-                done = true;
-            }
-            if (!value.empty() && ImGui::SmallButton("Add")) {
-                value.push_back(value.back());
-                done = true;
-            }
-            ImGui::TreePop();
-        }
-    } else if (value.is_array()) {  // tags (all strings)
-        std::string joined;
-        for (const Json& t : value) {
-            joined += (joined.empty() ? "" : ", ") + t.get<std::string>();
-        }
-        char buf[256];
-        std::snprintf(buf, sizeof(buf), "%s", joined.c_str());
-        row();
-        ImGui::InputTextWithHint("##v", "comma, separated", buf, sizeof(buf));
-        if ((done = finished())) {
-            Json tags = Json::array();
-            std::string token;
-            for (const char* c = buf;; ++c) {
-                if (*c == ',' || *c == '\0') {
-                    token.erase(0, token.find_first_not_of(' '));
-                    token.erase(token.find_last_not_of(' ') + 1);
-                    if (!token.empty()) {
-                        tags.push_back(token);
-                    }
-                    token.clear();
-                    if (*c == '\0') {
-                        break;
-                    }
-                } else {
-                    token += *c;
-                }
-            }
-            value = tags;
-        }
-    } else if (value.is_object()) {
-        ImGui::Spacing();
-        if (ImGui::TreeNodeEx("##group", ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanAvailWidth, "%s",
-                              nice.c_str())) {
-            Json sub = Json::object();
-            for (auto it = value.begin(); it != value.end(); ++it) {
-                if (editJson(it.key().c_str(), it.value(), sub, path + "/" + it.key())) {
-                    done = true;
-                }
-            }
-            if (done) {
-                patch[key] = sub;
-            }
-            ImGui::TreePop();
-        }
-        ImGui::PopID();
-        return done;
-    } else if (value.is_null()) {
-        row();
-        if (ImGui::Button("Not set: click to set", ImVec2(-1.0f, 0))) {
-            value = 60.0;
-            done = true;
         }
     }
-    if (done) {
-        patch[key] = value;
-    }
-    ImGui::PopID();
-    return done;
 }
 
 void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& commands) {
@@ -740,16 +610,6 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
     ImGui::Separator();
     ImGui::Spacing();
     Json patch = Json::object();
-    // Fields in alphabetical order (the JSON order), except the name, which comes first.
-    std::vector<std::string> keys;
-    if (buffer_.contains("name")) {
-        keys.push_back("name");
-    }
-    for (auto it = buffer_.begin(); it != buffer_.end(); ++it) {
-        if (it.key() != "name") {
-            keys.push_back(it.key());
-        }
-    }
     {
         const sim::SceneId parent = in.sim.parentOf(selected_);
         propertyLabel("Group");
@@ -786,31 +646,54 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
         }
         ImGui::SetItemTooltip("Display only: hidden objects still block and carry people (H toggles)");
     }
-    for (const std::string& key : keys) {
-        const auto it = buffer_.find(key);
-        if (it.key() == "id" || it.key() == "kind" || it.key() == "asset" || it.key() == "parent" ||
-            it.key() == "hidden") {
-            continue;
-        }
-        if (it.key() == "goal" && buffer_.value("kind", std::string()) == "spawner") {
-            // Goal reference: pick from existing goals.
-            const auto goals = in.sim.goalIds();
-            const sim::SceneId current = it.value().get<sim::SceneId>();
-            const sim::Goal* g = in.sim.findGoal(current);
-            propertyLabel("Goal");
+    // The entity's own fields, from its type's reflection descriptor (assets/SceneReflection.hpp).
+    const Json live = assets::entityToJson(in.sim, selected_);
+    auto custom = [&](std::string_view widget, const char* label, Json& value) -> bool {
+        if (widget == "goal") {
+            const sim::Goal* g = value.is_number() ? in.sim.findGoal(value.get<sim::SceneId>()) : nullptr;
+            propertyLabel(label);
+            bool done = false;
             if (ImGui::BeginCombo("##goal", g != nullptr ? g->name.c_str() : "(none)")) {
-                for (sim::SceneId gid : goals) {
+                for (sim::SceneId gid : in.sim.goalIds()) {
                     ImGui::PushID(static_cast<int>(gid));
-                    if (ImGui::Selectable(in.sim.findGoal(gid)->name.c_str(), gid == current)) {
-                        patch["goal"] = gid;
+                    if (ImGui::Selectable(in.sim.findGoal(gid)->name.c_str(), g == in.sim.findGoal(gid))) {
+                        value = gid;
+                        done = true;
                     }
                     ImGui::PopID();
                 }
                 ImGui::EndCombo();
             }
-            continue;
+            return done;
         }
-        editJson(it.key().c_str(), it.value(), patch, "/" + it.key());
+        if (widget == "agentType" || widget == "agentTypeName") {
+            propertyLabel(label);
+            return agentTypeCombo("##agentType", value, widget == "agentType");
+        }
+        if (widget == "agentMix") {
+            ImGui::Spacing();
+            return editAgentMix(value);
+        }
+        return false;
+    };
+    switch (assets::entityKindOf(in.sim, selected_)) {
+        case assets::EntityKind::Object:
+            inspectEntity<sim::StaticObject>(live, patch, custom);
+            break;
+        case assets::EntityKind::Link:
+            inspectEntity<sim::OffMeshLink>(live, patch, custom);
+            break;
+        case assets::EntityKind::Goal:
+            inspectEntity<sim::Goal>(live, patch, custom);
+            break;
+        case assets::EntityKind::Spawner:
+            inspectEntity<sim::Spawner>(live, patch, custom);
+            break;
+        case assets::EntityKind::Group:
+            inspectEntity<sim::Group>(live, patch, custom);
+            break;
+        case assets::EntityKind::None:
+            break;
     }
     if (!patch.empty()) {
         commands.push_back(makeCommand("UpdateEntity", {{"id", selected_}, {"patch", patch}}));
