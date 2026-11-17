@@ -212,6 +212,28 @@ reloaded tree restart from its root. Scene files embed the trees they use under 
 
 `ListBehaviorNodeTypes` returns the same list with JSON parameter schemas.
 
+## Tag catalogue (`content/tags/*.tags.json`)
+
+What object tags mean, for the editor (the Inspector's tag rows and Add tag menu) and tools
+(`ListTags`, MCP `tags_list`). The engine and scripts read tags as text; the catalogue only
+explains them, so describing a tag never needs a rebuild. Files are hot reloaded (`DefineTags`);
+tags missing from the catalogue still work and show as "not in the tag catalogue".
+
+```json
+{"format": "crowdsim.tags", "version": 1, "tags": [
+  {"name": "escalator", "group": "Escalators", "description": "Moving steps or walkway..."},
+  {"name": "escalator:speed", "group": "Escalators", "kind": "number", "requires": "escalator",
+   "min": 0.1, "max": 2, "default": 0.5, "unit": "m/s", "description": "Belt speed along the slope."},
+  {"name": "area:", "group": "Regions", "kind": "text", "description": "Names a region..."}]}
+```
+
+- `kind`: `flag` (default; the tag as it is), `number` (written `name=value`, with `min`,
+  `max`, `default` and `unit` for the editor's slider) or `text` (the name is a prefix
+  followed by free text: `area:` + `alley`).
+- `requires`: the tag this one refines; the editor adds it too and shows the refinement
+  under it.
+- Each file replaces only its own entries; a later file's tag of the same name wins.
+
 ## Agent types — `*.agent.json` (version 1)
 
 Files in `content/agents/` (loaded and hot reloaded like trees, as `DefineAgentType`) bind a
@@ -264,6 +286,8 @@ every command with its JSON Schema.
 | `GetBehaviorTree` | no | A tree as a document: the file (with editor layout) when it matches the tree in use, else the live tree. |
 | `SaveBehaviorTree` | no | Validate and write `content/behaviours/<name>.bt.json`. |
 | `DefineAgentType` | yes | Add or replace an agent type from `*.agent.json` content. |
+| `DefineTags` | no | Describe object tags (`name`: source, `tags`: crowdsim.tags document; see Tag catalogue). |
+| `ListTags` | no | Known object tags: `{tags: [{name, group, description, kind, requires, min, max, default, unit}]}`. |
 | `SaveAgentType` | no | Write an agent type (`name`) to the `content/agents/*.agent.json` that defines it (else `<name>.agent.json`). |
 | `ListAgentTypes` / `ListBehaviorTrees` | no | Agent types with parameters; trees with node and agent counts. |
 | `QueryAgents` | no | Count agents by type / state / behaviour / area and list an evenly spaced sample. |

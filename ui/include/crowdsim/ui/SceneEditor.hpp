@@ -24,6 +24,9 @@ class Simulation;
 namespace crowdsim::commands {
 class CommandDispatcher;
 }
+namespace crowdsim::assets {
+class TagCatalog;
+}
 
 namespace crowdsim::ui {
 
@@ -41,6 +44,7 @@ struct SceneEditorInput {
     float cursorWorld[3] = {0.0f, 0.0f, 0.0f};
     float cameraTarget[3] = {0.0f, 0.0f, 0.0f};  ///< fallback placement point
     std::span<const std::string> entityTypes;    ///< Lua-registered entity types (Add menu)
+    const assets::TagCatalog* tags = nullptr;    ///< what object tags mean (tag editor)
 };
 
 class SceneEditor {
@@ -107,6 +111,9 @@ private:
     void inspectEntity(const nlohmann::json& live, nlohmann::json& patch, const CustomWidget& custom);
     bool agentTypeCombo(const char* id, nlohmann::json& value, bool byIndex);
     bool editAgentMix(nlohmann::json& value);
+    /// An object's tags: known ones with their meaning and value, an Add menu from the catalogue.
+    bool editTags(const char* label, nlohmann::json& value, const assets::TagCatalog* catalog);
+    char customTag_[96] = "";
 
     ThemeFonts fonts_;
     const sim::Simulation* inspectedSim_ = nullptr;  ///< set each frame by drawInspector (agent type lists)

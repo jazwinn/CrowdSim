@@ -218,6 +218,10 @@ void registerCrowdSimTools(McpServer& server, McpServices& svc) {
             "maxSpeedFactor, maxAcceleration, personalSpace, height, color, colorJitter, tags}.",
             schema({{"type", object("agent type fields")}}, {"type"}), "DefineAgentType");
     command("agent_type_list", "All agent types with their parameters.", schema(), "ListAgentTypes");
+    command("tags_list",
+            "Known object tags with what they mean and their value ranges (walkable, obstacle, escalator, "
+            "emergency, attention, ...). Use them in objects' \"tags\".",
+            schema(), "ListTags");
     command("agent_type_save", "Write an agent type to its content file (agents/*.agent.json).",
             schema({{"name", str("agent type name")}}, {"name"}), "SaveAgentType");
     command("agents_spawn", "Spawn agents in an area now (one-shot spawner). Returns the spawner id.",

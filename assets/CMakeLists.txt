@@ -6,6 +6,7 @@ crowdsim_add_library(assets
     src/GltfImport.cpp
     src/SceneSerializer.cpp
     src/SceneSections.cpp
+    src/TagCatalog.cpp
     src/JsonTypes.cpp
     src/BehaviorJson.cpp
     src/BtGraph.cpp

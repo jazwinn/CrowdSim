@@ -18,6 +18,7 @@ std::vector<ContentChange> ContentWatcher::poll(bool force, std::chrono::millise
         return out;
     }
     lastScan_ = now;
+    scanDirectory(root_ / "tags", ".tags.json", "DefineTags", "tags", out, false, true);
     scanDirectory(root_ / "scripts", ".lua", "LoadScript", "source", out, true);
     scanDirectory(root_ / "behaviours", ".bt.json", "SetBehaviorTree", "tree", out);
     scanDirectory(root_ / "agents", ".agent.json", "DefineAgentType", "type", out);
@@ -25,7 +26,7 @@ std::vector<ContentChange> ContentWatcher::poll(bool force, std::chrono::millise
 }
 
 void ContentWatcher::scanDirectory(const fs::path& dir, const std::string& suffix, const char* command,
-                                   const char* param, std::vector<ContentChange>& out, bool script) {
+                                   const char* param, std::vector<ContentChange>& out, bool script, bool named) {
     std::error_code ec;
     if (!fs::is_directory(dir, ec)) {
         return;
@@ -63,6 +64,10 @@ void ContentWatcher::scanDirectory(const fs::path& dir, const std::string& suffi
             }
             const nlohmann::json doc = nlohmann::json::parse(in);
             change.command = nlohmann::json{{"cmd", command}, {"params", {{param, doc}}}};
+            if (named) {
+                const std::string name = file.filename().string();
+                change.command["params"]["name"] = name.substr(0, name.size() - suffix.size());
+            }
         } catch (const std::exception& e) {
             change.error = e.what();
         }

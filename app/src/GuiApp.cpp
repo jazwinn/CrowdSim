@@ -630,6 +630,7 @@ int runGui(EngineContext& engine) {
             entityTypeNames.push_back(t["name"].get<std::string>());
         }
         editorInput.entityTypes = entityTypeNames;
+        editorInput.tags = &engine.assets().tags();
         editorInput.viewportX = viewport.x / fbScaleX;
         editorInput.viewportY = viewport.y / fbScaleY;
         editorInput.viewportW = viewport.width / fbScaleX;

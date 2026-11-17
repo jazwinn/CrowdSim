@@ -35,8 +35,9 @@ public:
                                                   std::chrono::milliseconds interval = std::chrono::milliseconds(500));
 
 private:
+    /// `script`: pass the file as source text; `named`: also pass the file's name (stem).
     void scanDirectory(const std::filesystem::path& dir, const std::string& suffix, const char* command,
-                       const char* param, std::vector<ContentChange>& out, bool script = false);
+                       const char* param, std::vector<ContentChange>& out, bool script = false, bool named = false);
 
     std::filesystem::path root_;
     std::map<std::filesystem::path, std::filesystem::file_time_type> seen_;

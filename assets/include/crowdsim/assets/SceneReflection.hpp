@@ -185,6 +185,7 @@ CROWDSIM_REFLECT(crowdsim::sim::StaticObject,
         .color()
         .when([](const T& o) { return !crowdsim::assets::detail::isMesh(o); }),
     property<T>("tags", crowdsim::assets::detail::objectTags, crowdsim::assets::detail::setObjectTags)
+        .widget("objectTags")
         .tip("walkable, obstacle, and tags that configure mechanics or metrics (escalator, emergency, attention...)"),
     check<T>([](const T& o) {
         if (crowdsim::assets::detail::isMesh(o)) {

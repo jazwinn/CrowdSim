@@ -10,6 +10,7 @@
 #include <string>
 #include <vector>
 
+#include "crowdsim/assets/TagCatalog.hpp"
 #include "crowdsim/geometry/TriangleMesh.hpp"
 
 namespace spdlog {
@@ -42,10 +43,15 @@ public:
     /// Forget cached meshes (hot reload).
     void clearCache() { meshes_.clear(); }
 
+    /// What object tags mean (content/tags/*.tags.json), for the editor and tools.
+    [[nodiscard]] TagCatalog& tags() noexcept { return tags_; }
+    [[nodiscard]] const TagCatalog& tags() const noexcept { return tags_; }
+
 private:
     spdlog::logger& log_;
     std::filesystem::path root_;
     std::map<std::string, ImportedMesh> meshes_;  // ordered: deterministic iteration
+    TagCatalog tags_;
 };
 
 /// Import a glTF 2.0 file (.gltf or .glb) into one triangle mesh in CrowdSim axes.

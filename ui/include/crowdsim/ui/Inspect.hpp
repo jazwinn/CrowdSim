@@ -151,12 +151,13 @@ bool field(const F& f, C& owner, const CustomWidget& custom) {
     bool done = false;
     std::optional<bool> handled;
     if (meta.widget != nullptr && custom) {
-        reflect::Json j = reflect::Codec<V>::encode(v, meta);
+        const reflect::Json before = reflect::Codec<V>::encode(v, meta);
+        reflect::Json j = before;
         handled = custom(meta.widget, label.c_str(), j);
         if (handled) {
             tooltip(meta);
             done = *handled;
-            if (done) {
+            if (j != before) {  // in progress (a drag) or committed
                 try {
                     reflect::readValue(j, v, meta);
                 } catch (const std::exception&) {

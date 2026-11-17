@@ -1,0 +1,75 @@
+{
+  "format": "crowdsim.tags",
+  "version": 1,
+  "tags": [
+    {
+      "name": "walkable",
+      "group": "Surface",
+      "description": "People can stand and walk on its top (floors, ramps, stairs, landings)."
+    },
+    {
+      "name": "obstacle",
+      "group": "Surface",
+      "description": "Blocks people and lines of sight (walls, pillars, barriers, ad stands)."
+    },
+    {
+      "name": "escalator",
+      "group": "Escalators",
+      "description": "Moving steps or walkway: a ramp or stairs carries people up its slope (a flat box is a travelator), in two lanes. Whether people stand or walk is behaviour (SetEscalatorStyle)."
+    },
+    {
+      "name": "escalator:speed",
+      "group": "Escalators",
+      "kind": "number",
+      "requires": "escalator",
+      "min": 0.1,
+      "max": 2,
+      "default": 0.5,
+      "unit": "m/s",
+      "description": "Belt speed along the slope."
+    },
+    {
+      "name": "escalator:down",
+      "group": "Escalators",
+      "requires": "escalator",
+      "description": "Runs down the slope instead of up."
+    },
+    {
+      "name": "emergency",
+      "group": "Routes",
+      "description": "An emergency route (fire stairs, exit doors): closed to everyday routing; only people whose behaviour uses emergency routes (UseEmergencyRoutes) go through it."
+    },
+    {
+      "name": "attention",
+      "group": "Attention",
+      "description": "Something people may look at (an ad, a sign, an exit): a thin box whose large face is measured against every person's gaze. See the Attention panel."
+    },
+    {
+      "name": "attention:salience",
+      "group": "Attention",
+      "kind": "number",
+      "requires": "attention",
+      "min": 0,
+      "max": 1,
+      "default": 0.5,
+      "description": "How eye-catching it is: bright, backlit or moving is high, a printed poster lower."
+    },
+    {
+      "name": "attention:range",
+      "group": "Attention",
+      "kind": "number",
+      "requires": "attention",
+      "min": 1,
+      "max": 100,
+      "default": 20,
+      "unit": "m",
+      "description": "How far its zone reaches: people within it have an opportunity to see it."
+    },
+    {
+      "name": "area:",
+      "group": "Regions",
+      "kind": "text",
+      "description": "Names a region (area:alley) for scripts and reports to refer to."
+    }
+  ]
+}

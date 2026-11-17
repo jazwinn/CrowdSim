@@ -471,6 +471,30 @@ void registerBuiltinCommands(CommandRegistry& r) {
            },
            false});
 
+    r.add({"DefineTags",
+           "Describe object tags for the editor and tools (content/tags/*.tags.json; replaces the tags from the "
+           "same name). The engine reads tags as text: this only documents them.",
+           obj({{"name", str("source name (the file's name)")}, {"tags", any("crowdsim.tags document")}},
+               {"name", "tags"}),
+           [](const Json& p, CommandContext& ctx) {
+               ctx.assets.tags().define(p.at("name").get<std::string>(), p.at("tags"));
+               CommandOutput out;
+               out.label = "Tags '" + p.at("name").get<std::string>() + "'";
+               return out;
+           },
+           false});
+
+    r.add({"ListTags", "Known object tags: name, group, description, kind (flag, number, text), value range.",
+           obj({}),
+           [](const Json&, CommandContext& ctx) {
+               Json list = Json::array();
+               for (const assets::TagSpec* spec : ctx.assets.tags().all()) {
+                   list.push_back(reflect::toJson(*spec));
+               }
+               return CommandOutput{Json{{"tags", list}}};
+           },
+           false});
+
     r.add({"SaveAgentType",
            "Write an agent type to its content file (the agents/*.agent.json that defines it, else "
            "agents/<name>.agent.json). The file watcher reloads it.",

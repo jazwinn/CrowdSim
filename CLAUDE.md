@@ -41,6 +41,10 @@ parameters, navigation, bodies), add it to the type's descriptor in `assets/incl
 (key, limits, unit, tooltip): saving, loading, validation and the Inspector follow from it
 (`reflect/Reflect.hpp`, ADR 0014). Do not hand-write JSON or Inspector code for one field.
 
+When the engine or a script starts reading a new object tag, describe it in
+`content/tags/*.tags.json` (meaning, group, value range) so the editor can offer it; the
+catalogue is content, read by the editor and tools only.
+
 Remember that trees tick at a low, staggered rate: state a node sets may arrive a few steps
 after an agent spawns, so locomotion must cope with it changing.
 

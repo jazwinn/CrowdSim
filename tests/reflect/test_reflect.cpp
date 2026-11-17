@@ -16,6 +16,7 @@
 #include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/SceneReflection.hpp"
 #include "crowdsim/assets/SceneSerializer.hpp"
+#include "crowdsim/assets/TagCatalog.hpp"
 #include "crowdsim/core/JobSystem.hpp"
 #include "crowdsim/core/Logging.hpp"
 #include "crowdsim/metrics/AttentionModel.hpp"
@@ -187,4 +188,44 @@ TEST_CASE("Attention settings are described and checked") {
     CHECK_THROWS_WITH(reflect::fromJson(Json{{"glanceMin", 3}, {"glanceMax", 1}}, p), "glanceMax: must be at least glanceMin");
     CHECK_THROWS_WITH(reflect::fromJson(Json{{"fieldHalfAngle", 120}}, p),
                       "fieldHalfAngle: must be at least 10 and at most 90");
+}
+
+TEST_CASE("The tag catalogue explains tags and their values from content") {
+    assets::TagCatalog catalog;
+    const std::filesystem::path root = CROWDSIM_CONTENT_DIR;
+    for (const auto& entry : std::filesystem::directory_iterator(root / "tags")) {
+        CAPTURE(entry.path().filename().string());
+        std::ifstream in(entry.path());
+        CHECK_NOTHROW(catalog.define(entry.path().stem().string(), Json::parse(in)));
+    }
+    // Every tag the content scenes use is explained.
+    for (const auto& entry : std::filesystem::directory_iterator(root / "scenes")) {
+        std::ifstream in(entry.path());
+        for (const Json& o : Json::parse(in).value("objects", Json::array())) {
+            for (const Json& t : o.value("tags", Json::array())) {
+                CAPTURE(entry.path().filename().string());
+                CAPTURE(t.get<std::string>());
+                CHECK(catalog.match(t.get<std::string>()).spec != nullptr);
+            }
+        }
+    }
+    const assets::TagMatch salience = catalog.match("attention:salience=0.6");
+    REQUIRE(salience.spec != nullptr);
+    CHECK(salience.spec->kind == assets::TagKind::Number);
+    CHECK(salience.spec->requiredTag == "attention");
+    CHECK(salience.value == "0.6");
+    const assets::TagMatch area = catalog.match("area:alley");
+    REQUIRE(area.spec != nullptr);
+    CHECK(area.value == "alley");
+    CHECK(assets::TagCatalog::compose(*area.spec, "plaza") == "area:plaza");
+    CHECK(catalog.match("walkable").spec->kind == assets::TagKind::Flag);
+    CHECK(catalog.match("made_up").spec == nullptr);
+
+    // A source replaces its own tags; a bad document names the field.
+    catalog.define("extra", Json{{"tags", {{{"name", "made_up"}, {"group", "Test"}}}}});
+    CHECK(catalog.match("made_up").spec != nullptr);
+    catalog.define("extra", Json{{"tags", Json::array()}});
+    CHECK(catalog.match("made_up").spec == nullptr);
+    CHECK_THROWS_WITH(catalog.define("bad", Json{{"tags", {{{"name", "x"}, {"kind", "colour"}}}}}),
+                      "tags.0.kind: expected one of flag, number, text, got \"colour\"");
 }

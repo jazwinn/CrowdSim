@@ -20,6 +20,7 @@
 
 #include "crowdsim/assets/BehaviorJson.hpp"
 #include "crowdsim/assets/JsonTypes.hpp"
+#include "crowdsim/assets/TagCatalog.hpp"
 #include "crowdsim/assets/SceneReflection.hpp"
 #include "crowdsim/commands/Command.hpp"
 #include "crowdsim/commands/CommandDispatcher.hpp"
@@ -558,6 +559,146 @@ bool SceneEditor::agentTypeCombo(const char* id, Json& value, bool byIndex) {
     return done;
 }
 
+namespace {
+
+/// `text` cut to `width` with an ellipsis.
+std::string fitText(const std::string& text, float width) {
+    if (ImGui::CalcTextSize(text.c_str()).x <= width) {
+        return text;
+    }
+    std::string out = text;
+    while (!out.empty() && ImGui::CalcTextSize((out + "...").c_str()).x > width) {
+        out.pop_back();
+    }
+    return out + "...";
+}
+
+std::string numberText(float v) {
+    return std::format("{:g}", assets::roundFloat(v));
+}
+
+}  // namespace
+
+bool SceneEditor::editTags(const char* label, Json& value, const assets::TagCatalog* catalog) {
+    std::vector<std::string> tags;
+    for (const Json& t : value) {
+        tags.push_back(t.get<std::string>());
+    }
+    bool done = false;
+    auto present = [&](const std::string& tag) { return std::find(tags.begin(), tags.end(), tag) != tags.end(); };
+
+    // Heading row: the label, and the Add menu in the value column.
+    propertyLabel(label);
+    if (ImGui::BeginCombo("##addTag", "Add tag...", ImGuiComboFlags_HeightLarge)) {
+        std::string group;
+        if (catalog != nullptr) {
+            for (const assets::TagSpec* spec : catalog->all()) {
+                const bool have = spec->kind != assets::TagKind::Text &&
+                                  std::any_of(tags.begin(), tags.end(), [&](const std::string& t) {
+                                      return catalog->match(t).spec == spec;
+                                  });
+                if (have) {
+                    continue;  // a flag or number tag is there once
+                }
+                if (spec->group != group) {
+                    group = spec->group;
+                    ImGui::SeparatorText(group.c_str());
+                }
+                const std::string shown = spec->kind == assets::TagKind::Text ? spec->name + "..." : spec->name;
+                if (ImGui::Selectable(shown.c_str())) {
+                    if (!spec->requiredTag.empty() && !present(spec->requiredTag)) {
+                        tags.push_back(spec->requiredTag);  // what this tag refines
+                    }
+                    tags.push_back(assets::TagCatalog::compose(
+                        *spec, spec->kind == assets::TagKind::Number ? numberText(spec->defaultValue) : ""));
+                    done = true;
+                }
+                if (!spec->description.empty()) {
+                    ImGui::SetItemTooltip("%s", spec->description.c_str());
+                }
+            }
+        }
+        ImGui::SeparatorText("Other");
+        ImGui::SetNextItemWidth(-1.0f);
+        if (ImGui::InputTextWithHint("##customTag", "any tag, then Enter", customTag_, sizeof(customTag_),
+                                     ImGuiInputTextFlags_EnterReturnsTrue) &&
+            customTag_[0] != '\0') {
+            if (!present(customTag_)) {
+                tags.emplace_back(customTag_);
+                done = true;
+            }
+            customTag_[0] = '\0';
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndCombo();
+    }
+    ImGui::SetItemTooltip("Tags describe the object; engine mechanics and scripts read them (content/tags explains each)");
+
+    // One row per tag: its name, then its value or meaning, and a remove button.
+    const float removeW = ImGui::GetFrameHeight();
+    std::size_t remove = tags.size();
+    ImGui::Indent(ImGui::GetStyle().IndentSpacing * 0.5f);
+    for (std::size_t i = 0; i < tags.size(); ++i) {
+        ImGui::PushID(static_cast<int>(i));
+        const assets::TagMatch m = catalog != nullptr ? catalog->match(tags[i]) : assets::TagMatch{};
+        // A refinement ("attention:salience") reads as an indented "salience" under its tag.
+        std::string name = m.spec != nullptr ? m.spec->name : tags[i];
+        const bool refines = m.spec != nullptr && !m.spec->requiredTag.empty() &&
+                             name.starts_with(m.spec->requiredTag + ":") && name.size() > m.spec->requiredTag.size() + 1;
+        if (refines) {
+            name = "  " + name.substr(m.spec->requiredTag.size() + 1);
+        }
+        if (m.spec != nullptr && m.spec->kind == assets::TagKind::Text) {
+            name += "...";
+        }
+        propertyLabel(name.c_str());
+        const float width = ImGui::GetContentRegionAvail().x - removeW - ImGui::GetStyle().ItemSpacing.x;
+        if (m.spec == nullptr) {
+            ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
+            ImGui::TextUnformatted(fitText("not in the tag catalogue", width).c_str());
+            ImGui::PopStyleColor();
+            ImGui::SetItemTooltip("Kept as it is. Describe it in content/tags/*.tags.json to explain it here.");
+        } else if (m.spec->kind == assets::TagKind::Number) {
+            float v = m.spec->defaultValue;
+            std::from_chars(m.value.data(), m.value.data() + m.value.size(), v);
+            const std::string format = "%.2f" + (m.spec->unit.empty() ? std::string() : " " + m.spec->unit);
+            ImGui::SetNextItemWidth(width);
+            if (ImGui::SliderFloat("##v", &v, m.spec->min, m.spec->max, format.c_str())) {
+                tags[i] = assets::TagCatalog::compose(*m.spec, numberText(v));
+            }
+            done = ImGui::IsItemDeactivatedAfterEdit() || done;
+            ImGui::SetItemTooltip("%s", m.spec->description.c_str());
+        } else if (m.spec->kind == assets::TagKind::Text) {
+            char buf[96];
+            std::snprintf(buf, sizeof(buf), "%s", m.value.c_str());
+            ImGui::SetNextItemWidth(width);
+            if (ImGui::InputText("##v", buf, sizeof(buf))) {
+                tags[i] = assets::TagCatalog::compose(*m.spec, buf);
+            }
+            done = ImGui::IsItemDeactivatedAfterEdit() || done;
+            ImGui::SetItemTooltip("%s", m.spec->description.c_str());
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Text, palette::textDim());
+            ImGui::TextUnformatted(fitText(m.spec->description, width).c_str());
+            ImGui::PopStyleColor();
+            ImGui::SetItemTooltip("%s", m.spec->description.c_str());
+        }
+        ImGui::SameLine(ImGui::GetContentRegionMax().x - removeW);
+        if (ImGui::Button("x", ImVec2(removeW, 0.0f))) {
+            remove = i;
+        }
+        ImGui::SetItemTooltip("Remove this tag");
+        ImGui::PopID();
+    }
+    ImGui::Unindent(ImGui::GetStyle().IndentSpacing * 0.5f);
+    if (remove < tags.size()) {
+        tags.erase(tags.begin() + static_cast<std::ptrdiff_t>(remove));
+        done = true;
+    }
+    value = tags;
+    return done;
+}
+
 bool SceneEditor::editAgentMix(Json& value) {
     // A spawner's agentMix: one line per entry (type, weight, resulting share).
     // Merge-patch replaces arrays, so any change sends the whole list.
@@ -749,6 +890,9 @@ void SceneEditor::drawInspector(const SceneEditorInput& in, std::vector<Json>& c
         if (widget == "agentMix") {
             ImGui::Spacing();
             return editAgentMix(value);
+        }
+        if (widget == "objectTags") {
+            return editTags(label, value, in.tags);
         }
         return std::nullopt;
     };

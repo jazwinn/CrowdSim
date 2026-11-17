@@ -1,0 +1,17 @@
+{
+  "format": "crowdsim.tags",
+  "version": 1,
+  "tags": [
+    {
+      "name": "type:",
+      "group": "Scripts",
+      "kind": "text",
+      "description": "Lua entity type that placed this object (type:info_kiosk); scripts find their objects by it."
+    },
+    {
+      "name": "attraction",
+      "group": "Scripts",
+      "description": "Something people stop at (scripts/info_kiosk.lua: the VisitAttraction node walks to the nearest one)."
+    }
+  ]
+}
