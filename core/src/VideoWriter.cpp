@@ -25,7 +25,9 @@
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
 #pragma GCC diagnostic ignored "-Wcast-qual"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
-#pragma GCC diagnostic ignored "-Wuseless-cast"
+#if !defined(__clang__)
+#pragma GCC diagnostic ignored "-Wuseless-cast"  // GCC only; clang rejects unknown groups under -Werror
+#endif
 #endif
 #include <stb_image_write.h>
 #if defined(_MSC_VER)
