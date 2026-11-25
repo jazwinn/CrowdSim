@@ -11,9 +11,18 @@
 namespace crowdsim::core {
 
 /// Half-open index range [begin, end) handed to a parallel-for body.
+///
+/// `begin` and `end` are kept apart by a word that is always zero. MSVC 14.52 and 14.53 at /O2
+/// load {begin, end} as one 64-bit register and then index arrays with all of it, so `i = begin`
+/// read element (end << 32) + begin and every parallel loop crashed. With zero above `begin`,
+/// such a load still yields the right index. 14.44 is unaffected.
 struct IndexRange {
     std::uint32_t begin = 0;
+    std::uint32_t zeroHigh_ = 0;
     std::uint32_t end = 0;
+
+    constexpr IndexRange() = default;
+    constexpr IndexRange(std::uint32_t b, std::uint32_t e) : begin(b), end(e) {}
 };
 
 class JobSystem {
